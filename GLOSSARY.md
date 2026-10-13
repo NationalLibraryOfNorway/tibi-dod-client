@@ -56,3 +56,7 @@ _Avoid_: Profile, target
 Something `dod` notices about a Service while talking to it that is not a Conformance test Outcome, such as an unencrypted endpoint. It never affects the exit code.
 _Avoid_: Warning, finding
 
+
+**Exchange**:
+The raw request and response of one call to a Service as they went over the wire. It is unmasked; hiding secrets is the job of whatever presents it.
+_Avoid_: Transcript, trace
