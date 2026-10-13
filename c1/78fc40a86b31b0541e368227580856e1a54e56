@@ -1,0 +1,19 @@
+docs/research/dodp-v1-spec.md
+  s_fcf1ebd33233db::t_72a9cfffd54d68 1-138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c178fc40a86b31b0541e368227580856e1a54e56",
+  "prompts": {},
+  "sessions": {
+    "s_fcf1ebd33233db": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "31f3cff1-0d60-4afb-afb4-fef17ae8a52c",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
