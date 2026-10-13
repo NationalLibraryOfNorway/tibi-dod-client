@@ -1,0 +1,21 @@
+docs/adr/0004-synchronous-version-specific-port-with-replies-as-values.md
+  s_3913a3804fde13::t_9a0048f0952892 1-5
+GLOSSARY.md
+  s_3913a3804fde13::t_513a86bd84e328 59-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6a1f61ed8bd846a04f1ece6899d1c238da77d7a0",
+  "prompts": {},
+  "sessions": {
+    "s_3913a3804fde13": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c0fcab40-b19e-4f1e-bbd7-449403d88760",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
