@@ -31,3 +31,19 @@ _Avoid_: Invalid session, stale cookie
 **Ephemeral mode**:
 Running a command with its own Session that is never persisted and is ended with `logOff` afterwards.
 _Avoid_: Stateless mode
+
+**Conformance test**:
+A check of one aspect of a Service's behaviour against the DODP v1 specification. Each ends in exactly one Outcome.
+_Avoid_: Test case, probe
+
+**Outcome**:
+The result of a Conformance test: **PASS** (the Service answered as the specification requires), **FAIL** (the Service answered, but contrary to the specification), **SKIP** (the test does not apply or was not opted into) or **ERROR** (the test could not be evaluated).
+_Avoid_: Status, verdict
+
+**Spec deviation**:
+A Service answer that contradicts the DODP v1 specification, such as a fault with no recognisable DODP fault element. Reported as FAIL.
+_Avoid_: Bug, quirk
+
+**State-changing test**:
+A Conformance test that alters data on the Service, such as the loan state of a content item. Skipped unless explicitly enabled.
+_Avoid_: Destructive test
