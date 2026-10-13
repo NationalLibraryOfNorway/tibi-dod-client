@@ -1,0 +1,19 @@
+GLOSSARY.md
+  s_909371a309382e::t_7b794b9ea3b06c 34-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "db85ff6cf8e8f9a5506f728c4c58c4bfcc5aae09",
+  "prompts": {},
+  "sessions": {
+    "s_909371a309382e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1dc4ed5b-b374-4799-85d5-f26d38580516",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
