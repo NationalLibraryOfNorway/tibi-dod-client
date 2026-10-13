@@ -60,3 +60,7 @@ _Avoid_: Warning, finding
 **Exchange**:
 The raw request and response of one call to a Service as they went over the wire. It is unmasked; hiding secrets is the job of whatever presents it.
 _Avoid_: Transcript, trace
+
+**Reply**:
+A Service's answer to one call, whatever it contains: a result, a fault, or an answer that contradicts the specification. Only a call that got no usable answer at all has no Reply.
+_Avoid_: Response, result
