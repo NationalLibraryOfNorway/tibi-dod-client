@@ -1,0 +1,25 @@
+docs/agents/issue-tracker.md
+  s_88e0ec448ef104::t_7d412f5db7f073 1-46
+docs/agents/domain.md
+  s_88e0ec448ef104::t_7d412f5db7f073 1-51
+AGENTS.md
+  s_88e0ec448ef104::t_7d412f5db7f073 1-9
+CLAUDE.md
+  s_88e0ec448ef104::t_58fc89689be1db 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "21994460ae4f2b10188da450de2874626dcbc04c",
+  "prompts": {},
+  "sessions": {
+    "s_88e0ec448ef104": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "08103fab-aed2-4473-bf9a-17b26c886c5c",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
