@@ -1,0 +1,18 @@
+.agents/skills/signature/SKILL.md
+  h_a4834234958a5d 1-39
+.agents/skills/signature/scripts/jira-users.csv
+  h_a4834234958a5d 1
+.agents/skills/signature/scripts/signature.sh
+  h_a4834234958a5d 1-237
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e9ddc036f768b8e9df8fc89ac729204c9836430e",
+  "prompts": {},
+  "humans": {
+    "h_a4834234958a5d": {
+      "author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
