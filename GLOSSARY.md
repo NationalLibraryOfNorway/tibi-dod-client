@@ -47,3 +47,12 @@ _Avoid_: Bug, quirk
 **State-changing test**:
 A Conformance test that alters data on the Service, such as the loan state of a content item. Skipped unless explicitly enabled.
 _Avoid_: Destructive test
+
+**Environment**:
+A named, locally configured address to one Service (for example prod, test or local), selected instead of typing the full URL. It never holds a password and is only an alias: Sessions are identified by the resolved Service URL.
+_Avoid_: Profile, target
+
+**Observation**:
+Something `dod` notices about a Service while talking to it that is not a Conformance test Outcome, such as an unencrypted endpoint. It never affects the exit code.
+_Avoid_: Warning, finding
+
