@@ -1,0 +1,16 @@
+.agents/skills/human-code-review/SKILL.md
+  h_a4834234958a5d 1-212
+skills-lock.json
+  h_a4834234958a5d 58-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ea5af8104f271c3606e57c7507b7b4617aeb814",
+  "prompts": {},
+  "humans": {
+    "h_a4834234958a5d": {
+      "author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
