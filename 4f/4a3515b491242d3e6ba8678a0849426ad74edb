@@ -1,0 +1,21 @@
+docs/adr/0001-plaintext-session-files.md
+  s_fcf1ebd33233db::t_e1eabe15113b8c 1-3
+GLOSSARY.md
+  s_fcf1ebd33233db::t_e1eabe15113b8c 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4f4a3515b491242d3e6ba8678a0849426ad74edb",
+  "prompts": {},
+  "sessions": {
+    "s_fcf1ebd33233db": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "31f3cff1-0d60-4afb-afb4-fef17ae8a52c",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
