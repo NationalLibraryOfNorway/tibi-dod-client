@@ -55,6 +55,12 @@
       "skillPath": "skills/productivity/handoff/SKILL.md",
       "computedHash": "8ebcf017c0a59681f3c2f1ebf90e32f481954a068181a75151c44aa2c55de4b4"
     },
+    "human-code-review": {
+      "source": "NationalLibraryOfNorway/tibi-skills",
+      "sourceType": "github",
+      "skillPath": "skills/human-code-review/SKILL.md",
+      "computedHash": "992c5070ec10cc0437412b8d5935e76b7c4281598c179de5a4d11bc124a4b085"
+    },
     "implement": {
       "source": "mattpocock/skills",
       "sourceType": "github",
