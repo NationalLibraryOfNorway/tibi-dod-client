@@ -1,0 +1,19 @@
+docs/research/libraries-and-licences.md
+  s_fcf1ebd33233db::t_2a3dc3cc2e4718 1-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6fc04028dd56f31d1d54148812d46dc550688be6",
+  "prompts": {},
+  "sessions": {
+    "s_fcf1ebd33233db": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "31f3cff1-0d60-4afb-afb4-fef17ae8a52c",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
