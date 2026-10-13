@@ -1,0 +1,33 @@
+docs/spec/dodp-v1/do.css
+  s_98b06670436a65::t_d84f56422daadc 1-454
+docs/spec/dodp-v1/do-dm-primer.html
+  s_98b06670436a65::t_d84f56422daadc 1-950
+docs/spec/dodp-v1/do-wsdl-10.wsdl
+  s_98b06670436a65::t_d84f56422daadc 1-967
+README.md
+  s_98b06670436a65::t_7ee212a41a17e7 1-12
+docs/spec/dodp-v1/do-types-10.xsd
+  s_98b06670436a65::t_d84f56422daadc 1-419
+docs/spec/dodp-v1/bookmark-2005-1.xsd
+  s_98b06670436a65::t_d84f56422daadc 1-267
+docs/adr/0003-layered-architecture-and-interface-level-testing.md
+  s_98b06670436a65::t_c70bc0d3b9e54b 1-3
+docs/spec/dodp-v1/do-spec-20100402.html
+  s_98b06670436a65::t_d84f56422daadc 1-4980
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6d4f97d33f9d5c9a20e595173b9839d0f0a7581f",
+  "prompts": {},
+  "sessions": {
+    "s_98b06670436a65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cb359a05-e28b-42cc-87cb-baedc981e2e1",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
