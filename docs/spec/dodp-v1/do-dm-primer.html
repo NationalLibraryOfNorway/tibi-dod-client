@@ -1,0 +1,950 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+   <head>
+      <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+      <title>DAISY Online Delivery Protocol - Dynamic Menus Primer</title>
+      <link href="do.css" rel="stylesheet" type="text/css"/>
+      <meta content="DocBook XSL Stylesheets Vsnapshot_8378" name="generator"/>
+      <meta content="This document contains examples of how to use the Dynamic Menus feature of the DAISY Online Delivery Protocol. This document is not a normative part of the DAISY Online Delivery Protocol, and may change at any time outside the scope of the revision cycle of the DAISY Online Delivery Protocol specification. There are examples of menu design and User interaction, along with the specific messages passed between the Reading System and the Service." name="description"/>
+   </head>
+   <body><a href="http://www.daisy.org/"><img alt="DAISY Consortium Logo - Link to Home Page" border="0" class="logo" height="110" src="http://www.daisy.org/images/daisylogo-w.gif" width="150"/></a><div class="book" title="DAISY Online Delivery Protocol - Dynamic Menus Primer">
+         <h1 class="title"><a id="w55aa"/>DAISY Online Delivery Protocol - Dynamic Menus Primer
+         </h1>
+         <div>
+            <div class="author">
+               <h3 class="author"><span class="firstname">Kenny</span> <span class="surname">Johar</span></h3>
+               <div class="affiliation"><span class="orgname">Vision Australia<br/></span></div>
+            </div>
+         </div>
+         <div>
+            <div class="author">
+               <h3 class="author"><span class="firstname">Geoff</span> <span class="surname">Gilmour-Taylor</span></h3>
+               <div class="affiliation"><span class="orgname">CNIB<br/></span></div>
+            </div>
+         </div>
+         <div>
+            <div class="author">
+               <h3 class="author"><span class="firstname">Nick</span> <span class="surname">Williamson</span></h3>
+               <div class="affiliation"><span class="orgname">RNIB<br/></span></div>
+            </div>
+         </div>
+         <div>
+            <div class="author">
+               <h3 class="author"><span class="firstname">Johan</span> <span class="surname">Abbors</span></h3>
+               <div class="affiliation"><span class="orgname">PratSam<br/></span></div>
+            </div>
+         </div>
+         <div/>
+         <div>
+            <div class="abstract" title="Abstract">
+               <p class="title"><b>Abstract</b></p>
+               <p> This document contains examples of how to use the Dynamic Menus feature of the
+                  DAISY Online Delivery Protocol. This document is not a normative part of the DAISY
+                  Online Delivery Protocol, and may change at any time outside the scope of the revision
+                  cycle of the DAISY Online Delivery Protocol specification. 
+               </p>
+               <p>There are examples of menu design and User interaction, along with the specific messages
+                  			passed between the Reading System and the Service.
+               </p>
+            </div>
+         </div>
+         <div class="toc">
+            <p><b>Table of Contents</b></p>
+            <dl>
+               <dt><span class="chapter"><a href="#overview">1. Overview</a></span></dt>
+               <dt><span class="chapter"><a href="#mainMenu">2. The Main Menu</a></span></dt>
+               <dt><span class="chapter"><a href="#search">3. Search</a></span></dt>
+               <dt><span class="chapter"><a href="#profileUpdate">4. Updating the User Profile</a></span></dt>
+               <dt><span class="chapter"><a href="#survey">5. Taking a Survey (with audio responses)</a></span></dt>
+               <dt><span class="chapter"><a href="#purchase">6. Content Purchase</a></span></dt>
+               <dt><span class="chapter"><a href="#retrieve">7. Retrieving a Content list</a></span></dt>
+            </dl>
+         </div>
+         <div class="chapter" title="1. Overview">
+            <h2 class="title"><a id="overview"/>1. Overview
+            </h2>
+            <p>Reading Systems can access a Service&#39;s dynamic menus using the
+               			<code class="function"><a class="link" href="do-spec-20100402.html#op_getQuestions" target="_self">getQuestions</a></code>
+               			operation.  <code class="function">getQuestions</code> takes one parameter,
+               			<span class="type"><a class="link" href="do-spec-20100402.html#tp_userResponses" target="_self">userResponses</a></span>,
+               			which itself contains one or more <span class="type"><a class="link" href="do-spec-20100402.html#tp_userResponse" target="_self">userResponse</a></span>
+               			elements.  Each <span class="type">userResponse</span>
+               			element contains the user&#39;s response to a particular
+               			question or a reserved question ID.
+            </p>
+            <p>There are three reserved question IDs:
+               			
+            </p>
+            <div class="variablelist">
+               <dl>
+                  <dt><span class="term"><code class="literal">default</code></span></dt>
+                  <dd>
+                     <p>the main menu;</p>
+                  </dd>
+                  <dt><span class="term"><code class="literal">search</code></span></dt>
+                  <dd>
+                     <p>the search menu;</p>
+                  </dd>
+                  <dt><span class="term"><code class="literal">back</code></span></dt>
+                  <dd>
+                     <p>the previous question.</p>
+                  </dd>
+               </dl>
+            </div>
+            <p>
+               		
+            </p>
+            <p> A question can be a multiple choice question (see <span class="type">
+                  				<a class="link" href="do-spec-20100402.html#tp_multipleChoiceQuestion" target="_self">multipleChoiceQuestion</a></span>),
+               				or a question that can receive a numeric text, alphanumeric text or audio
+               			response from the user (see <span class="type"><a class="link" href="tp_inputQuestion" target="_self">inputQuestion</a></span>).
+            </p>
+            <p>To respond to a <span class="type">multipleChoiceQuestion</span> in a <span class="type">userResponse</span>:
+            </p>
+            <div class="itemizedlist">
+               <ul class="itemizedlist">
+                  <li class="listitem">
+                     <p>the <code class="literal">questionID</code> attribute is set to the value of the
+                        				<span class="type">multipleChoiceQuestion</span>&#39;s <code class="literal">id</code> attribute;
+                     </p>
+                  </li>
+                  <li class="listitem">
+                     <p>the <code class="literal">value</code> attribute is set to the value of the
+                        				<code class="literal">id</code> of the <span class="type">choice</span> the User has selected.
+                     </p>
+                  </li>
+               </ul>
+            </div>
+            <p>To respond to an <span class="type">inputQuestion</span> in a <span class="type">userResponse</span>:
+            </p>
+            <div class="itemizedlist">
+               <ul class="itemizedlist">
+                  <li class="listitem">
+                     <p>the <code class="literal">questionID</code> attribute is set to the value of the
+                        				<span class="type">inputQuestion</span>&#39;s <code class="literal">id</code> attribute;
+                     </p>
+                  </li>
+                  <li class="listitem">
+                     <p>if the response is numeric or alphanumeric,
+                        				the <code class="literal">value</code> attribute is set to the text the User has entered;
+                     </p>
+                  </li>
+                  <li class="listitem">
+                     <p>if the response is in an audio format,
+                        				the <code class="literal">value</code> attribute must be either blank or absent,
+                        				and a <span class="type">data</span> child element must be included that holds the base-64
+                        				encoded audio data (see <span class="type">
+                           				<a class="link" href="do-spec-20100402.html#tp_data" target="_self">data</a>
+                           			</span> for file format requirements).
+                     </p>
+                  </li>
+               </ul>
+            </div>
+            <p class="tip">Question and choice IDs are arbitrary.</p>
+            <p>The following examples of User-Service interaction are meant to show some of the purposes
+               			the Dynamic Menus feature of the protocol may be used for.  The menus themselves, the User&#39;s
+               			responses and the rendering of the menus are illustrative, not compulsory.
+               		
+            </p>
+         </div>
+         <div class="chapter" title="2. The Main Menu">
+            <h2 class="title"><a id="mainMenu"/>2. The Main Menu
+            </h2>
+            <p>The first menu requested in a Session must be the main menu.
+               				The Reading System retrieves the main menu of the Service by calling 
+               				<code class="function">getQuestions</code> as follows:
+               
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;default&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>
+               
+            </p>
+            <p>The operation returns the Service&#39;s main menu:
+               <a id="mainMenuCode"/></p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;multipleChoiceQuestion id=&quot;q1&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;What would you like to do?&lt;/text&gt;
+    &lt;/label&gt;
+    &lt;choices&gt;
+      &lt;choice id=&quot;c1&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Search the library&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c2&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Update your profile&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c3&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Take a survey&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c4&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Buy a book&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c5&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Go to your bookshelf&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+    &lt;/choices&gt;
+  &lt;/multipleChoiceQuestion&gt;
+&lt;/questions&gt;
+</pre><p>
+               
+            </p>
+            <p>The Reading System renders this menu to the User in the following way:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <p>What would you like to do?</p>
+                  <div class="itemizedlist">
+                     <ul class="itemizedlist">
+                        <li class="listitem">
+                           <p>Search the library</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Update your profile</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Take a survey</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Buy a book</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Go to your bookshelf</p>
+                        </li>
+                     </ul>
+                  </div>
+               </blockquote>
+            </div>
+         </div>
+         <div class="chapter" title="3. Search">
+            <h2 class="title"><a id="search"/>3. Search
+            </h2>
+            <p>The <code class="literal">search</code> question ID is reserved for requesting the Service&#39;s
+               			search menu.
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;search&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>In the example Service, the search menu can also be selected from the
+               <a class="xref" href="#mainMenuCode">main menu</a>:
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;q1&quot; value=&quot;c1&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>Both methods can be used.  Reading Systems can have a &quot;Search&quot; button that
+               			jumps straight to the search menu, regardless of where it is in the menus,
+               			if the Service supports the <code class="literal">search</code> ID.
+               		
+            </p>
+            <p>The operation returns the following:
+               
+            </p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;inputQuestion id=&quot;q2-1&quot;&gt;
+    &lt;inputTypes&gt;
+      &lt;input type=&quot;TEXT_ALPHANUMERIC&quot; /&gt;
+    &lt;/inputTypes&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Full text search:&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/inputQuestion&gt;
+  &lt;inputQuestion id=&quot;q2-2&quot;&gt;
+    &lt;inputTypes&gt;
+      &lt;input type=&quot;TEXT_ALPHANUMERIC&quot; /&gt;
+    &lt;/inputTypes&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Title keyword(s):&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/inputQuestion&gt;
+  &lt;inputQuestion id=&quot;q2-3&quot;&gt;
+    &lt;inputTypes&gt;
+      &lt;input type=&quot;TEXT_ALPHANUMERIC&quot; /&gt;
+    &lt;/inputTypes&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Author keyword(s):&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/inputQuestion&gt;
+  &lt;inputQuestion id=&quot;q2-4&quot;&gt;
+    &lt;inputTypes&gt;
+      &lt;input type=&quot;TEXT_ALPHANUMERIC&quot; /&gt;
+    &lt;/inputTypes&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Subject keyword(s):&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/inputQuestion&gt;
+  &lt;inputQuestion id=&quot;q2-5&quot;&gt;
+    &lt;inputTypes&gt;
+      &lt;input type=&quot;TEXT_ALPHANUMERIC&quot; /&gt;
+    &lt;/inputTypes&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Narrator keyword(s):&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/inputQuestion&gt;
+  &lt;inputQuestion id=&quot;q2-6&quot;&gt;
+    &lt;inputTypes&gt;
+      &lt;input type=&quot;TEXT_ALPHANUMERIC&quot; /&gt;
+    &lt;/inputTypes&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Call number:&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/inputQuestion&gt;
+&lt;/questions&gt;
+</pre><p>
+               The Reading System renders this to the User as follows:
+            </p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <div class="itemizedlist">
+                     <ul class="itemizedlist">
+                        <li class="listitem">
+                           <p>Full text search:</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Title keyword(s):</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Author keyword(s):</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Subject keyword(s):</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Narrator keyword(s):</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Call number:</p>
+                        </li>
+                     </ul>
+                  </div>
+               </blockquote>
+            </div>
+            <p>If the User specifies the author keyword &quot;asimoff&quot; and the subject keyword &quot;myst*&quot;, the Reading System would retrieve the
+               next menu by
+               calling <code class="function">getQuestions</code> as follows:
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;q2-3&quot; value=&quot;asimoff&quot; /&gt;
+    &lt;userResponse questionID=&quot;q2-4&quot; value=&quot;myst*&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>This operation returns the following:</p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;contentListRef&gt;L100&lt;/contentListRef&gt;
+&lt;/questions&gt;
+</pre><p>The Reading System reads the ID of the <span class="type">contentList</span> from the <span class="type">contentListRef</span> element,
+               and calls the <code class="function"><a class="link" href="do-spec-20100402.html#op_getContentList" target="_self">getContentList</a></code> operation:
+            </p><pre class="programlisting">&lt;getContentList xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;id&gt;L100&lt;/id&gt;
+  &lt;firstItem&gt;0&lt;/firstItem&gt;
+  &lt;lastItem&gt;19&lt;/lastItem&gt;
+&lt;/getContentList&gt;
+</pre><p>This requests the <span class="type">contentList</span> with ID &quot;L100&quot;, and specifies that the first
+               <span class="type">contentItem</span> returned should be at index 0 and the last <span class="type">contentItem</span> should be at
+               index 19 (i.e. the first 20 <span class="type">contentItem</span>s). The <code class="literal">firstItem</code>
+               and <code class="literal">lastItem</code> parameters enable the Reading System to request a <span class="type">contentList</span>
+               with a specified number of <span class="type">contentItem</span>s, in situations where memory or
+               bandwidth constraints may not permit the retrieval of an entire <span class="type">contentList</span>. 
+            </p>
+            <p>The operation returns the following <span class="type">contentList</span>:
+            </p><pre class="programlisting">&lt;contentList xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;
+             id=&quot;L100&quot; firstItem=&quot;0&quot; lastItem=&quot;2&quot; totalItems=&quot;3&quot;&gt;
+  &lt;label xml:lang=&quot;en&quot;&gt;
+    &lt;text&gt;Search for Author: asimoff AND Subject: myst* returned no results.
+    Did you mean &quot;Asimov&quot;? Showing results 1 to 3 of 3.&lt;/text&gt;
+  &lt;/label&gt;
+  &lt;contentItem id=&quot;dtb49589&quot; lastModifiedDate=&quot;2009-08-20T11:00:00Z&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Tales of the Black Widowers by Isaac Asimov&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/contentItem&gt;
+  &lt;contentItem id=&quot;dtb51992&quot; lastModifiedDate=&quot;2009-08-22T08:00:00Z&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;More Tales of the Black Widowers by Isaac Asimov&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/contentItem&gt;
+  &lt;contentItem id=&quot;dtb66185&quot; lastModifiedDate=&quot;2009-08-04T14:30:00Z&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;The Caves of Steel by Isaac Asimov&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/contentItem&gt;
+&lt;/contentList&gt;
+</pre><p>The Reading System renders it as follows:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <p>Search for Author: asimoff AND Subject: myst* returned no results.
+                     			Did you mean &quot;Asimov&quot;? Showing results 1 to 3 of 3.
+                  </p>
+                  <div class="itemizedlist">
+                     <ul class="itemizedlist">
+                        <li class="listitem">
+                           <p>Tales of the Black Widowers by Isaac Asimov</p>
+                        </li>
+                        <li class="listitem">
+                           <p>More Tales of the Black Widowers by Isaac Asimov</p>
+                        </li>
+                        <li class="listitem">
+                           <p>The Caves of Steel by Isaac Asimov</p>
+                        </li>
+                     </ul>
+                  </div>
+               </blockquote>
+            </div>
+            <p>When a Service returns a <span class="type">questions</span> element with a <span class="type">contentListRef</span> child, the
+               Reading System is at an endpoint of the Service&#39;s dynamic menus. The Reading System
+               gets the ID of the <span class="type">contentList</span> from the <span class="type">contentListRef</span> element as illustrated above,
+               and calls <code class="function">getContentList</code> to retrieve it. 
+            </p>
+            <p>The Reading System may retrieve information about the specific <span class="type">contentItems</span> in
+               the <span class="type">contentList</span> by calling the
+               			<code class="function"><a class="link" href="do-spec-20100402.html#op_getContentMetadata" target="_self">getContentMetadata</a></code>
+               			operation, passing the ID of
+               the particular Content item. At this stage, the Reading System may ask the User whether
+               he or she wishes to download or stream the Content. If the User wishes to do so,
+               the Reading System calls the
+               			<code class="function"><a class="link" href="do-spec-20100402.html#op_issueContent" target="_self">issueContent</a></code>
+               			operation passing the ID of the
+               Content item, then calls the
+               			<code class="function"><a class="link" href="do-spec-20100402.html#op_getContentResources" target="_self">getContentResources</a></code>
+               			operation, to
+               request issuance and retrieve the URIs of the Content&#39;s resources, respectively. 
+            </p>
+         </div>
+         <div class="chapter" title="4. Updating the User Profile">
+            <h2 class="title"><a id="profileUpdate"/>4. Updating the User Profile
+            </h2>
+            <p>The User selects the &quot;Update your profile&quot; option from the
+               			<a class="xref" href="#mainMenuCode">main menu</a>.  The Reading System calls <code class="function">getQuestions</code> as
+               follows:
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;q1&quot; value=&quot;c2&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>This operation returns the following:</p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;inputQuestion id=&quot;q3-1&quot;&gt;
+    &lt;inputTypes&gt;
+      &lt;input type=&quot;TEXT_ALPHANUMERIC&quot; /&gt;
+    &lt;/inputTypes&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Your name:&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/inputQuestion&gt;
+  &lt;inputQuestion id=&quot;q3-2&quot;&gt;
+    &lt;inputTypes&gt;
+      &lt;input type=&quot;TEXT_ALPHANUMERIC&quot; /&gt;
+    &lt;/inputTypes&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Your address:&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/inputQuestion&gt;
+  &lt;multipleChoiceQuestion id=&quot;q3-3&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Your gender:&lt;/text&gt;
+    &lt;/label&gt;
+    &lt;choices&gt;
+      &lt;choice id=&quot;c1&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Male&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c2&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Female&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+    &lt;/choices&gt;
+  &lt;/multipleChoiceQuestion&gt;
+&lt;/questions&gt;
+</pre><p>The Reading System renders this as follows:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <div class="itemizedlist">
+                     <ul class="itemizedlist">
+                        <li class="listitem">
+                           <p>Your name:</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Your address:</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Your gender:</p>
+                           <div class="itemizedlist">
+                              <ul class="itemizedlist">
+                                 <li class="listitem">
+                                    <p>Male</p>
+                                 </li>
+                                 <li class="listitem">
+                                    <p>Female</p>
+                                 </li>
+                              </ul>
+                           </div>
+                        </li>
+                     </ul>
+                  </div>
+               </blockquote>
+            </div>
+            <p>After the User responds to the questions, the Reading System calls <code class="function">getQuestions</code>
+               as follows:
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;q3-1&quot; value=&quot;Margaret Asterales&quot; /&gt;
+    &lt;userResponse questionID=&quot;q3-2&quot;
+                  value=&quot;Grubenstrasse 12, 8045 Zurich, Switzerland&quot; /&gt;
+    &lt;userResponse questionID=&quot;q3-3&quot; value=&quot;c2&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>This operation returns the following:</p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;label xml:lang=&quot;en&quot;&gt;
+    &lt;text&gt;Your profile has been updated successfully!&lt;/text&gt;
+  &lt;/label&gt;
+&lt;/questions&gt;
+</pre><p>The Reading System renders this as follows:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <p>Your profile has been updated successfully!</p>
+               </blockquote>
+            </div>
+            <p>If the Service returns a <span class="type">questions</span> element with a <span class="type">label</span> child element, the
+               Reading System is at an endpoint of the Service&#39;s dynamic menus.
+            </p>
+            <p class="tip">The Service could offer to take the User back to a previous menu by returning a
+               <span class="type">multipleChoiceQuestion</span> within the questions as follows:
+            </p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;multipleChoiceQuestion id=&quot;q3-4&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Your profile has been updated successfully! What would
+      you like to do next?&lt;/text&gt;
+    &lt;/label&gt;
+    &lt;choices&gt;
+      &lt;choice id=&quot;c1&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Reenter your profile information&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c2&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Go back to the previous menu&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+    &lt;/choices&gt;
+  &lt;/multipleChoiceQuestion&gt;
+&lt;/questions&gt;
+</pre><p>The Reading System renders this as follows:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <p>Your profile has been updated successfully! What would you like to do next?</p>
+                  <div class="itemizedlist">
+                     <ul class="itemizedlist">
+                        <li class="listitem">
+                           <p>Reenter your profile information</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Go back to the previous menu</p>
+                        </li>
+                     </ul>
+                  </div>
+               </blockquote>
+            </div>
+         </div>
+         <div class="chapter" title="5. Taking a Survey (with audio responses)">
+            <h2 class="title"><a id="survey"/>5. Taking a Survey (with audio responses)
+            </h2>
+            <p>The User selects the &quot;Take a survey&quot; option from the
+               			<a class="xref" href="#mainMenuCode">main menu</a>.  The Reading System calls <code class="function">getQuestions</code> as
+               follows:
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;q1&quot; value=&quot;c3&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>This operation returns the following:</p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;inputQuestion id=&quot;q4-1&quot;&gt;
+    &lt;inputTypes&gt;
+      &lt;input type=&quot;TEXT_ALPHANUMERIC&quot; /&gt;
+    &lt;/inputTypes&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;What is your favorite feature in the Service?&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/inputQuestion&gt;
+  &lt;multipleChoiceQuestion id=&quot;q4-2&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;On a scale of one to four, where four is very satisfied
+      and 1 is not satisfied, how would you rate the
+      Service?&lt;/text&gt;
+    &lt;/label&gt;
+    &lt;choices&gt;
+      &lt;choice id=&quot;c1&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;1&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c2&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;2&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c3&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;3&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c4&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;4&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+    &lt;/choices&gt;
+  &lt;/multipleChoiceQuestion&gt;
+  &lt;inputQuestion id=&quot;q4-3&quot;&gt;
+    &lt;inputTypes&gt;
+      &lt;input type=&quot;AUDIO&quot; /&gt;
+      &lt;input type=&quot;TEXT_ALPHANUMERIC&quot; /&gt;
+    &lt;/inputTypes&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Please provide feedback on the Service.&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/inputQuestion&gt;
+&lt;/questions&gt;
+</pre><p>The Reading System renders this as follows:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <div class="itemizedlist">
+                     <ul class="itemizedlist">
+                        <li class="listitem">
+                           <p>What is your favorite feature in the Service?</p>
+                        </li>
+                        <li class="listitem">
+                           <p>On a scale of one to four, where four is very satisfied and 1 is not
+                              					satisfied, how would you rate the Service?
+                           </p>
+                           <div class="itemizedlist">
+                              <ul class="itemizedlist">
+                                 <li class="listitem">
+                                    <p>1</p>
+                                 </li>
+                                 <li class="listitem">
+                                    <p>2</p>
+                                 </li>
+                                 <li class="listitem">
+                                    <p>3</p>
+                                 </li>
+                                 <li class="listitem">
+                                    <p>4</p>
+                                 </li>
+                              </ul>
+                           </div>
+                        </li>
+                        <li class="listitem">
+                           <p>Please provide feedback on the Service.</p>
+                        </li>
+                     </ul>
+                  </div>
+               </blockquote>
+            </div>
+            <p>After the User responds to the questions, the Reading System calls
+               			<code class="function">getQuestions</code> as follows:
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;q4-1&quot; value=&quot;Searching for books.&quot; /&gt;
+    &lt;userResponse questionID=&quot;q4-2&quot; value=&quot;c3&quot; /&gt;
+    &lt;userResponse questionID=&quot;q4-3&quot;&gt;
+      &lt;data&gt;
+        &lt;!-- base64 binary data --&gt;
+      &lt;/data&gt;
+    &lt;/userResponse&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>This operation returns the following:</p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;multipleChoiceQuestion id=&quot;q4-4&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Thank you for taking the Survey! What would you like to
+      do next?&lt;/text&gt;
+    &lt;/label&gt;
+    &lt;choices&gt;
+      &lt;choice id=&quot;c1&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Take another survey&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c2&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Go back to the previous menu&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;default&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Go back to the main menu&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+    &lt;/choices&gt;
+  &lt;/multipleChoiceQuestion&gt;
+&lt;/questions&gt;
+</pre><p>The Reading System renders this as follows:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <p>Thank you for taking the survey! What would you like to do next?</p>
+                  <div class="itemizedlist">
+                     <ul class="itemizedlist">
+                        <li class="listitem">
+                           <p>Take another survey</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Go back to the previous menu</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Go back to the main menu</p>
+                        </li>
+                     </ul>
+                  </div>
+               </blockquote>
+            </div>
+         </div>
+         <div class="chapter" title="6. Content Purchase">
+            <h2 class="title"><a id="purchase"/>6. Content Purchase
+            </h2>
+            <p>The User selects the &quot;Buy a book&quot; option from the
+               			<a class="xref" href="#mainMenuCode">main menu</a>.  The Reading System calls <code class="function">getQuestions</code> as
+               follows:
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;q1&quot; value=&quot;c4&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>This operation returns the following:</p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;multipleChoiceQuestion id=&quot;q5&quot; allowMultipleSelections=&quot;true&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Which of the following book(s) would you like to
+      buy?&lt;/text&gt;
+    &lt;/label&gt;
+    &lt;choices&gt;
+      &lt;choice id=&quot;c1&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Harry Potter and the Chamber of Secrets&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c2&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Harry Potter and the Deathly Hallows&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c3&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Harry Potter and the Goblet of Fire&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c4&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Harry Potter and the Half-Blood Prince&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c5&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Harry Potter and the Order of the Phoenix&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+    &lt;/choices&gt;
+  &lt;/multipleChoiceQuestion&gt;
+&lt;/questions&gt;
+</pre><p>The Reading System renders this as follows:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <p>Which of the following book(s) would you like to buy?</p>
+                  <div class="itemizedlist">
+                     <ul class="itemizedlist">
+                        <li class="listitem">
+                           <p>Harry Potter and the Chamber of Secrets</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Harry Potter and the Deathly Hallows</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Harry Potter and the Goblet of Fire</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Harry Potter and the Half-Blood Prince</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Harry Potter and the Order of the Phoenix</p>
+                        </li>
+                     </ul>
+                  </div>
+               </blockquote>
+            </div>
+            <p class="tip">The <code class="code">allowMultipleSelections</code> attribute of the
+               			<span class="type">multipleChoiceQuestion</span> element
+               tells the Reading System whether a User is allowed to select multiple answers
+               from the list of choices.
+            </p>
+            <p>To select multiple answers at once, a Reading System can put multiple
+               			<span class="type">userResponse</span> child elements in a <span class="type">userResponses</span>
+               			parameter, as illustrated below. Here, the User selects choices 2, 3 and 5.
+            </p>
+            <p>The Reading System calls <code class="function">getQuestions</code> as
+               follows:
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;q5&quot; value=&quot;c2&quot; /&gt;
+    &lt;userResponse questionID=&quot;q5&quot; value=&quot;c3&quot; /&gt;
+    &lt;userResponse questionID=&quot;q5&quot; value=&quot;c5&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>This operation returns the following:</p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;multipleChoiceQuestion id=&quot;q5-1&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Thank you for purchasing &quot;Harry Potter and the Deathly
+      Hallows&quot;, &quot;Harry Potter and the Goblet of Fire&quot; and &quot;Harry
+      Potter and the Order of the Phoenix&quot;. These books have been
+      billed to your credit card. What would you like to do
+      next?&lt;/text&gt;
+    &lt;/label&gt;
+    &lt;choices&gt;
+      &lt;choice id=&quot;c1&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Buy more books&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c2&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Add these books to my bookshelf&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+      &lt;choice id=&quot;c3&quot;&gt;
+        &lt;label xml:lang=&quot;en&quot;&gt;
+          &lt;text&gt;Read these books now&lt;/text&gt;
+        &lt;/label&gt;
+      &lt;/choice&gt;
+    &lt;/choices&gt;
+  &lt;/multipleChoiceQuestion&gt;
+&lt;/questions&gt;
+</pre><p>The Reading system renders this as follows:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <p>Thank you for purchasing &quot;Harry Potter and the Deathly Hallows&quot;,
+                     			&quot;Harry Potter and the Goblet of Fire&quot; and &quot;Harry Potter and the Order of the Phoenix&quot;. These books
+                     			have been billed to your credit card. What would you like to do next?
+                  </p>
+                  <div class="itemizedlist">
+                     <ul class="itemizedlist">
+                        <li class="listitem">
+                           <p>Buy more books</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Add these books to my bookshelf</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Read these books now</p>
+                        </li>
+                     </ul>
+                  </div>
+               </blockquote>
+            </div>
+            <p class="tip">This example assumes that a User&#39;s billing information is supplied to the
+               Service Provider through an out-of-band channel (website, phone, etc.). However,
+               extra steps could be added to this example to collect the User&#39;s billing information.
+            </p>
+            <p class="tip">If the User selects &quot;Read these books now&quot;, the Service returns a
+               			<span class="type">questions</span> element with a <span class="type">contentListRef</span> child that contains the ID of a
+               <span class="type">contentList</span> that contains the three selected books, which can be retrieved through a
+               			call to <code class="function">getContentList</code>.
+            </p>
+            <p>If the User selects &quot;Add these books to my bookshelf&quot;,
+               			the Reading System calls <code class="function">getQuestions</code> as follows:
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;q5-1&quot; value=&quot;c2&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>This operation returns the following:</p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;label xml:lang=&quot;en&quot;&gt;
+    &lt;text&gt;Your books have been added to your bookshelf. Please
+    select the &quot;Go to your bookshelf&quot; option in the main menu to
+    read these books.&lt;/text&gt;
+  &lt;/label&gt;
+&lt;/questions&gt;
+</pre><p>The Reading System renders this as follows:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <p>Your books have been added to your bookshelf.
+                     			Please select the &quot;Go to your bookshelf&quot; option in the main menu to
+                     			read these books.
+                  </p>
+               </blockquote>
+            </div>
+         </div>
+         <div class="chapter" title="7. Retrieving a Content list">
+            <h2 class="title"><a id="retrieve"/>7. Retrieving a Content list
+            </h2>
+            <p>The User selects the &quot;Go to your bookshelf&quot; option from the
+               			<a class="xref" href="#mainMenuCode">main menu</a>.  The Reading System calls <code class="function">getQuestions</code> as
+               follows:
+            </p><pre class="programlisting">&lt;getQuestions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;userResponses&gt;
+    &lt;userResponse questionID=&quot;q1&quot; value=&quot;c5&quot; /&gt;
+  &lt;/userResponses&gt;
+&lt;/getQuestions&gt;
+</pre><p>This operation returns the following:</p><pre class="programlisting">&lt;questions xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;contentListRef&gt;L200&lt;/contentListRef&gt;
+&lt;/questions&gt;
+</pre><p>The reading system reads the ID of the <span class="type">contentList</span> from the <span class="type">contentListRef</span> element,
+               and calls <code class="function">getContentList</code> as follows:
+            </p><pre class="programlisting">&lt;getContentList xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot;&gt;
+  &lt;id&gt;L200&lt;/id&gt;
+  &lt;firstItem&gt;0&lt;/firstItem&gt;
+  &lt;lastItem&gt;19&lt;/lastItem&gt;
+&lt;/getContentList&gt;
+</pre><p>The operation returns the following <span class="type">contentList</span>:
+            </p><pre class="programlisting">&lt;contentList xmlns=&quot;http://www.daisy.org/ns/daisy-online/&quot; id=&quot;L200&quot; totalItems=&quot;3&quot;&gt;
+  &lt;label xml:lang=&quot;en&quot;&gt;
+    &lt;text&gt;You have the following books available to read:&lt;/text&gt;
+  &lt;/label&gt;
+  &lt;contentItem id=&quot;hp_dh&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Harry Potter and the Deathly Hallows&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/contentItem&gt;
+  &lt;contentItem id=&quot;hp_gof&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Harry Potter and the Goblet of Fire&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/contentItem&gt;
+  &lt;contentItem id=&quot;hp_oop&quot;&gt;
+    &lt;label xml:lang=&quot;en&quot;&gt;
+      &lt;text&gt;Harry Potter and the Order of the Phoenix&lt;/text&gt;
+    &lt;/label&gt;
+  &lt;/contentItem&gt;
+&lt;/contentList&gt;
+</pre><p>The Reading System renders this as follows:</p>
+            <div class="blockquote">
+               <blockquote class="blockquote">
+                  <p>You have the following books available to read:</p>
+                  <div class="itemizedlist">
+                     <ul class="itemizedlist">
+                        <li class="listitem">
+                           <p>Harry Potter and the Deathly Hallows</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Harry Potter and the Goblet of Fire</p>
+                        </li>
+                        <li class="listitem">
+                           <p>Harry Potter and the Order of the Phoenix</p>
+                        </li>
+                     </ul>
+                  </div>
+               </blockquote>
+            </div>
+         </div>
+      </div>
+   </body>
+</html>
