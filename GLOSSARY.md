@@ -49,7 +49,7 @@ A Conformance test that alters data on the Service, such as the loan state of a 
 _Avoid_: Destructive test
 
 **Environment**:
-A named, locally configured address to one Service (for example prod, test or local), selected instead of typing the full URL. It never holds a password and is only an alias: Sessions are identified by the resolved Service URL.
+A named, locally configured address to one Service (for example prod, test or local), selected instead of typing the full URL. It may also hold the username and password to use against that Service, but is otherwise only an alias: Sessions are identified by the resolved Service URL.
 _Avoid_: Profile, target
 
 **Observation**:
