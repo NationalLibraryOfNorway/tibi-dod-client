@@ -1,0 +1,23 @@
+docs/adr/0001-plaintext-session-files.md
+  s_755fba7c86c595::t_2d4a0c023611ef 3
+docs/adr/0006-plaintext-password-in-config-file.md
+  s_755fba7c86c595::t_2d4a0c023611ef 1-3
+GLOSSARY.md
+  s_755fba7c86c595::t_2d4a0c023611ef 52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59142e1042e7ae13c825e91a2ef7221c92c0924d",
+  "prompts": {},
+  "sessions": {
+    "s_755fba7c86c595": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1b2392a9-f3e2-4eaf-8f65-70e66af7be18",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
