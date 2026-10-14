@@ -64,3 +64,7 @@ _Avoid_: Transcript, trace
 **Reply**:
 A Service's answer to one call, whatever it contains: a result, a fault, or an answer that contradicts the specification. Only a call that got no usable answer at all has no Reply.
 _Avoid_: Response, result
+
+**Masking**:
+Replacing secrets in a presented Exchange, such as the password and cookie values, with a short fingerprint. Always applied to files and reports.
+_Avoid_: Redaction, scrubbing
