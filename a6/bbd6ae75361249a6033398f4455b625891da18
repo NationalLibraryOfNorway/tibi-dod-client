@@ -1,0 +1,35 @@
+README.md
+  s_614f17f4aee381::t_f34294eedaf069 5-16
+tests/support/_cli.py
+  s_614f17f4aee381::t_f34294eedaf069 1-44
+src/dod/main.py
+  s_614f17f4aee381::t_f34294eedaf069 3-4,8-11,14
+src/dod/application/__init__.py
+  s_614f17f4aee381::t_f34294eedaf069 5-24
+src/dod/application/_logon.py
+  s_614f17f4aee381::t_f34294eedaf069 1-146
+tests/cli/test_help.py
+  s_614f17f4aee381::t_f34294eedaf069 5-6
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_f34294eedaf069 3-5,8-28,48-53,64-119,121-167
+tests/support/__init__.py
+  s_614f17f4aee381::t_f34294eedaf069 1,3,7
+tests/cli/test_logon.py
+  s_614f17f4aee381::t_f34294eedaf069 1-219
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a6bbd6ae75361249a6033398f4455b625891da18",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
