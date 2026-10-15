@@ -35,6 +35,39 @@ uv run pytest                # tests
 
 Tests against a real Service are marked `real_backend` and deselected by default; run them with `uv run pytest -m real_backend`. They never run in CI, and no credentials or addresses belong in the repository.
 
+### The fake Service
+
+Tests run against `FakeService` in `tests/support/`, a DODP v1 Service on `127.0.0.1` that exists only in the tests and is not shipped. It answers with hand-written, synthetic documents and validates every response it builds against the local schema copies (`stop()` fails the test if one was invalid). Failures are injected per test and per operation, and each injection is used once:
+
+| Call | The next call of the operation gets |
+| --- | --- |
+| `inject_fault(op, FaultKind.X, reason)` | one of the five DODP faults, HTTP 500 |
+| `inject_http_500(op)` | HTTP 500 with a SOAP fault without a DODP element |
+| `inject_not_soap(op, body)` | HTTP 200 with something that is not SOAP |
+| `inject_no_answer(op)` | no answer: the connection is closed |
+| `inject_delay(op, seconds)` | a correct answer after `seconds`, for timeout tests |
+| `inject_redirect(op, location)` | a redirect, for example to another host or to `https` |
+
+```python
+def test_a_fault_is_a_value(service: FakeService, port: HttpServicePort) -> None:
+    service.add_user("synthetic-user", "synthetic-secret")
+    service.inject_fault("logOn", FaultKind.INVALID_PARAMETER, "synthetic reason")
+
+    reply = port.log_on("synthetic-user", Password("synthetic-secret"))
+
+    assert isinstance(reply, Fault) and reply.kind is FaultKind.INVALID_PARAMETER
+
+
+def test_a_timeout_is_no_usable_answer(service: FakeService) -> None:
+    service.inject_delay("logOn", seconds=30)  # never waited for
+    port = HttpServicePort(service.url, client=httpx.Client(timeout=0.2))
+
+    with pytest.raises(TransportError):
+        port.log_on("synthetic-user", Password("synthetic-secret"))
+```
+
+`service.requests` lists what the Service received, which also shows that a redirected call never reached its target. See `tests/port/test_fault_injection.py` for every injection.
+
 Build the wheel and sdist with `uv build`, and install the wheel with `pipx install dist/dod_client-*.whl`.
 
 Third-party dependencies and their licences are listed in [THIRD-PARTY.md](THIRD-PARTY.md).

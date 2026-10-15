@@ -102,3 +102,29 @@ def test_the_key_exchange_schema_and_its_imports_are_loaded_locally(
 def test_validation_makes_no_network_lookups(no_network: None) -> None:
     assert validate_document(VALID_RESOURCES) == ()
     assert validate_document(INVALID_RESOURCES) != ()
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "internalServerErrorFault",
+        "invalidOperationFault",
+        "invalidParameterFault",
+        "operationNotSupportedFault",
+        "noActiveSessionFault",
+    ],
+)
+def test_each_dodp_fault_element_is_known_to_the_schemas(name: str) -> None:
+    document = f'<{name} xmlns="http://www.daisy.org/ns/daisy-online/"><reason>x</reason></{name}>'
+
+    assert validate_document(document) == ()
+
+
+def test_an_operation_response_is_validated_against_the_service_description() -> None:
+    valid = (
+        '<logOnResponse xmlns="http://www.daisy.org/ns/daisy-online/">'
+        "<logOnResult>true</logOnResult></logOnResponse>"
+    )
+
+    assert validate_document(valid) == ()
+    assert validate_document(valid.replace("true", "maybe")) != ()
