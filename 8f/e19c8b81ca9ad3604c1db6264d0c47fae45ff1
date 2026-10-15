@@ -1,0 +1,64 @@
+src/dod/main.py
+  s_614f17f4aee381::t_1d6031fccd6e88 4,14
+pyproject.toml
+  s_614f17f4aee381::t_98c43ea2813508 29
+tach.toml
+  s_614f17f4aee381::t_66206a8cd59c6b 17-20,29,34,40,48,64
+  s_614f17f4aee381::t_a204f6bdc5c138 16
+src/dod/infrastructure/__init__.py
+  s_614f17f4aee381::t_1d6031fccd6e88 6,16
+THIRD-PARTY.md
+  s_614f17f4aee381::t_c417370a5060f5 24
+tests/config/test_parse.py
+  s_614f17f4aee381::t_00bbc9f94af28c 157-160
+  s_614f17f4aee381::t_aebf9c19198a19 67-70,120-124
+  s_614f17f4aee381::t_3e778b41fdd26b 1-66,71-119,125-156,161-166
+tests/cli/test_logon.py
+  s_614f17f4aee381::t_1d6031fccd6e88 13,22-29,191
+src/dod/domain/config/_model.py
+  s_614f17f4aee381::t_aebf9c19198a19 1-57
+tests/support/_cli.py
+  s_614f17f4aee381::t_e855275084af39 23-27,31,34,36-37,43
+tests/config/test_resolve.py
+  s_614f17f4aee381::t_4cb874eec4d9f9 1-39,44-56,61-122,126-337,342-349
+  s_614f17f4aee381::t_66206a8cd59c6b 40-43,123-125,338-341
+  s_614f17f4aee381::t_48e9bc7f5d6ac0 57-60
+src/dod/application/__init__.py
+  s_614f17f4aee381::t_66206a8cd59c6b 6-16,26,29-33,35,38,40,43,45
+src/dod/application/_config.py
+  s_614f17f4aee381::t_00bbc9f94af28c 128
+  s_614f17f4aee381::t_66206a8cd59c6b 1-127,129-256
+src/dod/infrastructure/_config_file.py
+  s_614f17f4aee381::t_1d6031fccd6e88 1-37
+src/dod/domain/config/__init__.py
+  s_614f17f4aee381::t_aebf9c19198a19 1-16
+tests/cli/test_config.py
+  s_614f17f4aee381::t_e855275084af39 1-467
+README.md
+  s_614f17f4aee381::t_c417370a5060f5 17-43
+src/dod/domain/config/_parse.py
+  s_614f17f4aee381::t_48e9bc7f5d6ac0 16-25,106-108,112-114,116-118
+  s_614f17f4aee381::t_aebf9c19198a19 1-15,26-105,109-111,115,119-146
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_1d6031fccd6e88 3,6,11-13,18-19,21,56-87,90-92,101,103-105,116,121-124,137,140,144-157,160-164,181-182,188-189,193-267,280,282,284-288,290,292-301
+  s_614f17f4aee381::t_fde8bcc89dd16b 5,176,268-279,281,283,289,291
+  s_614f17f4aee381::t_2d7d75536cd26f 302-303
+uv.lock
+  s_614f17f4aee381::t_10288c11511b95 119,136,559-567
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8fe19c8b81ca9ad3604c1db6264d0c47fae45ff1",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
