@@ -1,0 +1,30 @@
+docs/adr/0009-play-derives-order-from-smil-and-never-streams.md
+  s_81a521b2e23036::t_ba98af5ccf251e 1-9
+GLOSSARY.md
+  s_6001ff9db07647::t_75a7e867af0a3f 71
+  s_81a521b2e23036::t_ebc2452e1e32e4 72-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a62e49219594cecdceb019d5440027f1494bf088",
+  "prompts": {},
+  "sessions": {
+    "s_6001ff9db07647": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8136e9b7-6977-4ab3-b6c0-c45056c4f814",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    },
+    "s_81a521b2e23036": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "20af03bd-db45-4c2e-865b-54e3a7ecf24e",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
