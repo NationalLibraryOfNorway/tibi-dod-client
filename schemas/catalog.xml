@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  OASIS XML catalog for the DODP v1 schemas. Every remote schemaLocation that the
+  schemas in docs/spec/dodp-v1/ import is mapped to the local copy next to them,
+  so validation never needs the network. Relative uri values are resolved against
+  this file.
+-->
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+  <system systemId="http://www.w3.org/2009/01/xml.xsd"
+          uri="../docs/spec/dodp-v1/xml.xsd"/>
+  <system systemId="http://www.w3.org/2001/03/xml.xsd"
+          uri="../docs/spec/dodp-v1/xml.xsd"/>
+  <system systemId="http://dublincore.org/schemas/xmls/qdc/2008/02/11/dc.xsd"
+          uri="../docs/spec/dodp-v1/dc.xsd"/>
+  <system systemId="http://www.daisy.org/DRM/KeyExchange-2005-1.xsd"
+          uri="../docs/spec/dodp-v1/KeyExchange-2005-1.xsd"/>
+  <system systemId="http://www.w3.org/TR/xmlenc-core/xenc-schema.xsd"
+          uri="../docs/spec/dodp-v1/xenc-schema.xsd"/>
+  <system systemId="http://www.w3.org/TR/2002/REC-xmldsig-core-20020212/xmldsig-core-schema.xsd"
+          uri="../docs/spec/dodp-v1/xmldsig-core-schema.xsd"/>
+</catalog>
