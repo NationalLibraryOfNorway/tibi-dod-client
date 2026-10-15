@@ -1,0 +1,57 @@
+src/dod/presentation/__init__.py
+  s_614f17f4aee381::t_d7f5d525d941b0 7,10
+  s_614f17f4aee381::t_ffff0b11a49933 6
+tests/support/_fake_service.py
+  s_614f17f4aee381::t_5f96fd428e103a 100-101,292
+README.md
+  s_614f17f4aee381::t_5a6ab951e09027 59-73
+src/dod/presentation/_globals.py
+  s_614f17f4aee381::t_0fe3c7f9d9bceb 1-88,90-104
+  s_614f17f4aee381::t_ffff0b11a49933 89
+tests/cli/test_config.py
+  s_614f17f4aee381::t_fc45115c39324d 459,463-464
+src/dod/presentation/_masking.py
+  s_614f17f4aee381::t_d7f5d525d941b0 1-54,56,58-156
+  s_614f17f4aee381::t_bb94e857b90101 55,57
+tests/masking/test_mask.py
+  s_614f17f4aee381::t_ffff0b11a49933 104-106
+  s_614f17f4aee381::t_1429ac21bfff34 1-103,107-140
+tests/cli/test_logon.py
+  s_614f17f4aee381::t_fc45115c39324d 213,217-218
+src/dod/presentation/_diagnostics.py
+  s_614f17f4aee381::t_ffff0b11a49933 20-27,150-151,180
+  s_614f17f4aee381::t_d81f383ce05bbc 1-19,28-49,51-54,56-149,152-179,181-195
+  s_614f17f4aee381::t_bb94e857b90101 50,55
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_ffff0b11a49933 3,6,33,38-45,180,353-355,396-398,408,417,451,454-460,471-474,481-483,485,501-503,505,508-513,536,552,554-562,580-587
+  s_614f17f4aee381::t_fc45115c39324d 72-75,258,308,468-470,478,498
+  s_614f17f4aee381::t_450df4ccb4f025 76-88,96,103-104,106,113,116-179,181,184,187-218,223,229-244,246-257,259-269,279-280,286,289,299-300,302,315,321-324,326,334-352,356-395,399-401
+  s_614f17f4aee381::t_e895b87cb6b543 402-403,588-589
+src/dod/infrastructure/_http.py
+  s_614f17f4aee381::t_66e2a01d8446d1 245,259,262,271,279,288-309
+tests/cli/test_diagnostics.py
+  s_614f17f4aee381::t_f0fb034a6ead2f 1-82,84-93,97-128,130-173,175-299,338-339,372
+  s_614f17f4aee381::t_4276d7d467f2cc 94-96,300-323,325-337,340-371,373-376
+  s_614f17f4aee381::t_5f96fd428e103a 377-442
+  s_614f17f4aee381::t_973895458c463c 83,174,324
+  s_614f17f4aee381::t_13d3c315c3df82 129
+tests/cli/test_global_options.py
+  s_614f17f4aee381::t_f40f3d46e749c0 1-58,60-107
+  s_614f17f4aee381::t_1429ac21bfff34 59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fa0c4fc3982410bfb37425152c2f349aaf869000",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
