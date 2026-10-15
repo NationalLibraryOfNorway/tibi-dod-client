@@ -3,6 +3,7 @@
 May import the application and domain packages.
 """
 
+from dod.infrastructure._config_file import FileConfigStore
 from dod.infrastructure._http import HttpServicePort
 from dod.infrastructure._memory import InMemoryPort, InMemoryService
 from dod.infrastructure._schema import (
@@ -12,6 +13,7 @@ from dod.infrastructure._schema import (
 )
 
 __all__ = [
+    "FileConfigStore",
     "HttpServicePort",
     "InMemoryPort",
     "InMemoryService",
