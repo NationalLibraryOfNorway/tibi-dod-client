@@ -69,6 +69,18 @@ _Avoid_: Response, result
 Replacing secrets in a presented Exchange, such as the password and cookie values, with a short fingerprint. Always applied to files and reports.
 _Avoid_: Redaction, scrubbing
 
+**Spec reference**:
+A pointer from a FAIL or a Spec deviation to the part of the DODP v1 specification it contradicts, given as section number, title and a link to the published HTML version.
+_Avoid_: Citation, rule id
+
+**Issued content**:
+A content item the Service has granted the Reading System access to through `issueContent`, and the only kind whose resources can be listed and downloaded.
+_Avoid_: Borrowed book, checked-out item
+
+**Service Delegate**:
+A host other than the Service that serves content resources on its behalf, possibly with credentials embedded in the resource URI.
+_Avoid_: CDN, mirror
+
 **Playlist**:
 The ordered sequence of Clips that makes up the playing order of a book, derived from the book's own structure.
 _Avoid_: Queue
