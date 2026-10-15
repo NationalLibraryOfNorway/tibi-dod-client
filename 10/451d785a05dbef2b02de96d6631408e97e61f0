@@ -1,0 +1,48 @@
+src/dod/infrastructure/__init__.py
+  s_614f17f4aee381::t_54eae31917823b 5-12
+tests/schema/test_validation.py
+  s_614f17f4aee381::t_012a6c8d5ebbad 6-11,18-25,29-31,34-51,53-62,64-102,104
+  s_614f17f4aee381::t_4b9aed82f80563 32-33
+  s_614f17f4aee381::t_194c8336927f3f 1-5,12-17,26-28,52,63,103
+src/dod/infrastructure/_schema.py
+  s_614f17f4aee381::t_54eae31917823b 1-42,44-53,57-60,62-91,93
+  s_614f17f4aee381::t_604be68c9fde2a 43,54-56,61,92
+docs/spec/dodp-v1/xenc-schema.xsd
+  s_614f17f4aee381::t_40238272655a84 1-183
+THIRD-PARTY.md
+  s_614f17f4aee381::t_5e6c4cd3d7d959 18
+  s_614f17f4aee381::t_10c9207311553c 55
+schemas/catalog.xml
+  s_614f17f4aee381::t_54eae31917823b 1-21
+docs/spec/dodp-v1/dc.xsd
+  s_614f17f4aee381::t_40238272655a84 1-118
+docs/spec/dodp-v1/xml.xsd
+  s_614f17f4aee381::t_40238272655a84 1-286
+docs/spec/dodp-v1/xmldsig-core-schema.xsd
+  s_614f17f4aee381::t_40238272655a84 1-318
+pyproject.toml
+  s_614f17f4aee381::t_4d4140dce7b5b0 38-44
+  s_614f17f4aee381::t_40238272655a84 26-29
+README.md
+  s_614f17f4aee381::t_5e6c4cd3d7d959 32,36-41,43-45
+docs/spec/dodp-v1/KeyExchange-2005-1.xsd
+  s_614f17f4aee381::t_40238272655a84 1-120
+uv.lock
+  s_614f17f4aee381::t_9c0cf209c7bc09 95,101,109-112,116,257-375
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "10451d785a05dbef2b02de96d6631408e97e61f0",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
