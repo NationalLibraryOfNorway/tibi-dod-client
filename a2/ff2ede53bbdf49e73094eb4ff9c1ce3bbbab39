@@ -1,0 +1,34 @@
+tests/port/test_fault_injection.py
+  s_614f17f4aee381::t_d55696cfe98d9b 1-6,8-69,72-77
+  s_614f17f4aee381::t_778ec4883ca190 7,78-144
+  s_614f17f4aee381::t_f8539d79fd12eb 70-71
+tests/schema/test_validation.py
+  s_614f17f4aee381::t_9fb8ca6a82c4f4 105-130
+README.md
+  s_614f17f4aee381::t_f8539d79fd12eb 38-70
+tests/support/_fake_service.py
+  s_614f17f4aee381::t_4b9b2dcbb32d89 186-187,189,202-207,209-216,222,233,261
+  s_614f17f4aee381::t_495c8de9489cab 79,118-149,160-163,279-283
+  s_614f17f4aee381::t_011d2f8b222b20 4-8,21,55-57,75,77,80,97,101-104,111-113
+  s_614f17f4aee381::t_f8539d79fd12eb 208
+src/dod/infrastructure/_schema.py
+  s_614f17f4aee381::t_9539879deb79de 17-18,63-72
+tests/port/test_http_adapter.py
+  s_614f17f4aee381::t_4b9b2dcbb32d89 89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a2ff2ede53bbdf49e73094eb4ff9c1ce3bbbab39",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
