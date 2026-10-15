@@ -88,3 +88,11 @@ _Avoid_: Queue
 **Clip**:
 One stretch of audio in a Playlist: an audio file with a start and an end within it.
 _Avoid_: Segment, track
+
+**Quirk**:
+A named, opt-in workaround in the HTTP adapter for a known Service deviation that would otherwise make an answer unreadable. It is enabled per Environment, always produces an Observation, and is ignored by Conformance tests unless asked for.
+_Avoid_: Hack, workaround flag, backend profile
+
+**Baseline**:
+A file, kept in the Service's own repository, listing the Conformance test ids that are known to FAIL, each with a short reason. A run compared against it reports new and resolved deviations; Outcomes themselves are unchanged.
+_Avoid_: Allowlist, expected failures
