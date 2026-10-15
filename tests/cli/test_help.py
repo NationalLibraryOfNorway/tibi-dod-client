@@ -1,5 +1,7 @@
 """`dod --help` through the CLI boundary: the installed console script."""
 
+import re
+
 import pytest
 
 from support import run_dod
