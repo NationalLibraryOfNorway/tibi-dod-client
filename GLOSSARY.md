@@ -68,3 +68,11 @@ _Avoid_: Response, result
 **Masking**:
 Replacing secrets in a presented Exchange, such as the password and cookie values, with a short fingerprint. Always applied to files and reports.
 _Avoid_: Redaction, scrubbing
+
+**Playlist**:
+The ordered sequence of Clips that makes up the playing order of a book, derived from the book's own structure.
+_Avoid_: Queue
+
+**Clip**:
+One stretch of audio in a Playlist: an audio file with a start and an end within it.
+_Avoid_: Segment, track
