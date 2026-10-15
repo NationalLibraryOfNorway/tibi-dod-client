@@ -1,0 +1,55 @@
+src/dod/domain/service/_core.py
+  s_614f17f4aee381::t_38986e8cda29de 1-130
+src/dod/infrastructure/_memory.py
+  s_614f17f4aee381::t_38986e8cda29de 1-153
+src/dod/domain/v1/_port.py
+  s_614f17f4aee381::t_38986e8cda29de 1-36
+tests/support/_fake_service.py
+  s_614f17f4aee381::t_38986e8cda29de 1-266
+src/dod/domain/v1/__init__.py
+  s_614f17f4aee381::t_38986e8cda29de 5-18
+tests/port/test_contract.py
+  s_614f17f4aee381::t_38986e8cda29de 1-140
+tests/port/test_http_adapter.py
+  s_614f17f4aee381::t_38986e8cda29de 1-172
+src/dod/infrastructure/__init__.py
+  s_614f17f4aee381::t_38986e8cda29de 6-7,14-21
+tests/domain/test_password.py
+  s_614f17f4aee381::t_38986e8cda29de 1-26
+src/dod/infrastructure/_spec.py
+  s_614f17f4aee381::t_38986e8cda29de 1-25
+tests/conftest.py
+  s_614f17f4aee381::t_38986e8cda29de 1-42
+src/dod/infrastructure/_http.py
+  s_614f17f4aee381::t_38986e8cda29de 1-341
+src/dod/domain/service/__init__.py
+  s_614f17f4aee381::t_38986e8cda29de 5-34
+THIRD-PARTY.md
+  s_614f17f4aee381::t_38986e8cda29de 18-23
+src/dod/domain/v1/_models.py
+  s_614f17f4aee381::t_38986e8cda29de 1-47
+tests/support/_harness.py
+  s_614f17f4aee381::t_38986e8cda29de 1-21
+tests/support/__init__.py
+  s_614f17f4aee381::t_38986e8cda29de 1-6
+pyproject.toml
+  s_614f17f4aee381::t_38986e8cda29de 27,72-73,77-78,90-93
+uv.lock
+  s_614f17f4aee381::t_4b2d0217636408 18-30,95-103,117,133,171-216
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0214c6371b15dd06658b8bd86771fd27f07d9cdc",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
