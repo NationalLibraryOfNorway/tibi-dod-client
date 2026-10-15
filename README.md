@@ -14,6 +14,21 @@ echo "$PASSWORD" | dod logon --no-session --url https://dod.example.org/service 
 
 The password is read from a prompt without echo, or from the first line of stdin with `--password-stdin`; it is never taken from an argument. An `http` address is refused unless `--insecure` is given, also on loopback, and then gives the Observation `transport-security`. Results go to stdout, Observations and diagnostics to stderr. Exit codes: 0 ok, 1 the Service answered with a Fault or contrary to the specification, 2 no usable answer or the command could not be run. `--no-session` can also be set with `DOD_NO_SESSION=1`. See `dod logon --help`.
 
+### Finding the endpoint
+
+`dod` never guesses the Service endpoint while logging on (ADR 0002). Name it with `--url` (the SOAP endpoint itself), with `--wsdl` (the Service's WSDL; its `soap:address` is used) or through an Environment that holds one of them. `--url`, `--wsdl` and `--env` cannot be combined.
+
+- The WSDL is fetched without credentials or cookies on every command and read safely: no DTD, no entities, no network, at most 1 MiB, with a timeout. `import` elements are never fetched; the bundled abstract DODP WSDL is used. Exactly one SOAP 1.1 port bound to the DODP portType is accepted; otherwise the ports are listed and the command exits with 2.
+- A `soap:address` with another host, port or scheme than the WSDL came from is refused unless `--trust-host` (or `trust_host = true`) is given. A redirect across a host, port or scheme boundary is always refused.
+- `https` is required; `http` needs `--insecure`, also on loopback.
+- `dod discover <address>` tries `?wsdl` on the address and on the known paths (`/service`, `/dodp`, `/daisy-online`, `/DaisyOnline`), prints every address it tried and the kind of answer (never the content), sends no credentials and stores nothing. It exits with 2 and next steps when nothing is found. `logon` suggests it when an address does not answer like a DODP Service.
+- Every command that contacts a Service prints `[environment] url` on stderr (`[-]` when no Environment is used); `--quiet` turns it off.
+
+```sh
+dod discover https://dod.example.org
+dod logon --no-session --wsdl https://dod.example.org/service?wsdl --username alice
+```
+
 ### Configuration and Environments
 
 Named Environments live in a TOML file in the platform's configuration directory (`dod config path` prints it; `--config` or `DOD_CONFIG` selects another file). A missing default file is fine; a missing explicit one is an error. There is no project-local file.
@@ -34,7 +49,7 @@ insecure = true
 
 Names match `[a-z0-9][a-z0-9_-]*`. Unknown keys, wrong types, and `token` or `cookie` are rejected every time the file is loaded, for all Environments. Errors exit with 2 and name the file, the key (`environments.<name>.<key>`), the reason and, for TOML syntax errors, the line. Password values are never printed.
 
-- Environment: `--env`, then `DOD_ENV`, then `default_environment`. `--env` cannot be combined with `--url`.
+- Environment: `--env`, then `DOD_ENV`, then `default_environment`. `--env` cannot be combined with `--url` or `--wsdl`.
 - Username: `--username`, then `DOD_USERNAME`, then the file.
 - Password: `--password-stdin`, then the file, then a prompt. There is no environment variable for it.
 - On Linux and macOS `dod` refuses a file with a `password` that group or others can read (`chmod 600` it). On Windows permissions are not checked and `dod config check` warns about it.

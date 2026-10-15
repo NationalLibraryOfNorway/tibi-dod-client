@@ -57,6 +57,22 @@ class _Raw:
     drop: bool = False
 
 
+_WSDL_NS = "http://schemas.xmlsoap.org/wsdl/"
+_WSDL_SOAP = "http://schemas.xmlsoap.org/wsdl/soap/"
+
+
+def service_wsdl(address: str, binding: str = "do:DaisyOnlineService") -> bytes:
+    """A Service's own WSDL: it imports the abstract DODP WSDL and names one port."""
+    return (
+        f'<definitions xmlns="{_WSDL_NS}" xmlns:soap="{_WSDL_SOAP}" '
+        f'xmlns:do="{NS}" targetNamespace="urn:synthetic:service">'
+        f'<import namespace="{NS}" location="http://127.0.0.1:9/abstract.wsdl"/>'
+        '<service name="SyntheticService">'
+        f'<port name="SyntheticPort" binding="{binding}">'
+        f'<soap:address location="{address}"/></port></service></definitions>'
+    ).encode()
+
+
 def _envelope(inner: str) -> bytes:
     return (
         f'<soap:Envelope xmlns:soap="{SOAP}"><soap:Body>{inner}</soap:Body>'
@@ -71,6 +87,13 @@ class FakeService:
         self.users: dict[str, str] = {}
         self.sessions: set[str] = set()
         self.requests: list[RecordedRequest] = []
+        # Plain GET requests (WSDL and anything else a client fetches).
+        self.fetches: list[RecordedRequest] = []
+        self.wsdl_path = "/dodp?wsdl"
+        self.wsdl_body: bytes | None = None
+        self.wsdl_redirect: str | None = None
+        self.wsdl_delay = 0.0
+        self.wsdl_address: str | None = None
         self.invalid_documents: list[str] = []
         self.invalid_responses: list[str] = []
         self.service_attributes_xml = _SERVICE_ATTRIBUTES
@@ -92,6 +115,11 @@ class FakeService:
     def url(self) -> str:
         host, port = self._server.server_address[:2]
         return f"http://{host!s}:{port}/dodp"
+
+    @property
+    def wsdl_url(self) -> str:
+        host, port = self._server.server_address[:2]
+        return f"http://{host!s}:{port}{self.wsdl_path}"
 
     def stop(self) -> None:
         self._stopping.set()
@@ -152,6 +180,23 @@ class FakeService:
     ) -> None:
         """Answer the next request with exactly this, whatever it asks for."""
         self._raw = _Raw(status, body, headers or {})
+
+    def serve_wsdl(self, body: bytes) -> None:
+        """Serve `body` instead of the generated WSDL."""
+        self.wsdl_body = body
+
+    def handle_get(self, path: str, headers: dict[str, str]) -> _Raw:
+        with self._lock:
+            self.fetches.append(RecordedRequest(path, headers, b"", None))
+            if path != self.wsdl_path:
+                return _Raw(404, b"<html><body>not found</body></html>")
+            raw = _Raw(
+                200, self.wsdl_body or service_wsdl(self.wsdl_address or self.url)
+            )
+            if self.wsdl_redirect is not None:
+                raw = _Raw(302, b"", {"Location": self.wsdl_redirect})
+            raw.delay = self.wsdl_delay
+            return raw
 
     # -- the Service itself -----------------------------------------------
 
@@ -271,11 +316,17 @@ class FakeService:
 
 def _make_handler(service: FakeService) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            headers = {key: value for key, value in self.headers.items()}
+            self._answer(service.handle_get(self.path, headers))
+
         def do_POST(self) -> None:
             length = int(self.headers.get("Content-Length", "0"))
             body = self.rfile.read(length)
             headers = {key: value for key, value in self.headers.items()}
-            raw = service.handle(self.path, headers, body)
+            self._answer(service.handle(self.path, headers, body))
+
+        def _answer(self, raw: _Raw) -> None:
             if raw.delay:
                 service._stopping.wait(raw.delay)
             if raw.drop or service._stopping.is_set():

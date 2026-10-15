@@ -12,17 +12,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
-from urllib.parse import urlsplit
 
+from dod.application._address import check_endpoint
 from dod.domain.service import Observation, Ok, Password, Reply, TransportError
 from dod.domain.v1 import ReadingSystemAttributes, ReadingSystemConfig, ServicePort
 
 type OpenPort = Callable[[str], ServicePort]
 """Opens a port towards the Service at a URL; supplied by the composition root."""
-
-
-class EndpointError(Exception):
-    """The Service address may not be used as given (a security rejection)."""
 
 
 @dataclass(frozen=True)
@@ -55,24 +51,6 @@ class LogonReport:
         for step in self.steps:
             seen.update(dict.fromkeys(step.reply.observations))
         return tuple(seen)
-
-
-def check_endpoint(url: str, *, insecure: bool) -> None:
-    """Refuse an address that is not `https` unless `insecure` is given.
-
-    `http` needs `insecure` even on loopback, so credentials are never sent in
-    clear text by accident.
-    """
-    scheme = urlsplit(url).scheme
-    if scheme == "https":
-        return
-    if scheme == "http":
-        if insecure:
-            return
-        raise EndpointError(
-            "the address uses unencrypted http; pass --insecure to use it anyway"
-        )
-    raise EndpointError(f"the address must start with https:// (got {url!r})")
 
 
 def default_reading_system() -> ReadingSystemAttributes:
