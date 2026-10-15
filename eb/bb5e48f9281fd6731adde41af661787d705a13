@@ -1,0 +1,32 @@
+docs/adr/0008-content-is-issued-explicitly-and-everything-the-service-names-is-untrusted.md
+  s_6001ff9db07647::t_75a7e867af0a3f 1-9
+docs/adr/0004-synchronous-version-specific-port-with-replies-as-values.md
+  s_6001ff9db07647::t_75a7e867af0a3f 6-7
+GLOSSARY.md
+  s_81a521b2e23036::t_ebc2452e1e32e4 83
+  s_6001ff9db07647::t_75a7e867af0a3f 72-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ebbb5e48f9281fd6731adde41af661787d705a13",
+  "prompts": {},
+  "sessions": {
+    "s_6001ff9db07647": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8136e9b7-6977-4ab3-b6c0-c45056c4f814",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    },
+    "s_81a521b2e23036": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "20af03bd-db45-4c2e-865b-54e3a7ecf24e",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
