@@ -1,0 +1,26 @@
+tests/architecture/test_module_boundaries.py
+  s_614f17f4aee381::t_2edcbcb18aef13 7
+  s_614f17f4aee381::t_84f2cce8cd112a 157-162
+  s_614f17f4aee381::t_62ac42d2af1c31 25
+  s_614f17f4aee381::t_3083f346081f65 122
+  s_614f17f4aee381::t_0bf68b9b04209e 1-6,8-24,26-121,123-156,163-166
+tach.toml
+  s_614f17f4aee381::t_2184f489aff982 1-49,54-62
+  s_614f17f4aee381::t_7b64ea9155134e 50-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5b5c5ef2710c806b02e508162a7a9da8d8d52178",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
