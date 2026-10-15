@@ -1,0 +1,27 @@
+.agents/skills/gh-stack/SKILL.md
+  s_614f17f4aee381::t_b793d4a4daf8d1 1-194
+.agents/skills/gh-stack/references/commands.md
+  s_614f17f4aee381::t_32ee75d87d311d 1-212
+.agents/skills/gh-stack/references/stack-design.md
+  s_614f17f4aee381::t_20819a0c9b22ee 1-97
+.agents/skills/gh-stack/references/troubleshooting.md
+  s_614f17f4aee381::t_6b3946a1075b3e 1-186
+skills-lock.json
+  s_614f17f4aee381::t_8c0910957854d0 34-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8feac5416addd7e325967a59a4a796e856669dfc",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
