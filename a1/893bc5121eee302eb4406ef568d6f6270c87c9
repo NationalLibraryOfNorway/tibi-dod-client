@@ -1,0 +1,56 @@
+tests/support/__init__.py
+  s_614f17f4aee381::t_8108fc53ce9d57 7
+  s_614f17f4aee381::t_b44d882b92fc6f 4
+src/dod/application/__init__.py
+  s_614f17f4aee381::t_3c4afcbee4d4d8 19
+  s_614f17f4aee381::t_8108fc53ce9d57 50-51,53-54,60-62,66,69,71
+  s_614f17f4aee381::t_7b3cfca66dd81c 6-18,20-21,43-44
+tests/support/_fake_service.py
+  s_614f17f4aee381::t_b44d882b92fc6f 60-75,90-96,119-123,184-192,196-200,319-322,327-329
+  s_614f17f4aee381::t_7b3cfca66dd81c 193-195
+src/dod/main.py
+  s_614f17f4aee381::t_3c4afcbee4d4d8 4,14
+src/dod/infrastructure/_fetch.py
+  s_614f17f4aee381::t_7b3cfca66dd81c 1-53
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_3c4afcbee4d4d8 14-15,17,21,23,28,92-119,122-127,130-133,156-157,177-178,182-189,191,194,204,212-215,219-226,229-242,246-271,311,348,351,362
+  s_614f17f4aee381::t_8108fc53ce9d57 26,227-228
+  s_614f17f4aee381::t_ddd5b0ff9bc73b 272-275,298,301,308,347,359
+src/dod/infrastructure/__init__.py
+  s_614f17f4aee381::t_7b3cfca66dd81c 7,15,19,25
+tests/cli/test_logon.py
+  s_614f17f4aee381::t_8108fc53ce9d57 14,191-193
+src/dod/application/_address.py
+  s_614f17f4aee381::t_7b3cfca66dd81c 17,103-106,140,151-153
+  s_614f17f4aee381::t_195d00f1d961df 1-16,18-102,107-139,141-150,154-259
+README.md
+  s_614f17f4aee381::t_a3e7bec4c3c1e8 17-31,52
+tests/address/test_wsdl_and_fetcher.py
+  s_614f17f4aee381::t_6b23ac50d2c513 1-123
+src/dod/application/_config.py
+  s_614f17f4aee381::t_7b3cfca66dd81c 116-117,121-124,127-133,146,154
+src/dod/infrastructure/_wsdl.py
+  s_614f17f4aee381::t_7b3cfca66dd81c 1-46,50-78
+  s_614f17f4aee381::t_fc0aad5a7c0efe 48-49
+  s_614f17f4aee381::t_6f8cb6d98d6f64 47
+tests/cli/test_address.py
+  s_614f17f4aee381::t_ae789354be6a24 1-301
+src/dod/application/_logon.py
+  s_614f17f4aee381::t_8108fc53ce9d57 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a1893bc5121eee302eb4406ef568d6f6270c87c9",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
