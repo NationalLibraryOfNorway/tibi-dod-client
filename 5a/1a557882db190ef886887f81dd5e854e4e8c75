@@ -1,0 +1,21 @@
+README.md
+  s_614f17f4aee381::t_685ae9335d147e 5-29
+THIRD-PARTY.md
+  s_614f17f4aee381::t_f4382b343a731f 1-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5a1a557882db190ef886887f81dd5e854e4e8c75",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
