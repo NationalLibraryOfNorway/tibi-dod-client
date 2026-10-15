@@ -1,0 +1,48 @@
+src/dod/domain/v1/__init__.py
+  s_614f17f4aee381::t_5715757457a4ac 1-4
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_d59345b00ef4e9 1-36
+pyproject.toml
+  s_614f17f4aee381::t_783bda83a75976 65-72
+  s_614f17f4aee381::t_17ad8cea96b023 37-40
+  s_614f17f4aee381::t_a6279e844bd349 1-36,41-52,54-64,73-75
+  s_614f17f4aee381::t_03147e407da676 53
+src/dod/application/__init__.py
+  s_614f17f4aee381::t_5715757457a4ac 1-4
+src/dod/domain/__init__.py
+  s_614f17f4aee381::t_5715757457a4ac 1
+src/dod/infrastructure/__init__.py
+  s_614f17f4aee381::t_5715757457a4ac 1-4
+tests/cli/test_help.py
+  s_614f17f4aee381::t_5def78d957e0e9 1-9,16-21,28-53
+  s_614f17f4aee381::t_796e3104d7cbe8 22-27
+  s_614f17f4aee381::t_84f2cce8cd112a 10-15
+src/dod/main.py
+  s_614f17f4aee381::t_c64bc8ec76167f 1-8
+src/dod/presentation/__init__.py
+  s_614f17f4aee381::t_5d0087b955b5ac 1-8
+src/dod/domain/service/__init__.py
+  s_614f17f4aee381::t_5715757457a4ac 1-4
+src/dod/__init__.py
+  s_614f17f4aee381::t_f297fb9942a2b8 1
+.gitignore
+  s_614f17f4aee381::t_999bdce1c6b742 2-7
+uv.lock
+  s_614f17f4aee381::t_80c738fdef289e 1-631
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "42989e9d2b068dd5d2ff8ac0146194642651d822",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
