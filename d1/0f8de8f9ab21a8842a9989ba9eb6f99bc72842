@@ -1,0 +1,25 @@
+docs/adr/0009-play-derives-order-from-smil-and-never-streams.md
+  s_614f17f4aee381::t_d4cc15f6b7dd0a 3
+GLOSSARY.md
+  s_614f17f4aee381::t_d4cc15f6b7dd0a 91-98
+docs/adr/0008-content-is-issued-explicitly-and-everything-the-service-names-is-untrusted.md
+  s_614f17f4aee381::t_d4cc15f6b7dd0a 3
+docs/adr/0010-known-deviations-are-tolerated-through-opt-in-quirks-and-judged-against-a-baseline.md
+  s_614f17f4aee381::t_d4cc15f6b7dd0a 1-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d10f8de8f9ab21a8842a9989ba9eb6f99bc72842",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
