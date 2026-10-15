@@ -1,0 +1,19 @@
+LICENSE
+  s_c0373f09e906f7::t_24aaccfde9db9b 1-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fae172c17672bd017c6a72a2613f3debedbc2320",
+  "prompts": {},
+  "sessions": {
+    "s_c0373f09e906f7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "da9afe05-e58e-488a-aa14-d90b86be821e",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
