@@ -1,0 +1,20 @@
+docs/research/lastmark-resume.md
+  s_614f17f4aee381::t_4c87849d279063 391
+  s_614f17f4aee381::t_b9a9cf0932d00f 1-390,392-420
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "218c486256c3188231856f8883267bc902eae8e2",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
