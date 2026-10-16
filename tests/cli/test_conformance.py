@@ -12,10 +12,9 @@ from pathlib import Path
 import pytest
 
 from dod.domain.v1 import ContentItem, ContentList, ContentMetadata, ContentResource
-from support import FakeService, run_dod
+from support import PASSWORD, FakeService, run_dod
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 ITEMS = tuple(ContentItem(id=f"book{n}", label=f"Book {n}") for n in range(3))
 BOOK = ContentMetadata(
     title="Book 0", identifier="book0", format="Daisy 2.02", size=1234

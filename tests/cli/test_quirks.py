@@ -13,10 +13,9 @@ from pathlib import Path
 import pytest
 
 from dod.domain.v1 import ContentItem, ContentList, ContentMetadata
-from support import FakeService, run_dod
+from support import PASSWORD, FakeService, run_dod
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 NAME = "http-500-without-fault-as-invalid-operation"
 REF_URL = (
     "http://www.daisy.org/projects/daisy-online-delivery/drafts/20100402/"

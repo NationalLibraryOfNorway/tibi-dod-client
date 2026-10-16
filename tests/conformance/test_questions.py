@@ -12,14 +12,13 @@ from collections.abc import Iterator
 import pytest
 
 from dod.application import CONFORMANCE_TESTS, Outcome, RunReport, run_conformance
-from dod.domain.service import Password
 from dod.domain.v1 import SPEC_REFS
 from dod.infrastructure import HttpServicePort
+from support import SECRET as PASSWORD
 from support import FakeService
 from support.samples import multiple_choice, questions
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 
 
 @pytest.fixture

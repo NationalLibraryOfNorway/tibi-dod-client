@@ -12,10 +12,9 @@ from pathlib import Path
 import pytest
 
 from dod.domain.v1 import Announcement
-from support import FakeService, run_dod
+from support import PASSWORD, FakeService, run_dod
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 INIT = ["logOn", "getServiceAttributes", "setReadingSystemAttributes"]
 ONE = Announcement(id="a1", text="Maintenance tonight", lang="en")
 TWO = Announcement(id="a2", text="Vedlikehold", lang="nb", type="WARNING", priority=1)

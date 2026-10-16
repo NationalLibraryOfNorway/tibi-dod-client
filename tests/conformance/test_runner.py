@@ -22,9 +22,9 @@ from dod.domain.service import (
 )
 from dod.domain.v1 import SPEC_REFS, ServicePort
 from dod.infrastructure import InMemoryService
+from support import SECRET as PASSWORD
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 
 
 @pytest.fixture

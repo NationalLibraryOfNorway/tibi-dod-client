@@ -44,10 +44,10 @@ from dod.domain.v1 import (
     UserResponse,
 )
 from dod.infrastructure import InMemoryService
+from support import SECRET as PASSWORD
 
 URL = "https://dod.example.org/service"
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 KEY = SessionKey(URL, USER)
 
 

@@ -13,10 +13,9 @@ from typer.testing import CliRunner
 from dod.application import ConfigFile
 from dod.infrastructure import HttpFetcher, InMemoryService, parse_wsdl
 from dod.presentation import create_app
-from support import FakeService, run_dod
+from support import PASSWORD, FakeService, run_dod
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 
 
 class NoConfig:

@@ -14,11 +14,10 @@ from pathlib import Path
 import pytest
 
 from dod.domain.v1 import ContentMetadata
-from support import FakeService, run_dod
+from support import PASSWORD, FakeService, run_dod
 from support.samples import KEY_EXCHANGE, bookmark_set
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 KEY = "c3ludGhldGlj"
 BOOK = ContentMetadata(title="Book", identifier="book0", format="Daisy 2.02", size=1)
 LASTMARK = (

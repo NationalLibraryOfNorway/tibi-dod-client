@@ -11,10 +11,9 @@ from pathlib import Path
 
 import pytest
 
-from support import FakeService, run_dod, service_wsdl
+from support import PASSWORD, FakeService, run_dod, service_wsdl
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 
 
 @pytest.fixture

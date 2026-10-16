@@ -14,11 +14,10 @@ from pathlib import Path
 
 import pytest
 
-from support import FakeService, run_dod
+from support import PASSWORD, FakeService, run_dod
 from support.samples import input_question, label, multiple_choice, questions
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 ROOT = questions(
     multiple_choice("main", "Pick one", ("new", "New books"), ("old", "Old books"))
     + input_question("find", "Search for", "TEXT_ALPHANUMERIC", "AUDIO")

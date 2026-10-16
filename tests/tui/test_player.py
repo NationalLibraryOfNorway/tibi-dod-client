@@ -22,11 +22,11 @@ from dod.domain.service import Exchange, Observation, Password
 from dod.domain.v1 import ContentItem, ContentList
 from dod.infrastructure import InMemoryService
 from dod.presentation import ActivityLog, DownloadSettings, create_tui
+from support import PASSWORD
 from support._fake_player import FakePlayer
 
 URL = "https://dod.example.org/service"
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 MASTER = (
     b'<smil><head/><body><seq><ref src="b.smil"/><ref src="a.smil"/></seq>'
     b"</body></smil>"

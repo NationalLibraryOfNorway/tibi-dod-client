@@ -8,10 +8,9 @@ import pytest
 from dod.domain.service import Deviation, Ok, Password, TransportError
 from dod.domain.v1 import SinkRefused
 from dod.infrastructure import HttpServicePort
-from support import FakeService
+from support import PASSWORD, FakeService
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 
 
 @pytest.fixture

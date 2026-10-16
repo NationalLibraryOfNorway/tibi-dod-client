@@ -12,10 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from support import FakeService, run_dod
+from support import PASSWORD, FakeService, run_dod
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 FILE_PASSWORD = "synthetic-file-secret"
 
 posix_only = pytest.mark.skipif(

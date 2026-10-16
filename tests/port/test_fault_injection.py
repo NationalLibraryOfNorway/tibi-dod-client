@@ -7,12 +7,12 @@ the fake Service builds itself is validated against the local schemas.
 import httpx
 import pytest
 
-from dod.domain.service import Deviation, Fault, FaultKind, Ok, Password, TransportError
+from dod.domain.service import Deviation, Fault, FaultKind, Ok, TransportError
 from dod.infrastructure import HttpServicePort
+from support import SECRET as PASSWORD
 from support import FakeService
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 
 
 @pytest.fixture

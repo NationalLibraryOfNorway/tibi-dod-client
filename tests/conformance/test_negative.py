@@ -10,13 +10,12 @@ from collections.abc import Iterator
 import pytest
 
 from dod.application import CONFORMANCE_TESTS, Outcome, RunReport, run_conformance
-from dod.domain.service import Password
 from dod.domain.v1 import SPEC_REFS, ContentItem, ContentList, ContentMetadata
 from dod.infrastructure import HttpServicePort
+from support import SECRET as PASSWORD
 from support import FakeService
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 BOOK = ContentMetadata(title="Book 0", identifier="book0", format="Daisy 2.02", size=1)
 ISSUED = ContentList(
     id="issued", total_items=1, items=(ContentItem(id="book0", label="Book 0"),)

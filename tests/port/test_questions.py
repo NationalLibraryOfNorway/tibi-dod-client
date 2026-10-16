@@ -6,18 +6,18 @@ as they are; which ones to send is up to the caller.
 
 import pytest
 
-from dod.domain.service import Fault, FaultKind, Ok, Password
+from dod.domain.service import Fault, FaultKind, Ok
 from dod.domain.v1 import (
     InputQuestion,
     MultipleChoiceQuestion,
     ServicePort,
     UserResponse,
 )
+from support import SECRET as PASSWORD
 from support import Harness
 from support.samples import input_question, label, multiple_choice, questions
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 ROOT = questions(
     multiple_choice("main", "Pick", ("new", "New books"), ("old", "Old books"))
     + input_question("find", "Search for", "TEXT_ALPHANUMERIC", "AUDIO")

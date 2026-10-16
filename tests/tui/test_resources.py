@@ -25,10 +25,10 @@ from dod.domain.v1 import (
 )
 from dod.infrastructure import InMemoryService
 from dod.presentation import DownloadSettings, create_tui
+from support import PASSWORD
 
 URL = "https://dod.example.org/service"
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 SHELF = ContentList(
     id="issued",
     total_items=1,
