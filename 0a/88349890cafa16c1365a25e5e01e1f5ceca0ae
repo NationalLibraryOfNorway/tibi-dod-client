@@ -1,0 +1,85 @@
+src/dod/application/_logon.py
+  s_614f17f4aee381::t_ccf4fc6ac792af 12,55-57,59-65,68,71,73,79,81-82
+src/dod/application/_config.py
+  s_614f17f4aee381::t_ccf4fc6ac792af 10,107,163,167-176
+  s_614f17f4aee381::t_bcae2691608662 177-178
+tests/support/_fake_service.py
+  s_614f17f4aee381::t_9f52128730c807 18,23,101-102,144-149,153-154,237,332-367,417-418
+  s_614f17f4aee381::t_45755efe098d4b 150-152
+  s_614f17f4aee381::t_73eca5257ecdc9 419
+src/dod/domain/v1/_models.py
+  s_614f17f4aee381::t_688713e230433d 50,56-69
+  s_614f17f4aee381::t_45755efe098d4b 51-55
+  s_614f17f4aee381::t_ccf4fc6ac792af 19-20
+src/dod/domain/config/_parse.py
+  s_614f17f4aee381::t_ccf4fc6ac792af 25,121
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_d18228f8cd03b6 952-954
+  s_614f17f4aee381::t_696883c7d2199c 19,844,846
+  s_614f17f4aee381::t_c53a2e6201b9f7 3,6,8,10,24,27,29-30,37,51,54,115,125,295-299,301-306,309-364,377,387,390,534-579,581-591
+  s_614f17f4aee381::t_d8ac88604eade5 62,580,779-843,845,847-854,972-992
+  s_614f17f4aee381::t_18e61d096430fc 592,855
+src/dod/application/__init__.py
+  s_614f17f4aee381::t_ccf4fc6ac792af 22,76-77
+src/dod/domain/v1/_port.py
+  s_614f17f4aee381::t_688713e230433d 5,9-13,47-53
+  s_614f17f4aee381::t_0496c21b5caa8d 54
+tests/conftest.py
+  s_614f17f4aee381::t_9f52128730c807 7,25-26
+  s_614f17f4aee381::t_7d8718a428d0f8 27
+src/dod/domain/config/_model.py
+  s_614f17f4aee381::t_ccf4fc6ac792af 50
+tests/port/test_announcements.py
+  s_614f17f4aee381::t_5a6878613a51e7 1-39,41-132
+  s_614f17f4aee381::t_45755efe098d4b 40
+src/dod/infrastructure/__init__.py
+  s_614f17f4aee381::t_ccf4fc6ac792af 10,28
+src/dod/presentation/_diagnostics.py
+  s_614f17f4aee381::t_c53a2e6201b9f7 13,28-33,202-206
+  s_614f17f4aee381::t_b19a60b94f64b7 207
+tests/session/test_session_manager.py
+  s_614f17f4aee381::t_d18228f8cd03b6 7,27-32,73-79
+  s_614f17f4aee381::t_0a5b7a09f554c2 80
+src/dod/domain/v1/__init__.py
+  s_614f17f4aee381::t_688713e230433d 7,15
+src/dod/infrastructure/_reading_system.py
+  s_614f17f4aee381::t_ccf4fc6ac792af 1-31,33-82,84-86
+  s_614f17f4aee381::t_696883c7d2199c 32,83
+src/dod/main.py
+  s_614f17f4aee381::t_696883c7d2199c 11,29
+src/dod/infrastructure/_http.py
+  s_614f17f4aee381::t_9f52128730c807 12,31,128-147,216-239
+  s_614f17f4aee381::t_ccf4fc6ac792af 71-72,86-89
+  s_614f17f4aee381::t_b3f3a25d43f965 240
+src/dod/application/_attributes.py
+  s_614f17f4aee381::t_ccf4fc6ac792af 1-23
+src/dod/infrastructure/_memory.py
+  s_614f17f4aee381::t_688713e230433d 11-12,24,35-36,58-63,65-69,164-196,210-215
+  s_614f17f4aee381::t_45755efe098d4b 64
+  s_614f17f4aee381::t_d1a2e9019e72e0 216-217
+src/dod/infrastructure/_spec.py
+  s_614f17f4aee381::t_688713e230433d 17-18
+tests/cli/test_attributes.py
+  s_614f17f4aee381::t_36f43b2cd3b516 1-30,34-286,288-331
+  s_614f17f4aee381::t_d18228f8cd03b6 31-33
+  s_614f17f4aee381::t_696883c7d2199c 287
+tests/support/_harness.py
+  s_614f17f4aee381::t_9f52128730c807 5,21-22
+  s_614f17f4aee381::t_9b184b88b9ebfd 23-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0a88349890cafa16c1365a25e5e01e1f5ceca0ae",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
