@@ -56,6 +56,7 @@ _TYPES = (
     ("contentList", "6.3"),
     ("contentMetadata", "6.4"),
     ("readingSystemAttributes", "6.9"),
+    ("resources", "6.10"),
     ("serviceAttributes", "6.11"),
 )
 

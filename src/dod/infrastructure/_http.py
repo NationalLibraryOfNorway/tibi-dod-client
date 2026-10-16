@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 import httpx
 from lxml import etree
 
+from dod.application import origin
 from dod.domain.service import (
     Deviation,
     Exchange,
@@ -34,11 +35,16 @@ from dod.domain.v1 import (
     QUIRKS,
     SPEC_REFS,
     Announcement,
+    ByteRange,
     ContentItem,
     ContentList,
     ContentMetadata,
+    ContentResource,
+    ContentResources,
     ReadingSystemAttributes,
+    ResourceSink,
     ServiceAttributes,
+    SinkRefused,
     operation_ref,
 )
 from dod.infrastructure._schema import SchemaUnavailableError, validate_document
@@ -47,6 +53,8 @@ _NS = "http://www.daisy.org/ns/daisy-online/"
 _DC = "http://purl.org/dc/elements/1.1/"
 _SOAP = "http://schemas.xmlsoap.org/soap/envelope/"
 _TIMEOUT_SECONDS = 30.0
+_BODY_KEPT = 4096
+"""How much of a resource body an Exchange keeps (ADR 0008)."""
 _BEFORE_INITIALISATION = frozenset(
     {"logOn", "logOff", "getServiceAttributes", "setReadingSystemAttributes"}
 )
@@ -246,6 +254,31 @@ def _content_metadata(element: etree._Element) -> ContentMetadata:
     )
 
 
+def _without_userinfo(uri: str) -> str:
+    """The address for an error message: credentials in it never leave `dod`."""
+    parts = urlsplit(uri)
+    if "@" not in parts.netloc:
+        return uri
+    return parts._replace(netloc=parts.netloc.rsplit("@", 1)[1]).geturl()
+
+
+def _content_resources(element: etree._Element) -> ContentResources:
+    return ContentResources(
+        resources=tuple(
+            ContentResource(
+                uri=item.get("uri") or "",
+                mime_type=item.get("mimeType") or "",
+                size=_int(item.get("size")),
+                local_uri=item.get("localURI") or "",
+                last_modified=item.get("lastModifiedDate"),
+            )
+            for item in element.findall(_dodp("resource"))
+        ),
+        return_by=element.get("returnBy"),
+        last_modified=element.get("lastModifiedDate"),
+    )
+
+
 class HttpServicePort:
     """A `ServicePort` that talks SOAP over HTTP to one Service URL.
 
@@ -380,6 +413,96 @@ class HttpServicePort:
             _text_element(parent, "contentID", content_id)
 
         return self._call("getContentMetadata", fill, read)
+
+    def get_content_resources(self, content_id: str) -> Reply[ContentResources]:
+        def read(
+            response: etree._Element,
+        ) -> tuple[ContentResources, tuple[SchemaViolation, ...]] | Deviation | None:
+            element = response.find(_dodp("resources"))
+            if element is None:
+                return None
+            return _content_resources(element), self._validate(element)
+
+        def fill(parent: etree._Element) -> None:
+            _text_element(parent, "contentID", content_id)
+
+        return self._call("getContentResources", fill, read)
+
+    def fetch_resource(
+        self, uri: str, sink: ResourceSink, byte_range: ByteRange | None = None
+    ) -> Reply[int]:
+        headers = {"Accept-Encoding": "identity"}
+        if byte_range is not None:
+            first, last = byte_range
+            headers["Range"] = f"bytes={first}-{'' if last is None else last}"
+        # The Session cookie is only for the Service's own origin; any other
+        # origin gets a client without a cookie jar and without `.netrc`.
+        own_origin = origin(uri) == origin(self._url)
+        client = self._client
+        if not own_origin:
+            client = httpx.Client(
+                timeout=_TIMEOUT_SECONDS, follow_redirects=False, trust_env=False
+            )
+        started = time.perf_counter()
+        try:
+            return self._stream(client, uri, headers, sink, byte_range, started)
+        except httpx.HTTPError as error:
+            raise TransportError(
+                f"GET {_without_userinfo(uri)}: no answer: "
+                f"{error or type(error).__name__}"
+            ) from error
+        finally:
+            if client is not self._client:
+                client.close()
+
+    def _stream(
+        self,
+        client: httpx.Client,
+        uri: str,
+        headers: dict[str, str],
+        sink: ResourceSink,
+        byte_range: ByteRange | None,
+        started: float,
+    ) -> Reply[int]:
+        with client.stream("GET", uri, headers=headers) as response:
+            status = response.status_code
+            problem: str | None = None
+            if not 200 <= status < 300:
+                problem = f"the resource answered HTTP {status}"
+            elif status == 206 and byte_range is None:
+                problem = "the resource answered 206 to a request without a range"
+            head = bytearray()
+            total = 0
+            try:
+                for chunk in response.iter_raw():
+                    total += len(chunk)
+                    if len(head) < _BODY_KEPT:
+                        head += chunk[: _BODY_KEPT - len(head)]
+                    if problem is None:
+                        sink(chunk)
+                    elif total > _BODY_KEPT:
+                        break  # nothing of a failed answer is read beyond the head
+            except SinkRefused as refusal:
+                problem = f"the transfer was stopped: {refusal}"
+            exchange = Exchange(
+                method="GET",
+                url=uri,
+                request_headers=tuple(response.request.headers.items()),
+                request_body="",
+                status=status,
+                response_headers=tuple(response.headers.items()),
+                response_body=bytes(head).decode("utf-8", errors="replace"),
+                duration_seconds=time.perf_counter() - started,
+                response_truncated=total > _BODY_KEPT,
+            )
+        if problem is not None:
+            return Deviation(
+                description=problem,
+                spec_reference=SPEC_REFS["type.resources"],
+                exchange=exchange,
+                observations=self._observations,
+            )
+        return Ok(value=total, exchange=exchange, observations=self._observations)
 
     def send_raw(self, operation: str, body: str) -> Reply[str]:
         """`RawChannel`: send `operation` and `body` as given, unchecked."""

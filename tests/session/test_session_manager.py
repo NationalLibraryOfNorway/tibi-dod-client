@@ -5,15 +5,18 @@ operations the manager sent, in order.
 """
 
 from collections.abc import Callable, Sequence
+from pathlib import Path
 
 import pytest
 
 from dod.application import (
+    DownloadRequest,
     InitialisationFailed,
     MemorySessionStore,
     NoCredentialsError,
     SessionKey,
     SessionManager,
+    download,
 )
 from dod.domain.service import (
     Exchange,
@@ -26,9 +29,13 @@ from dod.domain.service import (
 )
 from dod.domain.v1 import (
     Announcement,
+    ByteRange,
     ContentList,
     ContentMetadata,
+    ContentResource,
+    ContentResources,
     ReadingSystemAttributes,
+    ResourceSink,
     ServiceAttributes,
     ServicePort,
 )
@@ -89,6 +96,16 @@ class Recording:
     def get_content_metadata(self, content_id: str) -> Reply[ContentMetadata]:
         self._log.append("getContentMetadata")
         return self._port.get_content_metadata(content_id)
+
+    def get_content_resources(self, content_id: str) -> Reply[ContentResources]:
+        self._log.append("getContentResources")
+        return self._port.get_content_resources(content_id)
+
+    def fetch_resource(
+        self, uri: str, sink: ResourceSink, byte_range: ByteRange | None = None
+    ) -> Reply[int]:
+        self._log.append("fetch_resource")
+        return self._port.fetch_resource(uri, sink, byte_range)
 
     def close(self) -> None:
         self._port.close()
@@ -397,3 +414,70 @@ def test_sessions_are_kept_apart_per_service_url_and_user(world: World) -> None:
     with world.store.lock(SessionKey(URL, "someone-else")) as slot:
         assert slot.read() is None
     assert other.probe() is None
+
+
+def test_download_replaces_an_expired_session_once_before_fetching_anything(
+    world: World, tmp_path: Path
+) -> None:
+    world.service.offer_resources(
+        "book0",
+        [
+            ContentResource(
+                uri=world.service.file_url("files/a.txt"),
+                mime_type="text/plain",
+                size=5,
+                local_uri="a.txt",
+            )
+        ],
+    )
+    world.service.offer_file("files/a.txt", b"hello")
+    world.manager().logon(PASSWORD)
+    world.service.expire_sessions()
+    world.log.clear()
+
+    report = download(
+        world.manager(),
+        DownloadRequest(
+            content_id="book0",
+            directory=tmp_path / "book",
+            service_url=URL,
+            trust_host=True,
+        ),
+    )
+
+    assert report.succeeded, report
+    assert world.log[:2] == ["getContentResources", "logOn"]
+    assert world.log.count("logOn") == 1
+    assert world.log.count("fetch_resource") == 1
+    assert (tmp_path / "book" / "a.txt").read_bytes() == b"hello"
+
+
+def test_a_failed_resource_fetch_never_triggers_a_relogin(
+    world: World, tmp_path: Path
+) -> None:
+    world.service.offer_resources(
+        "book0",
+        [
+            ContentResource(
+                uri=world.service.file_url("files/missing.txt"),
+                mime_type="text/plain",
+                size=5,
+                local_uri="a.txt",
+            )
+        ],
+    )
+    world.manager().logon(PASSWORD)
+    world.log.clear()
+
+    report = download(
+        world.manager(),
+        DownloadRequest(
+            content_id="book0",
+            directory=tmp_path / "book",
+            service_url=URL,
+            trust_host=True,
+        ),
+    )
+
+    assert not report.succeeded
+    assert world.log == ["getContentResources", "fetch_resource"]

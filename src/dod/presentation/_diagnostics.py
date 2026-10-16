@@ -27,10 +27,13 @@ from dod.domain.service import (
 )
 from dod.domain.v1 import (
     Announcement,
+    ByteRange,
     ContentList,
     ContentMetadata,
+    ContentResources,
     RawChannel,
     ReadingSystemAttributes,
+    ResourceSink,
     ServiceAttributes,
     ServicePort,
 )
@@ -113,7 +116,10 @@ class Diagnostics:
             f"-- {masked.status} in {round(masked.duration_seconds * 1000)} ms"
         )
         lines += [f"{name}: {value}" for name, value in masked.response_headers]
-        lines += ["", _pretty(masked.response_body), ""]
+        lines += ["", _pretty(masked.response_body)]
+        if masked.response_truncated:
+            lines.append("[the body is cut here; the rest went to a file]")
+        lines.append("")
         text = "\n".join(lines)
         if self._colour:
             text = text.replace(HIGHLIGHT_START, _HIGHLIGHT_ON).replace(
@@ -126,7 +132,7 @@ class Diagnostics:
     def _save(self, masked: Exchange, number: int) -> None:
         assert self._save_to is not None
         stem = f"{number:03d}-{_operation(masked)}"
-        summary = {
+        summary: dict[str, object] = {
             "method": masked.method,
             "url": masked.url,
             "status": masked.status,
@@ -134,6 +140,8 @@ class Diagnostics:
             "request_headers": [list(pair) for pair in masked.request_headers],
             "response_headers": [list(pair) for pair in masked.response_headers],
         }
+        if masked.response_truncated:
+            summary["response_body_truncated"] = True
         try:
             for suffix, content in (
                 ("request.xml", masked.request_body),
@@ -225,6 +233,14 @@ class _RecordingPort:
 
     def get_content_metadata(self, content_id: str) -> Reply[ContentMetadata]:
         return self._call(lambda: self._port.get_content_metadata(content_id))
+
+    def get_content_resources(self, content_id: str) -> Reply[ContentResources]:
+        return self._call(lambda: self._port.get_content_resources(content_id))
+
+    def fetch_resource(
+        self, uri: str, sink: ResourceSink, byte_range: ByteRange | None = None
+    ) -> Reply[int]:
+        return self._call(lambda: self._port.fetch_resource(uri, sink, byte_range))
 
     def close(self) -> None:
         self._port.close()

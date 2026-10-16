@@ -4,7 +4,7 @@ from collections.abc import Iterator, Sequence
 
 import pytest
 
-from dod.domain.v1 import Announcement, ContentList, ContentMetadata
+from dod.domain.v1 import Announcement, ContentList, ContentMetadata, ContentResource
 from dod.infrastructure import InMemoryService
 from support import Harness, HttpHarness
 
@@ -29,6 +29,21 @@ class _MemoryHarness:
         self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
     ) -> None:
         self._service.offer_catalog(lists, metadata)
+
+    def offer_resources(
+        self,
+        content_id: str,
+        resources: Sequence[ContentResource],
+        *,
+        issued: bool = True,
+    ) -> None:
+        self._service.offer_resources(content_id, resources, issued=issued)
+
+    def offer_file(self, path: str, body: bytes) -> None:
+        self._service.offer_file(path, body)
+
+    def file_url(self, path: str) -> str:
+        return self._service.file_url(path)
 
     def open_port(self):  # type: ignore[no-untyped-def]
         return self._service.open_port()

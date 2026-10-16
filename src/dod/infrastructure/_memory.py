@@ -22,11 +22,17 @@ from dod.domain.service import (
     SessionState,
 )
 from dod.domain.v1 import (
+    SPEC_REFS,
     Announcement,
+    ByteRange,
     ContentList,
     ContentMetadata,
+    ContentResource,
+    ContentResources,
     ReadingSystemAttributes,
+    ResourceSink,
     ServiceAttributes,
+    SinkRefused,
     operation_ref,
 )
 
@@ -42,6 +48,8 @@ class InMemoryService:
         self._read: set[str] = set()
         self._lists: dict[str, ContentList] = {}
         self._metadata: dict[str, ContentMetadata] = {}
+        self._resources: dict[str, tuple[ContentResources, bool]] = {}
+        self._files: dict[str, bytes] = {}
         self.attributes = attributes or ServiceAttributes(
             service_provider_id="synthetic-provider",
             service_id="synthetic-service",
@@ -82,6 +90,23 @@ class InMemoryService:
         self._lists = {item.id: item for item in lists}
         self._metadata = {item.identifier or "": item for item in metadata}
 
+    def offer_resources(
+        self,
+        content_id: str,
+        resources: Sequence[ContentResource],
+        *,
+        issued: bool = True,
+    ) -> None:
+        """Publish the files of a book; unless `issued` they are not available."""
+        self._resources[content_id] = (ContentResources(tuple(resources)), issued)
+
+    def offer_file(self, path: str, body: bytes) -> None:
+        """Serve `body` at `file_url(path)`."""
+        self._files[path] = body
+
+    def file_url(self, path: str) -> str:
+        return f"{_FILE_PREFIX}{path}"
+
     def expire_sessions(self) -> None:
         """End every Session on the Service, as if they had all timed out."""
         self._sessions.clear()
@@ -106,6 +131,10 @@ class InMemoryService:
             spec_reference=operation_ref(operation),
             exchange=_exchange(operation),
         )
+
+
+_FILE_PREFIX = "https://memory.example.org/"
+_BODY_KEPT = 4096
 
 
 def _exchange(operation: str) -> Exchange:
@@ -263,11 +292,78 @@ class InMemoryPort:
             )
         return Ok(value=known, exchange=exchange)
 
+    def get_content_resources(self, content_id: str) -> Reply[ContentResources]:
+        injected = self._service._take_injected("getContentResources")
+        if injected is not None:
+            assert not isinstance(injected, Ok)
+            return injected
+        if not self._active():
+            return _no_active_session("getContentResources")
+        exchange = _exchange("getContentResources")
+        known = self._service._resources.get(content_id)
+        if known is None or not known[1]:
+            return Fault(
+                kind=FaultKind.INVALID_PARAMETER,
+                reason="content is not issued",
+                exchange=exchange,
+            )
+        return Ok(value=known[0], exchange=exchange)
+
+    def fetch_resource(
+        self, uri: str, sink: ResourceSink, byte_range: ByteRange | None = None
+    ) -> Reply[int]:
+        body = (
+            self._service._files.get(uri.removeprefix(_FILE_PREFIX))
+            if uri.startswith(_FILE_PREFIX)
+            else None
+        )
+        if body is None:
+            return self._answered(uri, 404, b"not found", None)
+        status = 200
+        if byte_range is not None:
+            first, last = byte_range
+            body = body[first : None if last is None else last + 1]
+            status = 206
+        try:
+            sink(body)
+        except SinkRefused as refusal:
+            return Deviation(
+                description=f"the transfer was stopped: {refusal}",
+                spec_reference=SPEC_REFS["type.resources"],
+                exchange=_resource_exchange(uri, status, body),
+            )
+        return self._answered(uri, status, body, len(body))
+
+    def _answered(
+        self, uri: str, status: int, body: bytes, delivered: int | None
+    ) -> Reply[int]:
+        exchange = _resource_exchange(uri, status, body)
+        if delivered is None:
+            return Deviation(
+                description=f"the resource answered HTTP {status}",
+                spec_reference=SPEC_REFS["type.resources"],
+                exchange=exchange,
+            )
+        return Ok(value=delivered, exchange=exchange)
+
     def close(self) -> None:
         """Nothing to release."""
 
     def _active(self) -> bool:
         return self._token is not None and self._token in self._service._sessions
+
+
+def _resource_exchange(uri: str, status: int, body: bytes) -> Exchange:
+    return Exchange(
+        method="GET",
+        url=uri,
+        request_headers=(),
+        request_body="",
+        status=status,
+        response_headers=(),
+        response_body=body[:_BODY_KEPT].decode("utf-8", errors="replace"),
+        response_truncated=len(body) > _BODY_KEPT,
+    )
 
 
 def _no_active_session(operation: str) -> Fault:

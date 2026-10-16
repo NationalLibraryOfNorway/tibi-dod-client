@@ -21,9 +21,12 @@ from dod.application import (
     Connection,
     CredentialProvider,
     Discovery,
+    DownloadReport,
+    DownloadRequest,
     Endpoint,
     EndpointError,
     Fetcher,
+    FileOutcome,
     InitialisationFailed,
     LogonReport,
     MarkOutcome,
@@ -39,11 +42,13 @@ from dod.application import (
     SessionStore,
     Step,
     WsdlParser,
+    book_directory,
     check_config,
     check_endpoint,
     compare,
     default_reading_system,
     discover,
+    download,
     list_quirks,
     load_config,
     logon_ephemeral,
@@ -68,6 +73,7 @@ from dod.domain.v1 import (
     Announcement,
     ContentList,
     ContentMetadata,
+    ContentResources,
     ReadingSystemAttributes,
     ServicePort,
 )
@@ -141,6 +147,7 @@ def create_app(
     parse_reading_system: ReadingSystemParser | None = None,
     open_raw: OpenRawChannel | None = None,
     open_quirky: OpenQuirkPort | None = None,
+    data_dir: Path | None = None,
 ) -> typer.Typer:
     """Build the `dod` command line application.
 
@@ -152,7 +159,8 @@ def create_app(
     where Session files live (in memory, so lost at exit, by default).
     `parse_reading_system` reads a Reading System declaration file, and
     `open_raw` opens the raw channel the negative tests send through, and
-    `open_quirky` opens a port that may use the named Quirks (ADR 0010).
+    `open_quirky` opens a port that may use the named Quirks (ADR 0010), and
+    `data_dir` is where downloaded books go (`--output` needs no data directory).
     """
     terminal = terminal or _SystemTerminal()
     store = session_store or MemorySessionStore()
@@ -393,8 +401,11 @@ def create_app(
     ) -> Reply[T]:
         """Run one Service call through the manager; a failure to get a Session
         or no answer at all ends the command."""
+        return guarded(g, target, lambda: manager.call(operation))
+
+    def guarded[R](g: GlobalOptions, target: _Target, run: Callable[[], R]) -> R:
         try:
-            return manager.call(operation)
+            return run()
         except TransportError as error:
             _fail(_no_answer(error, target.url))
         except NoCredentialsError as error:
@@ -769,6 +780,104 @@ def create_app(
             lambda value: {"metadata": _metadata_json(value)},
             header=False,
         )
+
+    @app.command(
+        rich_help_panel=DOWNLOAD_AND_PLAY,
+        epilog=_EPILOG,
+        help=(
+            "List the files of an issued book (getContentResources) as the "
+            "Service gave them; nothing is downloaded. Quote an id that has "
+            "spaces."
+        ),
+    )
+    def resources(
+        ctx: typer.Context,
+        id: Annotated[str, typer.Argument(help="The identifier of the book.")],
+    ) -> None:
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        reply = serve(g, target, manager, lambda port: port.get_content_resources(id))
+        _present(
+            g,
+            target.diag,
+            "getContentResources",
+            reply,
+            _resources_lines,
+            lambda value: {"resources": _resources_json(value)},
+            header=False,
+        )
+
+    @app.command(
+        "download",
+        rich_help_panel=DOWNLOAD_AND_PLAY,
+        epilog=_EPILOG,
+        help=(
+            "Download the files of an issued book: getContentResources, then one "
+            "HTTP GET per file, one after the other. It never issues the book "
+            "itself (run `dod issue` first); a book that is not issued gives the "
+            "Service's invalidParameter fault as it came. The files go to "
+            "<data>/<environment>/books/<id>/ (DOD_DATA_DIR sets <data>), or to "
+            "--output; --output is required without an Environment. Every "
+            "localURI is checked before anything is fetched, and one that is "
+            "absolute, has `..` or backslashes or a drive letter, or leaves the "
+            "directory, aborts with nothing written. A file is written as "
+            ".part and renamed only when its size is the announced one. Existing "
+            "files are not overwritten without --force. Addresses on another "
+            "host than the Service need --trust-host; the Session cookie and the "
+            "password are never sent there."
+        ),
+    )
+    def download_command(
+        ctx: typer.Context,
+        id: Annotated[str, typer.Argument(help="The identifier of the book.")],
+        file: Annotated[
+            list[str] | None,
+            typer.Option(
+                "--file",
+                help="Fetch only this localURI (as `dod resources` shows it). "
+                "May be repeated.",
+            ),
+        ] = None,
+        output: Annotated[
+            Path | None,
+            typer.Option(
+                "--output",
+                help="The directory to put the files in, instead of the default.",
+            ),
+        ] = None,
+        force: Annotated[
+            bool, typer.Option("--force", help="Overwrite files that already exist.")
+        ] = False,
+    ) -> None:
+        g = _globals(ctx)
+        _no_xml(g, "download")
+        if not id:
+            _fail("the book identifier is empty")
+        connection = _connection(config_store, g)
+        directory = output
+        if directory is None:
+            if connection.environment is None:
+                _fail(
+                    "there is no Environment to name the target directory: "
+                    "pass --output"
+                )
+            if data_dir is None:
+                _fail("there is no data directory: pass --output")
+            directory = book_directory(data_dir, connection.environment.value, id)
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        request = DownloadRequest(
+            content_id=id,
+            directory=directory,
+            service_url=target.url,
+            files=tuple(file or ()),
+            force=force,
+            trust_host=target.connection.trust_host.value,
+            insecure=target.connection.insecure.value,
+        )
+        report = guarded(g, target, lambda: download(manager, request))
+        _render_download(g, target.diag, report, directory)
 
     @groups["test"].command(
         "list",
@@ -1214,6 +1323,91 @@ def _metadata_json(book: ContentMetadata) -> dict[str, Any]:
     document = dataclasses.asdict(book)
     document["meta"] = [{"name": n, "content": c} for n, c in book.meta]
     return document
+
+
+def _resources_lines(shown: ContentResources) -> list[str]:
+    lines = [f"resources: {len(shown.resources)}"]
+    if shown.return_by is not None:
+        lines.append(f"returnBy: {_plain(shown.return_by)}")
+    for number, item in enumerate(shown.resources, start=1):
+        lines += [
+            f"resource {number}:",
+            f"  uri: {_plain(mask_url(item.uri))}",
+            f"  localURI: {_plain(item.local_uri)}",
+            f"  size: {'-' if item.size is None else item.size}",
+            f"  mimeType: {_plain(item.mime_type)}",
+            f"  lastModifiedDate: {_plain(item.last_modified or '-')}",
+        ]
+    return lines
+
+
+def _resources_json(shown: ContentResources) -> dict[str, Any]:
+    document = dataclasses.asdict(shown)
+    for item in document["resources"]:
+        item["uri"] = mask_url(item["uri"])
+    return document
+
+
+def _problem_text(problem: Reply[int] | str) -> str:
+    if isinstance(problem, str):
+        return problem
+    if isinstance(problem, Deviation):
+        return problem.description
+    return _line(Step("fetch", problem)).split(": ", 1)[1]
+
+
+def _render_download(
+    g: GlobalOptions, diag: Diagnostics, report: DownloadReport, directory: Path
+) -> None:
+    """Results go to stdout; refusals, Observations and findings go to stderr."""
+    step = Step("getContentResources", report.resources)
+    diag.observe(report.observations)
+    if report.refusal is not None:
+        _fail(_plain(report.refusal))
+    if report.deviation is not None:
+        step = Step("getContentResources", report.deviation)
+    if report.succeeded:
+        result = "ok"
+    elif report.files:
+        result = "failed"
+    else:
+        result = _line(step).split(": ", 1)[1]
+    if g.format is OutputFormat.JSON:
+        document: dict[str, Any] = {
+            "result": result,
+            "directory": str(directory),
+            "files": [
+                {
+                    "local_uri": item.local_uri,
+                    "path": str(item.path),
+                    "outcome": item.outcome.value,
+                    "bytes": item.size,
+                    "problem": None
+                    if item.problem is None
+                    else _problem_text(item.problem),
+                }
+                for item in report.files
+            ],
+        }
+        typer.echo(json.dumps(document, indent=2))
+    else:
+        if not isinstance(report.resources, Ok) or report.deviation is not None:
+            typer.echo(_line(step))
+        for item in report.files:
+            name = _plain(item.local_uri)
+            if item.outcome is FileOutcome.DOWNLOADED:
+                typer.echo(f"downloaded {name} ({item.size} bytes)")
+            else:
+                reason = _plain(_problem_text(item.problem or "unknown"))
+                typer.echo(f"failed {name}: {reason}")
+        if report.succeeded:
+            count = len(report.files)
+            typer.echo(f"{count} file{'s' if count != 1 else ''} in {directory}")
+    _diagnose(diag, step)
+    for item in report.files:
+        if isinstance(item.problem, Deviation):
+            _diagnose(diag, Step("fetch_resource", item.problem))
+    raise typer.Exit(EXIT_OK if report.succeeded else EXIT_SERVICE_FAILED)
 
 
 def _render_marks(g: GlobalOptions, diag: Diagnostics, report: MarkReport) -> None:

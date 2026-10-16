@@ -3,7 +3,13 @@
 from collections.abc import Sequence
 from typing import Protocol
 
-from dod.domain.v1 import Announcement, ContentList, ContentMetadata, ServicePort
+from dod.domain.v1 import (
+    Announcement,
+    ContentList,
+    ContentMetadata,
+    ContentResource,
+    ServicePort,
+)
 
 
 class Harness(Protocol):
@@ -27,6 +33,24 @@ class Harness(Protocol):
         self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
     ) -> None:
         """Publish content lists (by id) and book metadata (by identifier)."""
+        ...
+
+    def offer_resources(
+        self,
+        content_id: str,
+        resources: Sequence[ContentResource],
+        *,
+        issued: bool = True,
+    ) -> None:
+        """Publish the files of a book; unless `issued` they are not available."""
+        ...
+
+    def offer_file(self, path: str, body: bytes) -> None:
+        """Serve `body` at `file_url(path)`."""
+        ...
+
+    def file_url(self, path: str) -> str:
+        """The absolute address of a file offered with `offer_file`."""
         ...
 
     def open_port(self) -> ServicePort: ...
