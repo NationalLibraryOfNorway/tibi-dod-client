@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Protocol
 
 from dod.domain.service import Password, Reply, SessionState
-from dod.domain.v1._models import ReadingSystemAttributes, ServiceAttributes
+from dod.domain.v1._models import (
+    Announcement,
+    ReadingSystemAttributes,
+    ServiceAttributes,
+)
 
 
 class ServicePort(Protocol):
@@ -38,6 +43,14 @@ class ServicePort(Protocol):
     def set_reading_system_attributes(
         self, attributes: ReadingSystemAttributes
     ) -> Reply[bool]: ...
+
+    def get_service_announcements(self) -> Reply[tuple[Announcement, ...]]:
+        """The announcements the user has not read yet (optional operation)."""
+        ...
+
+    def mark_announcements_as_read(self, ids: Sequence[str]) -> Reply[bool]:
+        """Mark announcements as read; `false` means already read (optional)."""
+        ...
 
     def close(self) -> None:
         """Release the connection; the port is not used afterwards."""

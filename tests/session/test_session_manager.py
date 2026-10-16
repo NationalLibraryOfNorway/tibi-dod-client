@@ -4,7 +4,7 @@ Users and passwords are synthetic. A recording `OpenPort` shows which
 operations the manager sent, in order.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import pytest
 
@@ -24,7 +24,12 @@ from dod.domain.service import (
     Reply,
     SessionState,
 )
-from dod.domain.v1 import ReadingSystemAttributes, ServiceAttributes, ServicePort
+from dod.domain.v1 import (
+    Announcement,
+    ReadingSystemAttributes,
+    ServiceAttributes,
+    ServicePort,
+)
 from dod.infrastructure import InMemoryService
 
 URL = "https://dod.example.org/service"
@@ -64,6 +69,14 @@ class Recording:
     ) -> Reply[bool]:
         self._log.append("setReadingSystemAttributes")
         return self._port.set_reading_system_attributes(attributes)
+
+    def get_service_announcements(self) -> Reply[tuple[Announcement, ...]]:
+        self._log.append("getServiceAnnouncements")
+        return self._port.get_service_announcements()
+
+    def mark_announcements_as_read(self, ids: Sequence[str]) -> Reply[bool]:
+        self._log.append("markAnnouncementsAsRead")
+        return self._port.mark_announcements_as_read(ids)
 
     def close(self) -> None:
         self._port.close()

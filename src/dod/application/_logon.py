@@ -9,7 +9,7 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Callable
 from dataclasses import dataclass
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import PackageNotFoundError, metadata, version
 from typing import Any
 
 from dod.application._address import check_endpoint
@@ -26,9 +26,13 @@ class Step:
 
     operation: str
     reply: Reply[Any]
+    optional: bool = False
+    """An optional step is shown as answered but never fails the sequence."""
 
     @property
     def succeeded(self) -> bool:
+        if self.optional:
+            return True
         # `logOn` and friends answer a boolean; false means the Service said no.
         return isinstance(self.reply, Ok) and self.reply.value is not False
 
@@ -52,23 +56,34 @@ class LogonReport:
         return tuple(seen)
 
 
+_PRODUCER = "National Library of Norway"
+
+
 def default_reading_system() -> ReadingSystemAttributes:
-    """What `dod` tells a Service about itself in `setReadingSystemAttributes`."""
+    """What `dod` tells a Service about itself in `setReadingSystemAttributes`.
+
+    Producer and version come from the installed package; DAISY 2.02 and
+    EPUB 3, `audio/mpeg` and `audio/wav` and the text and numeric input types
+    are what `dod` can act on. A file or an Environment's `reading_system`
+    replaces all of it.
+    """
     try:
         release = version("dod-client")
+        producer = metadata("dod-client").get("Author") or _PRODUCER
     except PackageNotFoundError:
         release = "0"
+        producer = _PRODUCER
     return ReadingSystemAttributes(
-        manufacturer="National Library of Norway",
+        manufacturer=producer,
         model="dod",
         version=release,
         config=ReadingSystemConfig(
             supports_multiple_selections=False,
             preferred_ui_language="en",
-            supported_content_formats=("Daisy 2.02",),
+            supported_content_formats=("Daisy 2.02", "EPUB 3"),
             supported_content_protection_formats=(),
-            supported_mime_types=("audio/mpeg",),
-            supported_input_types=("TEXT_NUMERIC",),
+            supported_mime_types=("audio/mpeg", "audio/wav"),
+            supported_input_types=("TEXT_NUMERIC", "TEXT_ALPHANUMERIC"),
             requires_audio_labels=False,
         ),
     )
@@ -82,7 +97,10 @@ def initialise(
 ) -> list[Step]:
     """Run `logOn`, `getServiceAttributes`, `setReadingSystemAttributes`.
 
-    Stops at the first step that does not succeed. A Session that `logOn`
+    When the Service declares announcements (`SERVICE_ANNOUNCEMENTS` among its
+    optional operations), `getServiceAnnouncements` follows as an optional
+    step; nothing is marked as read. Stops at the first step that does not
+    succeed. A Session that `logOn`
     started is ended again when a later step fails or gets no usable answer, so
     no half-finished Session is left behind; when every step succeeded the
     Session is alive and the caller decides what happens to it.
@@ -103,6 +121,16 @@ def initialise(
             steps.append(Step(operation, call()))
             if not steps[-1].succeeded:
                 break
+        else:
+            declared = steps[1].reply
+            if isinstance(declared, Ok) and declared.value.supports_announcements:
+                steps.append(
+                    Step(
+                        "getServiceAnnouncements",
+                        port.get_service_announcements(),
+                        optional=True,
+                    )
+                )
     except TransportError:
         _log_off_quietly(port)
         raise

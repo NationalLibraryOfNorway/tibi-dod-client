@@ -19,6 +19,13 @@ from dod.application._address import (
     origin,
     resolve_endpoint,
 )
+from dod.application._announcements import (
+    MarkOutcome,
+    MarkReport,
+    MarkResult,
+    mark_read,
+)
+from dod.application._attributes import ReadingSystemError, ReadingSystemParser
 from dod.application._config import (
     ConfigCheck,
     ConfigFile,
@@ -69,9 +76,14 @@ __all__ = [
     "LoadedConfig",
     "LogoffResult",
     "LogonReport",
+    "MarkOutcome",
+    "MarkReport",
+    "MarkResult",
     "MemorySessionStore",
     "NoCredentialsError",
     "OpenPort",
+    "ReadingSystemError",
+    "ReadingSystemParser",
     "SessionError",
     "SessionKey",
     "SessionManager",
@@ -88,6 +100,7 @@ __all__ = [
     "discover",
     "load_config",
     "logon_ephemeral",
+    "mark_read",
     "origin",
     "resolve_connection",
     "resolve_endpoint",

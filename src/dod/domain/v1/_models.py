@@ -16,6 +16,8 @@ class ReadingSystemConfig:
     supported_mime_types: tuple[str, ...]
     supported_input_types: tuple[str, ...]
     requires_audio_labels: bool
+    bandwidth: int | None = None
+    additional_transfer_protocols: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -45,3 +47,23 @@ class ServiceAttributes:
     supported_uplink_audio_codecs: tuple[str, ...] = ()
     supports_audio_labels: bool | None = None
     supported_optional_operations: tuple[str, ...] = ()
+
+    @property
+    def supports_announcements(self) -> bool:
+        """Whether the Service declares the announcement operations."""
+        return "SERVICE_ANNOUNCEMENTS" in self.supported_optional_operations
+
+
+@dataclass(frozen=True)
+class Announcement:
+    """One announcement from the Service (specification 6.3), read leniently.
+
+    The text is whatever the Service sent and must be treated as untrusted
+    wherever it is shown (ADR 0008).
+    """
+
+    id: str
+    text: str
+    lang: str | None = None
+    type: str = "INFORMATION"
+    priority: int = 3

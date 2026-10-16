@@ -32,3 +32,30 @@ def test_help_shows_command_groups_as_panels(panel: str) -> None:
     assert any(title.match(line.lstrip()) for line in result.stdout.splitlines()), (
         result.stdout
     )
+
+
+@pytest.mark.parametrize(
+    ("group", "commands"),
+    [
+        ("attributes", ["service", "reading-system"]),
+        ("announcements", ["list", "mark-read"]),
+    ],
+)
+def test_attribute_and_announcement_commands_are_listed(
+    group: str, commands: list[str]
+) -> None:
+    result = run_dod(group, "--help")
+
+    assert result.returncode == 0, result.stderr
+    for command in commands:
+        assert re.search(rf"^\W*{re.escape(command)}\s", result.stdout, re.M), (
+            result.stdout
+        )
+
+
+def test_mark_read_help_explains_all_and_the_one_by_one_fallback() -> None:
+    result = run_dod("announcements", "mark-read", "--help")
+
+    text = " ".join(result.stdout.split())
+    assert "--all" in text
+    assert "invalidParameter" in text

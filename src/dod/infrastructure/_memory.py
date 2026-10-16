@@ -8,6 +8,8 @@ localhost behaves the same, and both are held to the same contract tests.
 from __future__ import annotations
 
 import secrets
+from collections.abc import Sequence
+from dataclasses import replace
 
 from dod.domain.service import (
     Deviation,
@@ -19,7 +21,7 @@ from dod.domain.service import (
     Reply,
     SessionState,
 )
-from dod.domain.v1 import ReadingSystemAttributes, ServiceAttributes
+from dod.domain.v1 import Announcement, ReadingSystemAttributes, ServiceAttributes
 from dod.infrastructure._spec import operation_reference
 
 
@@ -30,6 +32,8 @@ class InMemoryService:
         self._users: dict[str, str] = {}
         self._sessions: set[str] = set()
         self._injected: dict[str, Fault | str] = {}
+        self._announcements: tuple[Announcement, ...] = ()
+        self._read: set[str] = set()
         self.attributes = attributes or ServiceAttributes(
             service_provider_id="synthetic-provider",
             service_id="synthetic-service",
@@ -49,6 +53,18 @@ class InMemoryService:
         exchange = _exchange(operation)
         self._injected[operation] = Fault(
             kind=FaultKind(kind), reason=reason, exchange=exchange
+        )
+
+    def offer_announcements(self, *announcements: Announcement) -> None:
+        """Publish announcements and declare the two optional operations."""
+        self._announcements = announcements
+        self._read = set()
+        operations = {
+            *self.attributes.supported_optional_operations,
+            "SERVICE_ANNOUNCEMENTS",
+        }
+        self.attributes = replace(
+            self.attributes, supported_optional_operations=tuple(sorted(operations))
         )
 
     def expire_sessions(self) -> None:
@@ -145,6 +161,39 @@ class InMemoryPort:
             return _no_active_session("setReadingSystemAttributes")
         return Ok(value=True, exchange=_exchange("setReadingSystemAttributes"))
 
+    def get_service_announcements(self) -> Reply[tuple[Announcement, ...]]:
+        injected = self._service._take_injected("getServiceAnnouncements")
+        if injected is not None:
+            assert not isinstance(injected, Ok)
+            return injected
+        if not self._active():
+            return _no_active_session("getServiceAnnouncements")
+        if not self._service._announcements:
+            return _not_supported("getServiceAnnouncements")
+        unread = tuple(
+            a for a in self._service._announcements if a.id not in self._service._read
+        )
+        return Ok(value=unread, exchange=_exchange("getServiceAnnouncements"))
+
+    def mark_announcements_as_read(self, ids: Sequence[str]) -> Reply[bool]:
+        injected = self._service._take_injected("markAnnouncementsAsRead")
+        if injected is not None:
+            return injected
+        if not self._active():
+            return _no_active_session("markAnnouncementsAsRead")
+        if not self._service._announcements:
+            return _not_supported("markAnnouncementsAsRead")
+        known = {a.id for a in self._service._announcements}
+        if not set(ids) <= known:
+            return Fault(
+                kind=FaultKind.INVALID_PARAMETER,
+                reason="unknown announcement",
+                exchange=_exchange("markAnnouncementsAsRead"),
+            )
+        fresh = set(ids) - self._service._read
+        self._service._read |= fresh
+        return Ok(value=bool(fresh), exchange=_exchange("markAnnouncementsAsRead"))
+
     def close(self) -> None:
         """Nothing to release."""
 
@@ -156,5 +205,13 @@ def _no_active_session(operation: str) -> Fault:
     return Fault(
         kind=FaultKind.NO_ACTIVE_SESSION,
         reason="no active session",
+        exchange=_exchange(operation),
+    )
+
+
+def _not_supported(operation: str) -> Fault:
+    return Fault(
+        kind=FaultKind.OPERATION_NOT_SUPPORTED,
+        reason="not supported",
         exchange=_exchange(operation),
     )

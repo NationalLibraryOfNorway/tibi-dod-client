@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from dod.domain.v1 import ServicePort
+from dod.domain.v1 import Announcement, ServicePort
 
 
 class Harness(Protocol):
@@ -16,6 +16,10 @@ class Harness(Protocol):
 
     def inject_deviation(self, operation: str) -> None:
         """Make the next call of `operation` answer contrary to the specification."""
+        ...
+
+    def offer_announcements(self, *announcements: Announcement) -> None:
+        """Publish announcements, and let the Service declare the operations."""
         ...
 
     def open_port(self) -> ServicePort: ...

@@ -24,6 +24,16 @@ A Session file is kept per (resolved Service URL, username) so that later comman
 - `--no-session` or `DOD_NO_SESSION=1` is ephemeral mode: initialise, run, `logOff`, store nothing.
 - `dod logoff` calls `logOff` and deletes the file whatever the Service answers (a failure is a warning). `dod session clear` deletes the file without network. `dod session status` is local; `--check` asks the Service with `getServiceAttributes` and exits 1 when the Session has expired. `dod status` shows the Environment, URL, user and whether the Session is `stored`, `none` or `ephemeral`; it sends nothing. The commands that do not send anything need `--url` or an Environment with a `url` (a WSDL is not fetched for them).
 
+### Attributes and announcements
+
+Ordinary commands reach the Service through the session manager: they reuse the stored Session and log on again once, with the credentials above, when it has expired (ADR 0005). With `--no-session` they log on, run and log off.
+
+- `dod attributes service` shows what the Service says it supports (`getServiceAttributes`), `--format json` as a document and `--format xml` as the raw, masked response.
+- `dod attributes reading-system [--file <xml>]` sends the declaration (`setReadingSystemAttributes`) and shows the answer. By default `dod` declares the producer and version of the installed package, DAISY 2.02 and EPUB 3, `audio/mpeg` and `audio/wav`, and the input types `TEXT_NUMERIC` and `TEXT_ALPHANUMERIC`. `--file` names a `readingSystemAttributes` XML document that replaces all of it; so does the Environment's `reading_system` key (a path, relative to the configuration file), which `dod logon` and every relogin then declare as well. The flag beats the key. The file is validated against the local schemas before anything is sent; elements from other namespaces are not sent on.
+- `dod logon` asks for the announcements right after the Initialisation sequence when the Service declares `SERVICE_ANNOUNCEMENTS`, and shows them without marking them as read. A fault on that call is shown as it is and does not end the Session.
+- `dod announcements list` shows the unread announcements. `dod announcements mark-read <id>...` or `--all` marks them; because the specification only accepts identifiers from a `getServiceAnnouncements` of the same Session, it fetches first, and `--all` uses the identifiers of that fetch. If the Service answers `invalidParameter` for the set, the identifiers are tried one at a time; `false` from the Service is reported as "already read".
+- A Service that does not support an operation gives its `Fault` or `Deviation` as it is (exit code 1). Text from the Service is shown with control characters replaced by spaces.
+
 ### Finding the endpoint
 
 `dod` never guesses the Service endpoint while logging on (ADR 0002). Name it with `--url` (the SOAP endpoint itself), with `--wsdl` (the Service's WSDL; its `soap:address` is used) or through an Environment that holds one of them. `--url`, `--wsdl` and `--env` cannot be combined.
@@ -51,6 +61,7 @@ url = "https://dod.example.org/service"   # exactly one of url and wsdl
 username = "alice"
 password = "..."        # plaintext, see docs/adr/0006
 # insecure = false, trust_host = false, protected = false, quirks = []
+# reading_system = "reading-system.xml"   # replaces the default declaration
 
 [environments.local]
 url = "http://127.0.0.1:8080/service"

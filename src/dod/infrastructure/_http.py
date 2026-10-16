@@ -9,7 +9,7 @@ leniently into the models and always validated against the local schemas.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from urllib.parse import urlsplit
 
 import httpx
@@ -28,7 +28,7 @@ from dod.domain.service import (
     SessionState,
     TransportError,
 )
-from dod.domain.v1 import ReadingSystemAttributes, ServiceAttributes
+from dod.domain.v1 import Announcement, ReadingSystemAttributes, ServiceAttributes
 from dod.infrastructure._schema import SchemaUnavailableError, validate_document
 from dod.infrastructure._spec import FAULTS_REFERENCE, operation_reference
 
@@ -68,6 +68,8 @@ def _reading_system_element(
         _bool_text(cfg.supports_multiple_selections),
     )
     _text_element(config, "preferredUILanguage", cfg.preferred_ui_language)
+    if cfg.bandwidth is not None:
+        _text_element(config, "bandwidth", str(cfg.bandwidth))
     formats = etree.SubElement(config, _dodp("supportedContentFormats"))
     for item in cfg.supported_content_formats:
         _text_element(formats, "contentFormat", item)
@@ -81,6 +83,10 @@ def _reading_system_element(
     for item in cfg.supported_input_types:
         etree.SubElement(inputs, _dodp("input")).set("type", item)
     _text_element(config, "requiresAudioLabels", _bool_text(cfg.requires_audio_labels))
+    if cfg.additional_transfer_protocols:
+        protocols = etree.SubElement(config, _dodp("additionalTransferProtocols"))
+        for item in cfg.additional_transfer_protocols:
+            _text_element(protocols, "protocol", item)
 
 
 def _envelope(operation: str, fill: Callable[[etree._Element], None]) -> bytes:
@@ -117,6 +123,26 @@ def _service_attributes(element: etree._Element) -> ServiceAttributes:
         supports_audio_labels=_flag(element, "supportsAudioLabels"),
         supported_optional_operations=_children_text(element, "operation"),
     )
+
+
+_XML_LANG = "{http://www.w3.org/XML/1998/namespace}lang"
+
+
+def _announcements(element: etree._Element) -> tuple[Announcement, ...]:
+    found: list[Announcement] = []
+    for item in element.findall(_dodp("announcement")):
+        label = item.find(_dodp("label"))
+        priority = (item.get("priority") or "3").strip()
+        found.append(
+            Announcement(
+                id=item.get("id") or "",
+                text=(label.findtext(_dodp("text")) or "") if label is not None else "",
+                lang=label.get(_XML_LANG) if label is not None else None,
+                type=item.get("type") or "INFORMATION",
+                priority=int(priority) if priority.isdigit() else 3,
+            )
+        )
+    return tuple(found)
 
 
 class HttpServicePort:
@@ -185,6 +211,31 @@ class HttpServicePort:
             "setReadingSystemAttributes",
             lambda parent: _reading_system_element(parent, attributes),
             self._result("setReadingSystemAttributes"),
+        )
+
+    def get_service_announcements(self) -> Reply[tuple[Announcement, ...]]:
+        def read(
+            response: etree._Element,
+        ) -> (
+            tuple[tuple[Announcement, ...], tuple[SchemaViolation, ...]]
+            | Deviation
+            | None
+        ):
+            element = response.find(_dodp("announcements"))
+            if element is None:
+                return None
+            return _announcements(element), self._validate(element)
+
+        return self._call("getServiceAnnouncements", lambda parent: None, read)
+
+    def mark_announcements_as_read(self, ids: Sequence[str]) -> Reply[bool]:
+        def fill(parent: etree._Element) -> None:
+            read = etree.SubElement(parent, _dodp("read"))
+            for identifier in ids:
+                _text_element(read, "item", identifier)
+
+        return self._call(
+            "markAnnouncementsAsRead", fill, self._result("markAnnouncementsAsRead")
         )
 
     def close(self) -> None:
