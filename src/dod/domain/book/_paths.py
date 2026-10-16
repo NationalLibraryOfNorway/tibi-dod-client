@@ -43,3 +43,34 @@ def local_uri_segments(local_uri: str) -> tuple[tuple[str, ...] | None, str | No
         if len(segment.encode()) > _MAX_SEGMENT_BYTES:
             return None, "a segment is too long"
     return segments, None
+
+
+def resolve_reference(
+    base: tuple[str, ...], reference: str
+) -> tuple[tuple[str, ...] | None, str | None]:
+    """The path segments `reference` names from the directory `base`, or what is wrong.
+
+    Like `local_uri_segments`, except that `..` may climb out of `base` (an EPUB
+    overlay in `OEBPS/smil/` names `../audio/a.mp3`), never out of the book. A
+    percent-encoded `/` or `..` is refused, as it is there.
+    """
+    if not reference:
+        return None, "it is empty"
+    if reference.startswith("/"):
+        return None, "it is an absolute path"
+    stack = list(base)
+    for raw in reference.split("/"):
+        if raw == ".":
+            continue
+        if raw == "..":
+            if not stack:
+                return None, "it climbs out of the book"
+            stack.pop()
+            continue
+        segments, problem = local_uri_segments(raw)
+        if problem is not None or segments is None:
+            return None, problem
+        if len(segments) != 1:
+            return None, "it has an encoded path separator"
+        stack.append(segments[0])
+    return tuple(stack), None

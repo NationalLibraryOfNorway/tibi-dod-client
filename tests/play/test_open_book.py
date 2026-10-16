@@ -41,3 +41,44 @@ def test_a_smil_that_is_far_too_large_is_not_read(tmp_path: Path) -> None:
         open_book(tmp_path)
 
     assert raised.value.kind is BookErrorKind.TOO_LARGE
+
+
+def test_an_epub_3_book_is_played_in_the_order_of_its_spine(tmp_path: Path) -> None:
+    (tmp_path / "META-INF").mkdir()
+    (tmp_path / "META-INF" / "container.xml").write_bytes(
+        b'<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">'
+        b'<rootfiles><rootfile full-path="book.opf"/></rootfiles></container>'
+    )
+    (tmp_path / "book.opf").write_bytes(
+        b'<package xmlns="http://www.idpf.org/2007/opf"><manifest>'
+        b'<item id="c" href="c.xhtml" media-overlay="o"/>'
+        b'<item id="o" href="o.smil"/></manifest>'
+        b'<spine><itemref idref="c"/></spine></package>'
+    )
+    (tmp_path / "o.smil").write_bytes(
+        b'<smil><body><seq><par><audio src="a.wav" clipEnd="2s"/></par></seq>'
+        b"</body></smil>"
+    )
+
+    assert open_book(tmp_path).clips == (Clip("a.wav", 0.0, 2.0),)
+
+
+def test_a_text_only_epub_3_book_is_refused_not_played_in_silence(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "META-INF").mkdir()
+    (tmp_path / "META-INF" / "container.xml").write_bytes(
+        b'<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">'
+        b'<rootfiles><rootfile full-path="book.opf"/></rootfiles></container>'
+    )
+    (tmp_path / "book.opf").write_bytes(
+        b'<package xmlns="http://www.idpf.org/2007/opf"><manifest>'
+        b'<item id="c" href="c.xhtml"/></manifest>'
+        b'<spine><itemref idref="c"/></spine></package>'
+    )
+
+    with pytest.raises(BookError) as raised:
+        open_book(tmp_path)
+
+    assert raised.value.kind is BookErrorKind.NO_SMIL
+    assert "media overlay" in str(raised.value)
