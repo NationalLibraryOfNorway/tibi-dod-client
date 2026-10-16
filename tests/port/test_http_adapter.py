@@ -75,7 +75,6 @@ def test_an_answer_that_breaks_the_schema_is_read_leniently_with_violations(
     service: FakeService, port: HttpServicePort
 ) -> None:
     log_on(port)
-    service.allow_invalid_attributes = True
     service.service_attributes_xml = service.service_attributes_xml.replace(
         "<supportsSearch>false</supportsSearch>",
         "<supportsSearch>maybe</supportsSearch>",
@@ -87,6 +86,7 @@ def test_an_answer_that_breaks_the_schema_is_read_leniently_with_violations(
     assert reply.value.service_id == "synthetic-service"
     assert reply.schema_violations != ()
     assert "supportsSearch" in reply.schema_violations[0].message
+    service.invalid_responses.clear()  # broken on purpose
 
 
 def test_a_soap_fault_without_a_dodp_element_is_a_deviation(

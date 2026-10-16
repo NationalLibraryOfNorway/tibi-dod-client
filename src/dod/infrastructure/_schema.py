@@ -14,18 +14,8 @@ _SPEC_DIR = _REPO_ROOT / "docs" / "spec" / "dodp-v1"
 _CATALOG = _REPO_ROOT / "schemas" / "catalog.xml"
 _CATALOG_NS = "urn:oasis:names:tc:entity:xmlns:xml:catalog"
 
-# What the embedded schema of the WSDL pulls together: the types schema and the
-# two namespaces it imports. Generated here because lxml cannot read a WSDL.
-_ROOT_SCHEMA = f"""\
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <xs:import namespace="http://www.daisy.org/ns/daisy-online/"
-             schemaLocation="{(_SPEC_DIR / "do-types-10.xsd").as_uri()}"/>
-  <xs:import namespace="http://www.daisy.org/z3986/2005/bookmark/"
-             schemaLocation="{(_SPEC_DIR / "bookmark-2005-1.xsd").as_uri()}"/>
-  <xs:import namespace="http://www.daisy.org/DRM/2005/KeyExchange"
-             schemaLocation="http://www.daisy.org/DRM/KeyExchange-2005-1.xsd"/>
-</xs:schema>
-"""
+_WSDL = _SPEC_DIR / "do-wsdl-10.wsdl"
+_XSD = "http://www.w3.org/2001/XMLSchema"
 
 
 @dataclass(frozen=True)
@@ -70,7 +60,16 @@ def _schema() -> etree.XMLSchema:
         )
     parser = etree.XMLParser(no_network=True, load_dtd=False)
     parser.resolvers.add(_CatalogResolver())
-    document = etree.fromstring(_ROOT_SCHEMA.encode(), parser)
+    # The schema embedded in the WSDL holds the operation messages and the
+    # faults and includes the types schema; lxml cannot read a WSDL itself, so
+    # the schema element is lifted out and keeps the WSDL's base URL.
+    wsdl = etree.parse(str(_WSDL), parser)
+    embedded = wsdl.find(f".//{{{_XSD}}}schema")
+    if embedded is None:
+        raise SchemaUnavailableError("the DODP v1 WSDL has no embedded schema")
+    document = etree.fromstring(
+        etree.tostring(embedded), parser, base_url=_WSDL.as_uri()
+    )
     return etree.XMLSchema(document)
 
 
