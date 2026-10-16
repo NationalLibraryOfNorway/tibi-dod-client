@@ -37,6 +37,18 @@ from dod.application._logon import (
     default_reading_system,
     logon_ephemeral,
 )
+from dod.application._session import (
+    CredentialProvider,
+    InitialisationFailed,
+    LogoffResult,
+    MemorySessionStore,
+    NoCredentialsError,
+    SessionError,
+    SessionKey,
+    SessionManager,
+    SessionSlot,
+    SessionStore,
+)
 from dod.domain.config import ConfigError
 
 __all__ = [
@@ -47,14 +59,24 @@ __all__ = [
     "ConfigFile",
     "ConfigStore",
     "Connection",
+    "CredentialProvider",
     "Discovery",
     "Endpoint",
     "EndpointError",
     "FetchResponse",
     "Fetcher",
+    "InitialisationFailed",
     "LoadedConfig",
+    "LogoffResult",
     "LogonReport",
+    "MemorySessionStore",
+    "NoCredentialsError",
     "OpenPort",
+    "SessionError",
+    "SessionKey",
+    "SessionManager",
+    "SessionSlot",
+    "SessionStore",
     "Sourced",
     "Step",
     "WsdlError",

@@ -1,7 +1,6 @@
-"""Ephemeral logon: the Initialisation sequence followed by `logOff` (ADR 0005).
+"""The Initialisation sequence and the ephemeral logon (ADR 0005).
 
-Ephemeral mode never persists anything. This is the first use case; it will
-move behind the session manager when that exists. Use cases do not print and
+The sequence is shared with the session manager. Use cases do not print and
 do not exit: they return the Replies unchanged and presentation renders them.
 """
 
@@ -75,6 +74,44 @@ def default_reading_system() -> ReadingSystemAttributes:
     )
 
 
+def initialise(
+    port: ServicePort,
+    username: str,
+    password: Password,
+    attributes: ReadingSystemAttributes,
+) -> list[Step]:
+    """Run `logOn`, `getServiceAttributes`, `setReadingSystemAttributes`.
+
+    Stops at the first step that does not succeed. A Session that `logOn`
+    started is ended again when a later step fails or gets no usable answer, so
+    no half-finished Session is left behind; when every step succeeded the
+    Session is alive and the caller decides what happens to it.
+
+    Raises `TransportError` when a call got no usable answer.
+    """
+    steps = [Step("logOn", port.log_on(username, password))]
+    if not steps[-1].succeeded:
+        return steps
+    try:
+        for operation, call in (
+            ("getServiceAttributes", port.get_service_attributes),
+            (
+                "setReadingSystemAttributes",
+                lambda: port.set_reading_system_attributes(attributes),
+            ),
+        ):
+            steps.append(Step(operation, call()))
+            if not steps[-1].succeeded:
+                break
+    except TransportError:
+        _log_off_quietly(port)
+        raise
+    if not steps[-1].succeeded:
+        with contextlib.suppress(TransportError):
+            steps.append(Step("logOff", port.log_off()))
+    return steps
+
+
 def logon_ephemeral(
     open_port: OpenPort,
     url: str,
@@ -84,10 +121,7 @@ def logon_ephemeral(
     insecure: bool = False,
     reading_system: ReadingSystemAttributes | None = None,
 ) -> LogonReport:
-    """Run `logOn`, `getServiceAttributes`, `setReadingSystemAttributes`, `logOff`.
-
-    Stops at the first step that does not succeed, but still ends a Session
-    that `logOn` started, so no half-finished Session is left behind.
+    """Run the Initialisation sequence followed by `logOff`.
 
     Raises `EndpointError` before anything is sent when the address is refused,
     and `TransportError` when a call got no usable answer.
@@ -95,24 +129,9 @@ def logon_ephemeral(
     check_endpoint(url, insecure=insecure)
     attributes = reading_system or default_reading_system()
     port = open_port(url)
-    steps: list[Step] = []
     try:
-        steps.append(Step("logOn", port.log_on(username, password)))
-        if steps[-1].succeeded:
-            try:
-                for operation, call in (
-                    ("getServiceAttributes", port.get_service_attributes),
-                    (
-                        "setReadingSystemAttributes",
-                        lambda: port.set_reading_system_attributes(attributes),
-                    ),
-                ):
-                    steps.append(Step(operation, call()))
-                    if not steps[-1].succeeded:
-                        break
-            except TransportError:
-                _log_off_quietly(port)
-                raise
+        steps = initialise(port, username, password, attributes)
+        if all(step.succeeded for step in steps):
             steps.append(Step("logOff", port.log_off()))
         return LogonReport(tuple(steps))
     finally:

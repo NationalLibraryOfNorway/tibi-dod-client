@@ -51,6 +51,10 @@ class InMemoryService:
             kind=FaultKind(kind), reason=reason, exchange=exchange
         )
 
+    def expire_sessions(self) -> None:
+        """End every Session on the Service, as if they had all timed out."""
+        self._sessions.clear()
+
     def inject_deviation(self, operation: str) -> None:
         """Make the next call of `operation` answer contrary to the specification."""
         self._injected[operation] = "deviation"
@@ -97,6 +101,9 @@ class InMemoryPort:
         if self._token is None:
             return None
         return SessionState(cookies=(("session", self._token),))
+
+    def resume(self, session: SessionState) -> None:
+        self._token = dict(session.cookies).get("session")
 
     def log_on(self, username: str, password: Password) -> Reply[bool]:
         injected = self._service._take_injected("logOn")

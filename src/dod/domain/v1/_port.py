@@ -21,6 +21,14 @@ class ServicePort(Protocol):
         """The current Session, or `None` before a `log_on` has started one."""
         ...
 
+    def resume(self, session: SessionState) -> None:
+        """Continue a Session started by another port, from its `session` state.
+
+        Sends nothing; whether the Service still knows the Session shows on the
+        next call, as a `noActiveSession` fault when it does not.
+        """
+        ...
+
     def log_on(self, username: str, password: Password) -> Reply[bool]: ...
 
     def log_off(self) -> Reply[bool]: ...

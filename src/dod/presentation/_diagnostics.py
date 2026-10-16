@@ -166,6 +166,9 @@ class _RecordingPort:
     def session(self) -> SessionState | None:
         return self._port.session
 
+    def resume(self, session: SessionState) -> None:
+        self._port.resume(session)
+
     def _call[T](self, call: Callable[[], Reply[T]]) -> Reply[T]:
         try:
             reply = call()

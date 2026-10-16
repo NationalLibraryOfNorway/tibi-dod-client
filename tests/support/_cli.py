@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import sysconfig
+import tempfile
 
 # Typer's Rich output is forced into terminal mode (ANSI styling) by these
 # variables, which CI sets (GITHUB_ACTIONS) or developers export. NO_COLOR alone
@@ -17,6 +18,9 @@ FORCE_TERMINAL_VARS = {
     "TTY_INTERACTIVE",
     "TERMINAL_WIDTH",
 }
+# Tests must never touch the developer's own Session files: unless a test says
+# otherwise, the child process gets a throwaway state directory.
+_STATE_DIR = tempfile.TemporaryDirectory(prefix="dod-test-state-")
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 
 
@@ -33,7 +37,12 @@ def run_dod(
         for key, value in os.environ.items()
         if key not in FORCE_TERMINAL_VARS and not key.startswith("DOD_")
     }
-    child_env |= {"NO_COLOR": "1", "PYTHONIOENCODING": "utf-8", "COLUMNS": "100"}
+    child_env |= {
+        "NO_COLOR": "1",
+        "PYTHONIOENCODING": "utf-8",
+        "COLUMNS": "100",
+        "DOD_STATE_DIR": _STATE_DIR.name,
+    }
     child_env |= env or {}
     result = subprocess.run(
         [executable, *args],

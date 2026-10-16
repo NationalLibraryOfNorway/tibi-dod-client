@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+from dataclasses import dataclass
 from typing import Annotated, Any, NoReturn
 
 import typer
@@ -16,10 +17,14 @@ from dod.application import (
     EndpointError,
     Fetcher,
     LogonReport,
+    MemorySessionStore,
     OpenPort,
+    SessionManager,
+    SessionStore,
     Step,
     WsdlParser,
     check_config,
+    check_endpoint,
     discover,
     load_config,
     logon_ephemeral,
@@ -94,6 +99,7 @@ def create_app(
     fetcher: Fetcher,
     parse_wsdl: WsdlParser,
     terminal: Terminal | None = None,
+    session_store: SessionStore | None = None,
 ) -> typer.Typer:
     """Build the `dod` command line application.
 
@@ -101,9 +107,11 @@ def create_app(
     configuration file lives, and `fetcher` and `parse_wsdl` how a WSDL is
     fetched and read; the composition root supplies them, because presentation
     never imports the infrastructure layer. `terminal` answers whether stderr
-    and stdin are terminals (the real ones by default).
+    and stdin are terminals (the real ones by default), and `session_store` is
+    where Session files live (in memory, so lost at exit, by default).
     """
     terminal = terminal or _SystemTerminal()
+    store = session_store or MemorySessionStore()
     app = typer.Typer(
         name="dod",
         help="Test client for DODP v1 Services.",
@@ -253,18 +261,7 @@ def create_app(
     def diagnostics(ctx: typer.Context) -> Diagnostics:
         return _start_diagnostics(ctx, _globals(ctx), terminal)
 
-    @app.command(
-        rich_help_panel=SESSION_AND_SETUP,
-        epilog=_EPILOG,
-        help=(
-            "Run the initialisation sequence against a Service and log off again "
-            "(ephemeral mode: nothing is stored; --no-session is required)."
-        ),
-    )
-    def logon(ctx: typer.Context) -> None:
-        g = _globals(ctx)
-        if not g.no_session:
-            _fail("stored Sessions are not available yet; pass --no-session")
+    def network_target(ctx: typer.Context, g: GlobalOptions) -> _Target:
         diag = diagnostics(ctx)
         connection = _connection(config_store, g)
         try:
@@ -272,35 +269,160 @@ def create_app(
         except EndpointError as error:
             _fail(str(error))
         if endpoint is None:
-            _fail(
-                "no Service address: pass --url, --wsdl or --env, or set "
-                "default_environment in the configuration file"
-            )
-        _banner(connection, endpoint, g.quiet)
+            _fail(_NO_ADDRESS)
+        _banner(connection, endpoint.url, g.quiet)
         diag.observe(_host_boundary(endpoint))
-        if connection.username is None:
-            _fail(
-                "no username: pass --username, set DOD_USERNAME or give the "
-                "Environment a username"
-            )
-        password = _password(g.password_stdin, connection)
         try:
-            report = logon_ephemeral(
-                diag.wrap(open_port),
-                endpoint.url,
-                connection.username.value,
-                password,
-                insecure=connection.insecure.value,
-            )
+            check_endpoint(endpoint.url, insecure=connection.insecure.value)
+        except EndpointError as error:
+            _fail(str(error))
+        return _Target(diag, connection, endpoint.url, _username(connection))
+
+    def manager_for(target: _Target) -> SessionManager:
+        return SessionManager(
+            target.diag.wrap(open_port), store, target.url, target.username, None
+        )
+
+    @app.command(
+        rich_help_panel=SESSION_AND_SETUP,
+        epilog=_EPILOG,
+        help=(
+            "Log on: end a stored Session, run the initialisation sequence and "
+            "store the new Session for later commands. With --no-session it runs "
+            "the sequence and logs off again, storing nothing."
+        ),
+    )
+    def logon(ctx: typer.Context) -> None:
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        password = _password(g.password_stdin, target.connection)
+        try:
+            if g.no_session:
+                report = logon_ephemeral(
+                    target.diag.wrap(open_port),
+                    target.url,
+                    target.username,
+                    password,
+                    insecure=target.connection.insecure.value,
+                )
+            else:
+                report = manager_for(target).logon(password)
         except EndpointError as error:
             _fail(str(error))
         except TransportError as error:
-            _fail(
-                f"{error}\nIf {mask_url(endpoint.url)} is not the SOAP "
-                f"endpoint, try: dod discover {mask_url(endpoint.url)}"
-            )
-        _render(report, g.format, diag)
+            _fail(_no_answer(error, target.url))
+        _render(report, g.format, target.diag)
         raise typer.Exit(EXIT_OK if report.succeeded else EXIT_SERVICE_FAILED)
+
+    @app.command(
+        rich_help_panel=SESSION_AND_SETUP,
+        epilog=_EPILOG,
+        help=(
+            "Call logOff for the stored Session and delete the Session file "
+            "whatever the Service answers (a failure is only a warning)."
+        ),
+    )
+    def logoff(ctx: typer.Context) -> None:
+        g = _globals(ctx)
+        _text_only(g, "logoff")
+        if g.no_session:
+            _fail("--no-session has no stored Session to end")
+        target = network_target(ctx, g)
+        result = manager_for(target).logoff()
+        if result.warning:
+            typer.echo(f"warning: {result.warning}", err=True)
+        typer.echo("logged off" if result.had_session else "no stored Session")
+
+    @app.command(
+        "status",
+        rich_help_panel=SESSION_AND_SETUP,
+        epilog=_EPILOG,
+        help=(
+            "Show the Environment, the user and whether the Session is stored "
+            "or ephemeral. Local: nothing is sent to the Service."
+        ),
+    )
+    def status_command(ctx: typer.Context) -> None:
+        g = _globals(ctx)
+        _no_xml(g, "status")
+        connection, url = _local_target(config_store, g)
+        _banner(connection, url, g.quiet)
+        manager = _local_manager(open_port, store, connection, url)
+        if g.no_session:
+            state = "ephemeral"
+        else:
+            state = "stored" if manager and manager.stored() else "none"
+        _show(
+            g,
+            {
+                "environment": connection.environment.value
+                if connection.environment
+                else "-",
+                "url": mask_url(url),
+                "username": connection.username.value if connection.username else "-",
+                "session": state,
+            },
+        )
+
+    @groups["session"].command(
+        "status",
+        epilog=_EPILOG,
+        help=(
+            "Show whether a Session is stored for the Service and user. Local by "
+            "default; --check asks the Service with one reading call (exit 1 when "
+            "the Session has expired)."
+        ),
+    )
+    def session_status(
+        ctx: typer.Context,
+        check: Annotated[
+            bool,
+            typer.Option(
+                "--check",
+                help="Ask the Service with getServiceAttributes whether the "
+                "stored Session is still active.",
+            ),
+        ] = False,
+    ) -> None:
+        g = _globals(ctx)
+        _no_xml(g, "session status")
+        diag = diagnostics(ctx)
+        connection, url = _local_target(config_store, g)
+        _banner(connection, url, g.quiet)
+        if check:
+            try:
+                check_endpoint(url, insecure=connection.insecure.value)
+            except EndpointError as error:
+                _fail(str(error))
+        manager = _local_manager(diag.wrap(open_port), store, connection, url)
+        stored = manager is not None and manager.stored()
+        values = {"session": "stored" if stored else "none"}
+        expired = False
+        if check and manager is not None and stored:
+            try:
+                active = manager.probe()
+            except TransportError as error:
+                _fail(_no_answer(error, url))
+            expired = active is False
+            values["service"] = "expired" if expired else "active"
+        _show(g, values)
+        raise typer.Exit(EXIT_SERVICE_FAILED if expired else EXIT_OK)
+
+    @groups["session"].command(
+        "clear",
+        epilog=_EPILOG,
+        help="Delete the stored Session file without contacting the Service.",
+    )
+    def session_clear(ctx: typer.Context) -> None:
+        g = _globals(ctx)
+        _text_only(g, "session clear")
+        connection, url = _local_target(config_store, g)
+        _banner(connection, url, g.quiet)
+        manager = _local_manager(open_port, store, connection, url)
+        if manager is None:
+            _fail(_NO_USERNAME)
+        manager.clear()
+        typer.echo("stored Session deleted")
 
     @app.command(
         "discover",
@@ -401,11 +523,77 @@ def _host_boundary(endpoint: Endpoint) -> tuple[Observation, ...]:
     )
 
 
-def _banner(connection: Connection, endpoint: Endpoint, quiet: bool) -> None:
+def _banner(connection: Connection, url: str, quiet: bool) -> None:
     if quiet:
         return
     name = connection.environment.value if connection.environment else "-"
-    typer.echo(f"[{name}] {mask_url(endpoint.url)}", err=True)
+    typer.echo(f"[{name}] {mask_url(url)}", err=True)
+
+
+_NO_ADDRESS = (
+    "no Service address: pass --url, --wsdl or --env, or set "
+    "default_environment in the configuration file"
+)
+_NO_USERNAME = (
+    "no username: pass --username, set DOD_USERNAME or give the Environment a username"
+)
+
+
+@dataclass(frozen=True)
+class _Target:
+    """What a command that talks to the Service needs: where, as whom."""
+
+    diag: Diagnostics
+    connection: Connection
+    url: str
+    username: str
+
+
+def _username(connection: Connection) -> str:
+    if connection.username is None:
+        _fail(_NO_USERNAME)
+    return connection.username.value
+
+
+def _local_target(store: ConfigStore, g: GlobalOptions) -> tuple[Connection, str]:
+    """The Service URL of a command that sends nothing, so no WSDL is fetched."""
+    connection = _connection(store, g)
+    if connection.url is None:
+        if connection.wsdl is not None:
+            _fail(
+                "this command does not fetch the WSDL; pass the endpoint with "
+                "--url or give the Environment a url"
+            )
+        _fail(_NO_ADDRESS)
+    return connection, connection.url.value
+
+
+def _local_manager(
+    open_port: OpenPort, store: SessionStore, connection: Connection, url: str
+) -> SessionManager | None:
+    if connection.username is None:
+        return None
+    return SessionManager(open_port, store, url, connection.username.value, None)
+
+
+def _no_xml(g: GlobalOptions, command: str) -> None:
+    if g.format is OutputFormat.XML:
+        _fail(f"dod {command} has no xml output; --format is text or json")
+
+
+def _show(g: GlobalOptions, values: dict[str, str]) -> None:
+    if g.format is OutputFormat.JSON:
+        typer.echo(json.dumps(values, indent=2))
+    else:
+        for name, value in values.items():
+            typer.echo(f"{name}: {value}")
+
+
+def _no_answer(error: TransportError, url: str) -> str:
+    return (
+        f"{error}\nIf {mask_url(url)} is not the SOAP endpoint, try: "
+        f"dod discover {mask_url(url)}"
+    )
 
 
 def _render_discovery(discovery: Discovery, address: str) -> None:
