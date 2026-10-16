@@ -84,6 +84,15 @@ Ordinary commands reach the Service through the session manager: they reuse the 
 - `--fetch-missing` fetches the audio files that are not in the book directory, one at a time and before playing starts (the lengths of the files are needed to play), and stores them in the book directory as `download` does. It is `download` of just those files: `getContentResources` on content that is already issued, every `localURI` of the list checked, other hosts only with `--trust-host`, `.part` files renamed when complete. It never issues the book (a book that is not issued gives the Service's `invalidParameter` fault as it came, exit 1), and it fetches audio only: the SMIL, `ncc.html` and package files must already be on disk. A file the Service does not list is refused (exit 2). Progress goes to stderr, a failed fetch ends the command with exit 1 and nothing is played.
 - `play` has text output only. Tests never open an audio device: they use a fake Player and miniaudio's `Backend.NULL`.
 
+### The terminal interface
+
+`dod tui` is an interactive terminal for browsing the shelf and seeing the metadata of a book. It needs the optional Textual (MIT): `pip install 'dod-client[tui]'`; without it the command exits with 2 and says so. It needs no audio player. It is a thin layer over the operations `dod list` and `dod metadata` use, called through the same Session manager (ADR 0005), in thread workers so the screen never waits for the Service (ADR 0004).
+
+- The shelf screen shows `issued` and pages 25 items at a time: `Enter` opens the metadata of the selected book, `l` chooses another list by id (`new`, `expired`, a `contentListRef`), `n` and `p` page, `r` reloads, `q` quits. On the metadata screen `Escape` goes back.
+- A Fault, a Deviation, a failed logon or no answer is shown on the screen as the Service answered; the TUI uses the stored Session, so run `dod logon` first (or keep a password in the Environment). Ids, labels and metadata are untrusted text: control characters are replaced and no markup in them is interpreted.
+- The TUI is always masked (ADR 0007): `--unmask` and `--unmask-password` are refused with exit 2. So are `--password-stdin` (the keyboard is stdin), `--debug` and `--save-exchanges` (stderr belongs to the screen), `--no-session` and `--format`.
+- Tests drive it headless with Textual's `Pilot` against the in-memory Service; no terminal is needed.
+
 ### Conformance tests
 
 `dod test run` runs Conformance tests against a Service and reports one Outcome per test; `dod test list` shows the stable, hierarchical test ids (`session.logon.wrong-password`). The families are `session`, `attributes`, `catalog` and `content` (State-changing, see below), and `negative` (explicit, see below).

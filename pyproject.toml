@@ -35,6 +35,8 @@ dependencies = [
 # Audio playback for `dod play`; there are no wheels for every platform (for
 # example Linux arm64 or Python 3.15), where `dod play` explains what is missing.
 play = ["miniaudio>=1.61"]
+# The interactive terminal, `dod tui`; Textual is MIT and pure Python.
+tui = ["textual>=1.0"]
 
 [project.scripts]
 dod = "dod.main:main"
@@ -51,6 +53,8 @@ dev = [
     "pytest>=8.3",
     "ruff>=0.11",
     "tach>=0.29",
+    # The TUI tests drive it through Textual's Pilot.
+    "textual>=1.0",
 ]
 
 [tool.uv]
