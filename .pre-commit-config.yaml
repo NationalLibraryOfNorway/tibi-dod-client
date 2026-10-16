@@ -1,0 +1,30 @@
+# The same steps as .github/workflows/ci.yml. Run them with
+# `uvx pre-commit run --all-files`; install the hook with `uvx pre-commit install`.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --no-sync ruff check
+        language: system
+        pass_filenames: false
+      - id: ruff-format
+        name: ruff format --check
+        entry: uv run --no-sync ruff format --check
+        language: system
+        pass_filenames: false
+      - id: mypy
+        name: mypy
+        entry: uv run --no-sync mypy
+        language: system
+        pass_filenames: false
+      - id: tach
+        name: tach check
+        entry: uv run --no-sync tach check
+        language: system
+        pass_filenames: false
+      - id: pytest
+        name: pytest
+        entry: uv run --no-sync pytest
+        language: system
+        pass_filenames: false
