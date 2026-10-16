@@ -2,6 +2,18 @@
 
 `dod` is a cross-platform test client for DODP v1 (DAISY Online Delivery Protocol) backends. See [GLOSSARY.md](GLOSSARY.md) for the terms used and [docs/adr/](docs/adr/) for design decisions.
 
+## Usage
+
+`dod logon` runs the Initialisation sequence (`logOn`, `getServiceAttributes`, `setReadingSystemAttributes`) against a Service. Until stored Sessions arrive it only works in ephemeral mode: it ends with `logOff` and keeps nothing.
+
+```sh
+dod logon --no-session --url https://dod.example.org/service --username alice
+echo "$PASSWORD" | dod logon --no-session --url https://dod.example.org/service \
+    --username alice --password-stdin
+```
+
+The password is read from a prompt without echo, or from the first line of stdin with `--password-stdin`; it is never taken from an argument. An `http` address is refused unless `--insecure` is given, also on loopback, and then gives the Observation `transport-security`. Results go to stdout, Observations and diagnostics to stderr. Exit codes: 0 ok, 1 the Service answered with a Fault or contrary to the specification, 2 no usable answer or the command could not be run. `--no-session` can also be set with `DOD_NO_SESSION=1`. See `dod logon --help`.
+
 ## Development
 
 `dod` needs Python 3.12 or later and uses [uv](https://docs.astral.sh/uv/) for its development environment. The distribution is called `dod-client`, the command `dod` and the import package `dod`; the version comes from the git tag.

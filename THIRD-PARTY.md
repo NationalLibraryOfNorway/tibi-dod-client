@@ -15,6 +15,12 @@ Installed with `dod-client`, directly or transitively.
 | [Pygments](https://pypi.org/project/Pygments/) | BSD-2-Clause | Via Rich. |
 | [shellingham](https://pypi.org/project/shellingham/) | ISC | Via Typer. |
 | [annotated-doc](https://pypi.org/project/annotated-doc/) | MIT | Via Typer. |
+| [HTTPX](https://pypi.org/project/httpx/) | BSD-3-Clause | HTTP transport. |
+| [httpcore](https://pypi.org/project/httpcore/) | BSD-3-Clause | Via HTTPX. |
+| [h11](https://pypi.org/project/h11/) | MIT | Via httpcore. |
+| [anyio](https://pypi.org/project/anyio/) | MIT | Via HTTPX. |
+| [certifi](https://pypi.org/project/certifi/) | MPL-2.0 | Via HTTPX; CA bundle. |
+| [idna](https://pypi.org/project/idna/) | BSD-3-Clause | Via HTTPX. |
 | [lxml](https://pypi.org/project/lxml/) | BSD-3-Clause | XML and schema validation. The binary wheels bundle libiconv, which is LGPL-2.1. |
 
 ## Planned runtime dependencies
@@ -23,7 +29,6 @@ Decided in the specification and added by the tickets that need them.
 
 | Package | Licence | Notes |
 | --- | --- | --- |
-| [HTTPX](https://pypi.org/project/httpx/) | BSD-3-Clause | HTTP transport. |
 | [certifi](https://pypi.org/project/certifi/) | MPL-2.0 | Via HTTPX; CA bundle. |
 | [platformdirs](https://pypi.org/project/platformdirs/) | MIT | Configuration, state and data directories. |
 | [filelock](https://pypi.org/project/filelock/) | Unlicense | Session file locking. |

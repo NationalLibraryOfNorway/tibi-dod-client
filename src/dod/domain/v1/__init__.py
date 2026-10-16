@@ -2,3 +2,17 @@
 
 May import `dod.domain.service` and nothing else from `dod`.
 """
+
+from dod.domain.v1._models import (
+    ReadingSystemAttributes,
+    ReadingSystemConfig,
+    ServiceAttributes,
+)
+from dod.domain.v1._port import ServicePort
+
+__all__ = [
+    "ReadingSystemAttributes",
+    "ReadingSystemConfig",
+    "ServiceAttributes",
+    "ServicePort",
+]
