@@ -22,6 +22,7 @@ Installed with `dod-client`, directly or transitively.
 | [certifi](https://pypi.org/project/certifi/) | MPL-2.0 | Via HTTPX; CA bundle. |
 | [idna](https://pypi.org/project/idna/) | BSD-3-Clause | Via HTTPX. |
 | [platformdirs](https://pypi.org/project/platformdirs/) | MIT | Platform configuration directory (later also state and data directories). |
+| [filelock](https://pypi.org/project/filelock/) | Unlicense | Session file locking (public domain dedication). |
 | [lxml](https://pypi.org/project/lxml/) | BSD-3-Clause | XML and schema validation. The binary wheels bundle libiconv, which is LGPL-2.1. |
 
 ## Planned runtime dependencies
@@ -31,7 +32,6 @@ Decided in the specification and added by the tickets that need them.
 | Package | Licence | Notes |
 | --- | --- | --- |
 | [certifi](https://pypi.org/project/certifi/) | MPL-2.0 | Via HTTPX; CA bundle. |
-| [filelock](https://pypi.org/project/filelock/) | Unlicense | Session file locking. |
 | [Textual](https://pypi.org/project/textual/) | MIT | Optional, `dod-client[tui]`. |
 | [miniaudio](https://pypi.org/project/miniaudio/) | MIT | Optional, `dod-client[play]`. |
 

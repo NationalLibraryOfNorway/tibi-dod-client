@@ -4,15 +4,25 @@
 
 ## Usage
 
-`dod logon` runs the Initialisation sequence (`logOn`, `getServiceAttributes`, `setReadingSystemAttributes`) against a Service. Until stored Sessions arrive it only works in ephemeral mode: it ends with `logOff` and keeps nothing.
+`dod logon` runs the Initialisation sequence (`logOn`, `getServiceAttributes`, `setReadingSystemAttributes`) against a Service and stores the Session for later commands (see Sessions below). With `--no-session` it is ephemeral: it ends with `logOff` and keeps nothing.
 
 ```sh
-dod logon --no-session --url https://dod.example.org/service --username alice
+dod logon --url https://dod.example.org/service --username alice
 echo "$PASSWORD" | dod logon --no-session --url https://dod.example.org/service \
     --username alice --password-stdin
 ```
 
 The password is read from a prompt without echo, or from the first line of stdin with `--password-stdin`; it is never taken from an argument. An `http` address is refused unless `--insecure` is given, also on loopback, and then gives the Observation `transport-security`. Results go to stdout, Observations and diagnostics to stderr. Exit codes: 0 ok, 1 the Service answered with a Fault or contrary to the specification, 2 no usable answer or the command could not be run. `--no-session` can also be set with `DOD_NO_SESSION=1`. See `dod logon --help`.
+
+### Sessions
+
+A Session file is kept per (resolved Service URL, username) so that later commands, also several at once, reuse one Session (ADR 0001, ADR 0005).
+
+- `dod logon` calls `logOff` for a stored Session (a failure is ignored), runs the Initialisation sequence and writes the Session file only when the whole sequence succeeded. If `setReadingSystemAttributes` fails after `logOn`, `dod` tries `logOff` and stores nothing.
+- Session files are JSON in `sessions/` under the state directory: `DOD_STATE_DIR`, else the platform's user state directory (on Linux `~/.local/state/dod`). They hold the Session cookie in clear text and never a password. On Linux and macOS the file is `0600` and the directories `dod` creates are `0700`; on Windows the user profile's default ACL applies and permissions are not set by `dod`. Writes are atomic and every access takes a file lock (`filelock`), which is never held during an ordinary Service call.
+- A command that finds the Session expired (a `noActiveSession` fault in `detail`, nothing else) logs on again exactly once and repeats the call, but only when credentials exist (`--password-stdin`, the Environment's password); otherwise it asks you to run `dod logon`. When several processes meet an expired Session, only one logs on.
+- `--no-session` or `DOD_NO_SESSION=1` is ephemeral mode: initialise, run, `logOff`, store nothing.
+- `dod logoff` calls `logOff` and deletes the file whatever the Service answers (a failure is a warning). `dod session clear` deletes the file without network. `dod session status` is local; `--check` asks the Service with `getServiceAttributes` and exits 1 when the Session has expired. `dod status` shows the Environment, URL, user and whether the Session is `stored`, `none` or `ephemeral`; it sends nothing. The commands that do not send anything need `--url` or an Environment with a `url` (a WSDL is not fetched for them).
 
 ### Finding the endpoint
 

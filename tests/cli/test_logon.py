@@ -161,23 +161,6 @@ def test_no_answer_from_the_service_exits_2() -> None:
     assert result.stderr != ""
 
 
-def test_session_mode_is_not_available_yet_and_exits_2(service: FakeService) -> None:
-    result = run_dod(
-        "logon",
-        "--url",
-        service.url,
-        "--username",
-        USER,
-        "--insecure",
-        "--password-stdin",
-        stdin=PASSWORD + "\n",
-    )
-
-    assert result.returncode == 2
-    assert "--no-session" in result.stderr
-    assert service.requests == []
-
-
 def test_an_empty_password_on_stdin_is_a_usage_error(service: FakeService) -> None:
     result = logon(service, password="")
 
