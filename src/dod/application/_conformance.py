@@ -72,6 +72,20 @@ class Result:
         return cls(Outcome.FAIL, message, spec_ref)
 
 
+@dataclass(frozen=True)
+class RunTarget:
+    """What a run is aimed at, beyond the Service's own address."""
+
+    url: str = ""
+    insecure: bool = False
+    trust_host: bool = False
+    """Resources on another host than the Service may be fetched (ADR 0002)."""
+    content_id: str | None = None
+    """The one content item the `content` tests issue; never chosen automatically."""
+    unissued_content_id: str | None = None
+    """Content known not to be issued, for the test of the not-issued fault."""
+
+
 type OpenRawChannel = Callable[[str], RawChannel]
 """Opens a raw channel towards the Service at a URL; given by the composition root."""
 
@@ -147,7 +161,9 @@ class Context:
         reading_system: ReadingSystemAttributes,
         record: Callable[[Exchange | None, Sequence[Observation]], str | None],
         open_raw: Callable[[], RawChannel] | None = None,
+        target: RunTarget | None = None,
     ) -> None:
+        self.target = target or RunTarget()
         self.port = port
         """The setup's Session: logged on and initialised, for ordinary calls."""
         self.username = username
@@ -224,6 +240,15 @@ class Context:
     def fail(self, message: str, spec_ref: SpecReference) -> NoReturn:
         """End the test as FAIL, citing the part of the specification."""
         raise _Finished(Result.failed(message, spec_ref))
+
+    def error(self, message: str) -> NoReturn:
+        """End the test as ERROR: it could not be evaluated, which is not the
+        Service's fault (such as content that cannot be issued)."""
+        raise _Finished(Result(Outcome.ERROR, message))
+
+    def observe(self, message: str, id: str = "interoperability") -> None:
+        """Record an Observation: something noticed that is not an Outcome."""
+        self._remember(self._record(None, (Observation(id, message),)))
 
     def note(self, text: str) -> None:
         """Add a remark that goes with a PASS."""
@@ -406,6 +431,9 @@ def run_conformance(
     insecure: bool = False,
     reading_system: ReadingSystemAttributes | None = None,
     open_raw: OpenRawChannel | None = None,
+    trust_host: bool = False,
+    content_id: str | None = None,
+    unissued_content_id: str | None = None,
 ) -> RunReport:
     """Run the selected Conformance tests against the Service at `url`.
 
@@ -414,7 +442,8 @@ def run_conformance(
     is seen as data and not hidden by a relogin. A setup that fails ends the run
     at once. `state_changing` is the explicit opt-in for State-changing tests.
     `open_raw` opens a `RawChannel` for the negative tests; a test that needs
-    one without it is an ERROR.
+    one without it is an ERROR. `content_id` and `unissued_content_id` are the
+    content the `content` tests may use; without them those tests are SKIP.
 
     Raises `EndpointError` before anything is sent when the address is refused
     and `ValueError` for an `only` or `skip` prefix that matches nothing.
@@ -436,6 +465,7 @@ def run_conformance(
             )
         setup_ids = tuple(run.exchanges)
         raw_opener = None if open_raw is None else (lambda: open_raw(url))
+        target = RunTarget(url, insecure, trust_host, content_id, unissued_content_id)
         records = tuple(
             record
             for test in selected
@@ -450,6 +480,7 @@ def run_conformance(
                     declared,
                     run.record,
                     raw_opener,
+                    target,
                 ),
                 state_changing,
             )

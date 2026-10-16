@@ -1019,7 +1019,10 @@ def create_app(
             "Session of its own) run only when chosen: --only negative. "
             "--baseline compares the run with a file of known FAILs (new FAIL "
             "exits 1, ERROR still exits 2) and --write-baseline writes one; "
-            "Outcomes in the report do not change."
+            "Outcomes in the report do not change. The content tests "
+            "(issue, resources, fetch, Range) are State-changing and run only "
+            "with --state-changing and an explicit --content-id; they return "
+            "what they issued and read at most 64 KiB of a resource."
         ),
     )
     def test_run(
@@ -1040,6 +1043,23 @@ def create_app(
                 "--confirm-env",
                 help="The name of a protected Environment, to confirm that "
                 "State-changing tests may run against it.",
+            ),
+        ] = None,
+        content_id: Annotated[
+            str | None,
+            typer.Option(
+                "--content-id",
+                help="The content item the content tests may issue and return "
+                "(never chosen automatically). Without it they are SKIP.",
+            ),
+        ] = None,
+        unissued_content_id: Annotated[
+            str | None,
+            typer.Option(
+                "--unissued-content-id",
+                help="Content that is not issued, for the test that "
+                "getContentResources on it is invalidParameter. Without it that "
+                "test is SKIP.",
             ),
         ] = None,
         report_exchanges: Annotated[
@@ -1116,6 +1136,9 @@ def create_app(
                 state_changing=state_changing,
                 insecure=target.connection.insecure.value,
                 reading_system=declaration(target.connection),
+                trust_host=target.connection.trust_host.value,
+                content_id=content_id,
+                unissued_content_id=unissued_content_id,
             )
         except EndpointError as error:
             _fail(str(error))
