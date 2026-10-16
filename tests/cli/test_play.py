@@ -349,3 +349,188 @@ def test_an_epub_3_book_with_media_overlays_plays_in_spine_order(
 
     assert result.exit_code == 0, result.stderr
     assert [name for name, _ in run.player.started] == ["a.wav"]
+
+
+# --fetch-missing (ADR 0009, ADR 0008)
+
+
+def book_dir(run: Run) -> Path:
+    return run.data / "test" / "books" / "book0"
+
+
+def operations(service: FakeService) -> list[str | None]:
+    return [request.operation for request in service.requests]
+
+
+def audio_fetches(service: FakeService) -> list[str]:
+    return [r.path for r in service.fetches if r.path.endswith(".wav")]
+
+
+def test_fetch_missing_fetches_the_missing_audio_into_the_book_and_plays(
+    run: Run,
+) -> None:
+    downloaded(run)
+    (book_dir(run) / "a.wav").unlink()
+    fetched = len(audio_fetches(run.service))
+
+    result = run("play", "book0", "--fetch-missing")
+
+    assert result.exit_code == 0, result.output
+    assert (book_dir(run) / "a.wav").read_bytes() == b"synthetic-a"
+    assert len(audio_fetches(run.service)) == fetched + 1
+    assert run.player.started == [("b.wav", 0.0), ("a.wav", 0.0)]
+    assert "a.wav" in result.stderr
+    assert result.stdout.splitlines()[-1] == "finished: 00:01:08 of 00:01:08"
+    assert "issueContent" not in operations(run.service)
+
+
+def test_without_the_flag_nothing_is_fetched_for_a_missing_file(run: Run) -> None:
+    downloaded(run)
+    (book_dir(run) / "a.wav").unlink()
+    before = len(run.service.requests), len(run.service.fetches)
+
+    result = run("play", "book0")
+
+    assert result.exit_code == 2
+    assert "--fetch-missing" in result.stderr
+    assert (len(run.service.requests), len(run.service.fetches)) == before
+    assert not (book_dir(run) / "a.wav").exists()
+
+
+def test_fetch_missing_with_every_file_on_disk_does_not_reach_the_service(
+    run: Run,
+) -> None:
+    downloaded(run)
+    before = len(run.service.requests), len(run.service.fetches)
+
+    result = run("play", "book0", "--fetch-missing")
+
+    assert result.exit_code == 0, result.output
+    assert (len(run.service.requests), len(run.service.fetches)) == before
+
+
+def test_fetch_missing_fetches_only_the_audio_that_is_missing_one_by_one(
+    run: Run,
+) -> None:
+    downloaded(run)
+    (book_dir(run) / "a.wav").unlink()
+    (book_dir(run) / "b.wav").unlink()
+    before = len(audio_fetches(run.service))
+
+    result = run("play", "book0", "--fetch-missing")
+
+    assert result.exit_code == 0, result.output
+    # In playing order (master.smil lists b first), and not the structure files.
+    assert audio_fetches(run.service)[before:] == ["/files/b.wav", "/files/a.wav"]
+
+
+def test_fetch_missing_never_issues_content_and_shows_the_fault_as_it_came(
+    run: Run,
+) -> None:
+    downloaded(run)
+    (book_dir(run) / "a.wav").unlink()
+    run.service.offer_resources("book0", [], issued=False)
+
+    result = run("play", "book0", "--fetch-missing")
+
+    assert result.exit_code == 1
+    assert "invalidParameter: content is not issued" in result.stdout
+    assert "issueContent" not in operations(run.service)
+    assert run.player.started == []
+
+
+def test_fetch_missing_refuses_a_file_the_service_does_not_list(run: Run) -> None:
+    downloaded(run)
+    (book_dir(run) / "a.wav").unlink()
+    run.service.offer_resources(
+        "book0",
+        [resource("master.smil", MASTER), resource("b.smil", SMIL_B)],
+    )
+    fetched = len(audio_fetches(run.service))
+
+    result = run("play", "book0", "--fetch-missing")
+
+    assert result.exit_code == 2
+    assert "a.wav" in result.stderr
+    assert len(audio_fetches(run.service)) == fetched
+    assert run.player.started == []
+
+
+def test_fetch_missing_applies_the_untrusted_name_checks_of_download(run: Run) -> None:
+    downloaded(run)
+    (book_dir(run) / "a.wav").unlink()
+    run.service.offer_resources(
+        "book0",
+        [
+            resource("a.wav", b"synthetic-a"),
+            ContentResource(
+                uri="files/b.wav",
+                mime_type="audio/wav",
+                size=1,
+                local_uri="../escape.wav",
+            ),
+        ],
+    )
+    fetched = len(audio_fetches(run.service))
+
+    result = run("play", "book0", "--fetch-missing")
+
+    assert result.exit_code == 1
+    assert "not safe to download" in result.stdout
+    assert len(audio_fetches(run.service)) == fetched
+    assert not (book_dir(run) / "a.wav").exists()
+    assert not (run.data / "test" / "books" / "escape.wav").exists()
+    assert run.player.started == []
+
+
+def test_fetch_missing_keeps_to_the_service_host_unless_trusted(
+    run: Run, tmp_path: Path
+) -> None:
+    downloaded(run)
+    (book_dir(run) / "a.wav").unlink()
+    delegate = FakeService()
+    try:
+        delegate.offer_file("delegate/a.wav", b"synthetic-a")
+        run.service.offer_resources(
+            "book0",
+            [
+                resource("master.smil", MASTER),
+                resource("b.smil", SMIL_B),
+                resource("a.smil", SMIL_A),
+                ContentResource(
+                    uri=delegate.file_url("delegate/a.wav"),
+                    mime_type="audio/wav",
+                    size=11,
+                    local_uri="a.wav",
+                ),
+            ],
+        )
+
+        refused = run("play", "book0", "--fetch-missing")
+
+        assert refused.exit_code == 2
+        assert "--trust-host" in refused.stderr
+        assert delegate.fetches == []
+        assert run.player.started == []
+
+        trusted = run("play", "book0", "--fetch-missing", "--trust-host")
+
+        assert trusted.exit_code == 0, trusted.output
+        assert "Cookie" not in delegate.fetches[-1].headers
+        assert "observation host-boundary" in trusted.stderr
+        assert (book_dir(run) / "a.wav").read_bytes() == b"synthetic-a"
+    finally:
+        delegate.stop()
+
+
+def test_a_failed_fetch_leaves_no_file_and_plays_nothing(run: Run) -> None:
+    downloaded(run)
+    (book_dir(run) / "a.wav").unlink()
+    run.service.answer_file("files/a.wav", 404)
+
+    result = run("play", "book0", "--fetch-missing")
+
+    assert result.exit_code == 1
+    assert "failed a.wav" in result.stdout
+    assert sorted(p.name for p in book_dir(run).glob("a.wav*")) == []
+    assert run.player.started == []

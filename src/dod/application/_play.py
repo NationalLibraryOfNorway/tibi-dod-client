@@ -14,6 +14,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Protocol
 
+from dod.application._download import DownloadReport, DownloadRequest, download
+from dod.application._session import SessionManager
 from dod.domain.book import (
     BookError,
     BookErrorKind,
@@ -114,6 +116,57 @@ def _inside(root: Path, relative: str) -> Path | None:
     return file if file.is_relative_to(root) else None
 
 
+def missing_files(directory: Path, playlist: Playlist) -> tuple[str, ...]:
+    """The audio files of the Playlist that are not on disk, in playing order.
+
+    A file that leaves the book directory through a link is not listed: it is
+    not missing and nothing may be fetched into its place; `prepare_playback`
+    refuses it.
+    """
+    root = directory.resolve()
+    missing: list[str] = []
+    for name in playlist.files:
+        resolved = _inside(root, name)
+        if resolved is not None and not resolved.is_file():
+            missing.append(name)
+    return tuple(missing)
+
+
+def fetch_missing(
+    manager: SessionManager,
+    directory: Path,
+    playlist: Playlist,
+    *,
+    content_id: str,
+    service_url: str,
+    trust_host: bool,
+    insecure: bool,
+) -> DownloadReport | None:
+    """Fetch the audio files of the Playlist that are missing, one at a time.
+
+    None when nothing is missing: the Service is not reached. Otherwise this is
+    `download` of just those files (ADR 0008): the Service's resource list for
+    already issued content is validated whole, every address goes through the
+    host boundary, and a file is stored as `download` stores it. Content is
+    never issued here, and only files the Playlist names are fetched. A name
+    the Service does not list is a refusal in the report.
+    """
+    missing = missing_files(directory, playlist)
+    if not missing:
+        return None
+    return download(
+        manager,
+        DownloadRequest(
+            content_id=content_id,
+            directory=directory,
+            service_url=service_url,
+            files=missing,
+            trust_host=trust_host,
+            insecure=insecure,
+        ),
+    )
+
+
 class PlaybackState(StrEnum):
     PLAYING = "playing"
     PAUSED = "paused"
@@ -160,7 +213,7 @@ def prepare_playback(directory: Path, playlist: Playlist, player: Player) -> Pla
         )
         raise PlayRefused(
             f"audio files of the book are not on disk: {shown}; run "
-            "`dod download` first (nothing is streamed or fetched while playing)"
+            "`dod download` first, or pass --fetch-missing (nothing is streamed)"
         )
     durations: dict[str, float] = {}
     for name, path in paths.items():
