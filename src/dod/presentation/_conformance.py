@@ -11,11 +11,17 @@ import re
 from enum import StrEnum
 from typing import Any
 
-from dod.application import ConformanceTest, Outcome, Record, RunReport
+from dod.application import (
+    BaselineComparison,
+    ConformanceTest,
+    Outcome,
+    Record,
+    RunReport,
+)
 from dod.domain.service import Exchange, SpecReference
 from dod.presentation._masking import mask, mask_url
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 """Raised whenever the shape of the JSON report changes (ADR 0010)."""
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
@@ -52,8 +58,13 @@ def _line(record: Record, hyperlinks: bool) -> str:
     return f"{record.outcome.value} {record.id}: {detail}"
 
 
-def text_report(report: RunReport, *, hyperlinks: bool = False) -> list[str]:
-    """One line per test, a summary and the Observations section."""
+def text_report(
+    report: RunReport,
+    *,
+    hyperlinks: bool = False,
+    baseline: BaselineComparison | None = None,
+) -> list[str]:
+    """One line per test, a summary, the Baseline lines and the Observations."""
     lines: list[str] = []
     if report.setup_error is not None:
         lines.append(f"ERROR setup: {plain(report.setup_error)}")
@@ -63,6 +74,13 @@ def text_report(report: RunReport, *, hyperlinks: bool = False) -> list[str]:
     lines.append(
         f"{total} tests: " + ", ".join(f"{counts[o.value]} {o.value}" for o in Outcome)
     )
+    if baseline is not None:
+        lines.append(
+            f"Baseline: {len(baseline.new)} new, {len(baseline.resolved)} "
+            f"resolved, {len(baseline.known)} known"
+        )
+        lines += [f"NEW {plain(i)}" for i in baseline.new]
+        lines += [f"RESOLVED {plain(i)}" for i in baseline.resolved]
     if report.observations:
         lines += ["", "Observations"]
         lines += [f"  {plain(o.id)}: {plain(o.message)}" for o in report.observations]
@@ -108,8 +126,14 @@ def json_report(
     url: str,
     environment: str | None,
     exchanges: ReportExchanges,
+    baseline: BaselineComparison | None = None,
+    exit_code: int | None = None,
 ) -> dict[str, Any]:
-    """The JSON report: results, Observations and the chosen masked Exchanges."""
+    """The JSON report: results, Observations and the chosen masked Exchanges.
+
+    `exit_code` is the one the run ends with, which a Baseline can change;
+    Outcomes never change.
+    """
     included: list[str] = []
     if exchanges is ReportExchanges.ALL:
         included = list(report.exchanges)
@@ -132,9 +156,18 @@ def json_report(
         "schema_version": SCHEMA_VERSION,
         "service": mask_url(url),
         "environment": environment,
-        "exit_code": report.exit_code,
+        "exit_code": report.exit_code if exit_code is None else exit_code,
         "summary": _summary(report),
         "setup": setup,
+        "baseline": (
+            None
+            if baseline is None
+            else {
+                "new": list(baseline.new),
+                "resolved": list(baseline.resolved),
+                "known": list(baseline.known),
+            }
+        ),
         "results": [
             {
                 "id": record.id,

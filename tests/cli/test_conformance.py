@@ -86,7 +86,7 @@ def test_list_as_json_gives_ids_and_whether_they_change_state() -> None:
 
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == {
-        "schema_version": 2,
+        "schema_version": 3,
         "tests": [
             {"id": "catalog.metadata.get", "state_changing": False, "explicit": False},
             {
@@ -220,7 +220,7 @@ def test_the_json_report_has_a_schema_version_and_exchange_ids(
 
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
-    assert report["schema_version"] == 2
+    assert report["schema_version"] == 3
     assert report["exit_code"] == 0
     assert report["summary"] == {"PASS": 2, "FAIL": 0, "SKIP": 0, "ERROR": 0}
     assert report["setup"] is None
@@ -537,3 +537,230 @@ def test_the_raw_exchanges_are_in_the_json_report_with_the_password_masked(
     bodies = [e["request_body"] for e in report["exchanges"].values()]
     assert any("dodConformanceUnknownOperation" in body for body in bodies)
     assert PASSWORD not in result.stdout
+
+
+FAILING = "catalog.list.issued"
+
+
+def baseline_file(tmp_path: Path, *ids: str) -> Path:
+    path = tmp_path / "baseline.toml"
+    path.write_text(
+        "".join(f'[[known]]\nid = "{i}"\nreason = "synthetic reason"\n\n' for i in ids),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_write_baseline_lists_the_failing_ids_with_a_reason_and_nothing_else(
+    service: FakeService, tmp_path: Path
+) -> None:
+    service.inject_http_500("getContentList")
+    target = tmp_path / "out" / "baseline.toml"
+    target.parent.mkdir()
+
+    result = dod(service, tmp_path, "test", "run", "--write-baseline", str(target))
+
+    assert result.returncode == 1, result.stderr
+    written = target.read_text(encoding="utf-8")
+    assert f'id = "{FAILING}"' in written
+    assert 'reason = "DODP 5.3 Faults"' in written
+    assert "PASS" not in written
+    assert service.url not in written
+    assert "127.0.0.1" not in written and "localhost" not in written
+    assert PASSWORD not in written and USER not in written
+
+
+def test_a_written_baseline_makes_the_same_run_exit_0(
+    service: FakeService, tmp_path: Path
+) -> None:
+    service.inject_http_500("getContentList")
+    target = tmp_path / "baseline.toml"
+    dod(service, tmp_path, "test", "run", "--write-baseline", str(target))
+    service.inject_http_500("getContentList")
+
+    result = dod(service, tmp_path, "test", "run", "--baseline", str(target))
+
+    assert result.returncode == 0, result.stderr
+    assert f"FAIL {FAILING}: " in result.stdout
+    assert "Baseline: 0 new, 0 resolved, 1 known" in result.stdout
+
+
+def test_a_fail_that_is_not_in_the_baseline_is_new_and_exits_1(
+    service: FakeService, tmp_path: Path
+) -> None:
+    service.inject_http_500("getContentList")
+    baseline = baseline_file(tmp_path, "catalog.metadata.unknown-id")
+
+    result = dod(service, tmp_path, "test", "run", "--baseline", str(baseline))
+
+    assert result.returncode == 1, result.stderr
+    assert f"NEW {FAILING}" in result.stdout
+
+
+def test_a_baseline_entry_that_passes_is_resolved_and_only_fails_the_run_on_request(
+    service: FakeService, tmp_path: Path
+) -> None:
+    baseline = baseline_file(tmp_path, FAILING)
+
+    plain = dod(service, tmp_path, "test", "run", "--baseline", str(baseline))
+    strict = dod(
+        service,
+        tmp_path,
+        "test",
+        "run",
+        "--baseline",
+        str(baseline),
+        "--fail-on-resolved",
+    )
+
+    assert plain.returncode == 0, plain.stderr
+    assert f"RESOLVED {FAILING}" in plain.stdout
+    assert strict.returncode == 1, strict.stderr
+
+
+def test_an_entry_for_a_test_that_did_not_run_is_neither_new_nor_resolved(
+    service: FakeService, tmp_path: Path
+) -> None:
+    baseline = baseline_file(tmp_path, FAILING)
+
+    result = dod(
+        service,
+        tmp_path,
+        "test",
+        "run",
+        "--only",
+        "attributes",
+        "--baseline",
+        str(baseline),
+        "--fail-on-resolved",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Baseline: 0 new, 0 resolved, 0 known" in result.stdout
+
+
+def test_an_error_gives_exit_2_whatever_the_baseline_says(
+    service: FakeService, tmp_path: Path
+) -> None:
+    service.inject_no_answer("getContentMetadata")
+    baseline = baseline_file(tmp_path, "catalog.metadata.get")
+
+    result = dod(
+        service,
+        tmp_path,
+        "test",
+        "run",
+        "--only",
+        "catalog",
+        "--baseline",
+        str(baseline),
+    )
+
+    assert result.returncode == 2, result.stderr
+
+
+def test_the_json_report_has_a_baseline_section_and_keeps_the_outcomes(
+    service: FakeService, tmp_path: Path
+) -> None:
+    service.inject_http_500("getContentList")
+    service.inject_deviation("getContentMetadata")
+    baseline = baseline_file(tmp_path, FAILING, "session.logon.wrong-password")
+
+    result = dod(
+        service,
+        tmp_path,
+        "test",
+        "run",
+        "--format",
+        "json",
+        "--only",
+        "catalog",
+        "--only",
+        "session.logon",
+        "--baseline",
+        str(baseline),
+    )
+
+    report = json.loads(result.stdout)
+    assert report["schema_version"] == 3
+    assert report["exit_code"] == result.returncode
+    outcomes = {r["id"]: r["outcome"] for r in report["results"]}
+    assert outcomes[FAILING] == "FAIL"
+    assert report["baseline"] == {
+        "new": ["catalog.metadata.get"],
+        "resolved": ["session.logon.wrong-password"],
+        "known": [FAILING],
+    }
+
+
+def test_the_json_report_has_no_baseline_without_one(
+    service: FakeService, tmp_path: Path
+) -> None:
+    result = dod(
+        service, tmp_path, "test", "run", "--format", "json", "--only", "attributes"
+    )
+
+    assert json.loads(result.stdout)["baseline"] is None
+
+
+def test_a_missing_or_malformed_baseline_is_a_usage_error_before_anything_is_sent(
+    service: FakeService, tmp_path: Path
+) -> None:
+    broken = tmp_path / "broken.toml"
+    broken.write_text("[[known]]\nid = 7\n", encoding="utf-8")
+
+    missing = dod(service, tmp_path, "test", "run", "--baseline", str(tmp_path / "no"))
+    malformed = dod(service, tmp_path, "test", "run", "--baseline", str(broken))
+
+    assert missing.returncode == 2 and "cannot be read" in missing.stderr
+    assert malformed.returncode == 2 and "baseline" in malformed.stderr
+    assert service.requests == []
+
+
+def test_a_baseline_cannot_be_used_in_a_run_with_a_setup_error_silently(
+    service: FakeService, tmp_path: Path
+) -> None:
+    target = tmp_path / "baseline.toml"
+
+    result = dod(
+        service,
+        tmp_path,
+        "test",
+        "run",
+        "--write-baseline",
+        str(target),
+        password="not-the-password",
+    )
+
+    assert result.returncode == 2
+    assert not target.exists()
+
+
+def test_help_lists_the_baseline_options() -> None:
+    result = run_dod("test", "run", "--help")
+
+    for option in ("--baseline", "--write-baseline", "--fail-on-resolved"):
+        assert option in result.stdout
+
+
+def test_rewriting_a_baseline_keeps_the_reasons_of_entries_that_still_fail(
+    service: FakeService, tmp_path: Path
+) -> None:
+    service.inject_http_500("getContentList")
+    baseline = baseline_file(tmp_path, FAILING, "session.logon.wrong-password")
+    rewritten = tmp_path / "next.toml"
+
+    dod(
+        service,
+        tmp_path,
+        "test",
+        "run",
+        "--baseline",
+        str(baseline),
+        "--write-baseline",
+        str(rewritten),
+    )
+
+    text = rewritten.read_text(encoding="utf-8")
+    assert f'id = "{FAILING}"\nreason = "synthetic reason"' in text
+    assert "wrong-password" not in text
