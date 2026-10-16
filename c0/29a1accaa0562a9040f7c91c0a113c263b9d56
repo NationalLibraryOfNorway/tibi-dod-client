@@ -1,0 +1,27 @@
+CHANGELOG.md
+  s_614f17f4aee381::t_a08665c0d5a459 10
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_255e2d4b40da6e 1294
+README.md
+  s_614f17f4aee381::t_a08665c0d5a459 251-252
+docs/acceptance/tibi-acceptance-plan.md
+  s_614f17f4aee381::t_a08665c0d5a459 123,363
+  s_614f17f4aee381::t_ce78ede3f8d6fd 81-82,177-179,236,250,253-254,258,282,371,457,494,721
+  s_614f17f4aee381::t_6fb5c21d754796 1-80,83-122,124-176,180-235,237-249,251-252,255-257,259-281,283-362,364-370,372-456,458-493,495-720,722-1035
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c029a1accaa0562a9040f7c91c0a113c263b9d56",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
