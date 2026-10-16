@@ -210,7 +210,7 @@ Names match `[a-z0-9][a-z0-9_-]*`. Unknown keys, wrong types, and `token` or `co
 - Password: `--password-stdin`, then the file, then a prompt. There is no environment variable for it.
 - On Linux and macOS `dod` refuses a file with a `password` that group or others can read (`chmod 600` it). On Windows permissions are not checked and `dod config check` warns about it.
 
-`dod config check` validates every Environment without network access, and `dod config show` prints the effective configuration with the source of each value and `password = ***`. `dod logon --env test --no-session` logs on with an Environment.
+`dod config example` prints a commented starting point (no password, nothing is written): `dod config example > "$(dod config path)"`, then edit it. `dod config check` validates every Environment without network access, and `dod config show` prints the effective configuration with the source of each value and `password = ***`. `dod logon --env test --no-session` logs on with an Environment.
 
 ## Global options
 

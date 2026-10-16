@@ -325,3 +325,27 @@ def list_quirks(
         for quirk in QUIRKS.values()
     )
     return uses if env is None else tuple(use for use in uses if use.environments)
+
+
+EXAMPLE_CONFIG = """\
+# dod configuration. Save it at the path `dod config path` prints, then run
+# `dod config check`. Replace the example values with your own.
+default_environment = "test"
+
+[environments.test]
+url = "https://dod.example.org/services/daisyonline"   # or: wsdl = "https://.../?wsdl"
+username = "alice"
+# No password here: dod asks for it. A password in this file is plaintext
+# (docs/adr/0006); if you add one, `chmod 600` the file.
+# insecure = false
+# trust_host = false
+# protected = false
+# quirks = []                              # names from `dod quirks list`
+# reading_system = "reading-system.xml"    # replaces the default declaration
+
+# A Service on your own machine:
+# [environments.local]
+# url = "http://127.0.0.1:8080/service"
+# insecure = true
+"""
+"""A commented starting point for the configuration file (`dod config example`)."""

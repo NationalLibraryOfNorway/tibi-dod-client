@@ -58,6 +58,30 @@ insecure = true
     )
 
 
+# -- config example --------------------------------------------------------
+
+
+def test_config_example_is_a_valid_configuration(tmp_path: Path) -> None:
+    example = run_dod("config", "example")
+    assert example.returncode == 0, example.stderr
+    path = write(tmp_path, example.stdout)
+
+    result = run_dod("config", "check", "--config", str(path))
+
+    assert result.returncode == 0, result.stderr
+    assert "environments.test: ok" in result.stdout
+
+
+def test_config_example_has_no_password_and_writes_nothing(tmp_path: Path) -> None:
+    path = tmp_path / "x.toml"
+
+    result = run_dod("config", "example", "--config", str(path))
+
+    assert result.returncode == 0, result.stderr
+    assert "\npassword" not in result.stdout
+    assert not path.exists()
+
+
 # -- config path -----------------------------------------------------------
 
 

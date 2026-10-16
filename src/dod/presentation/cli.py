@@ -15,6 +15,7 @@ import typer
 
 from dod.application import (
     CONFORMANCE_TESTS,
+    EXAMPLE_CONFIG,
     AudioError,
     Baseline,
     BaselineError,
@@ -2209,6 +2210,17 @@ def _add_config_commands(group: typer.Typer, store: ConfigStore) -> None:
         g = _globals(ctx)
         _text_only(g, "config path")
         typer.echo(g.config or store.default_path())
+
+    @group.command(
+        "example",
+        epilog=_EPILOG,
+        help="Print an example configuration file; redirect it to the path "
+        "`dod config path` prints.",
+    )
+    def config_example(ctx: typer.Context) -> None:
+        g = _globals(ctx)
+        _text_only(g, "config example")
+        typer.echo(EXAMPLE_CONFIG, nl=False)
 
     @group.command(
         "check",

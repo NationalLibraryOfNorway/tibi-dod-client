@@ -45,6 +45,7 @@ from dod.application._baseline import (
     write_baseline,
 )
 from dod.application._config import (
+    EXAMPLE_CONFIG,
     ConfigCheck,
     ConfigFile,
     ConfigStore,
@@ -133,6 +134,7 @@ from dod.domain.config import ConfigError
 __all__ = [
     "CANCELLED",
     "CONFORMANCE_TESTS",
+    "EXAMPLE_CONFIG",
     "MAX_WSDL_BYTES",
     "Attempt",
     "AudioError",

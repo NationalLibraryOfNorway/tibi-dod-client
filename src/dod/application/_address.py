@@ -24,7 +24,13 @@ _MAX_REDIRECTS = 5
 _MAX_PORTS_LISTED = 10
 _DEFAULT_PORTS = {"http": 80, "https": 443}
 
-KNOWN_PATHS = ("/services/daisyonline", "/service", "/dodp", "/daisy-online", "/DaisyOnline")
+KNOWN_PATHS = (
+    "/services/daisyonline",
+    "/service",
+    "/dodp",
+    "/daisy-online",
+    "/DaisyOnline",
+)
 """Paths `dod discover` tries, each with `?wsdl`, when the address itself fails."""
 
 
