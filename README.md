@@ -43,12 +43,13 @@ Ordinary commands reach the Service through the session manager: they reuse the 
 
 ### Conformance tests
 
-`dod test run` runs Conformance tests against a Service and reports one Outcome per test; `dod test list` shows the stable, hierarchical test ids (`session.logon.wrong-password`). The first families are `session`, `attributes` and `catalog`.
+`dod test run` runs Conformance tests against a Service and reports one Outcome per test; `dod test list` shows the stable, hierarchical test ids (`session.logon.wrong-password`). The first families are `session`, `attributes` and `catalog`, and `negative` (explicit, see below).
 
 - Outcomes: **PASS** (the Service answered as the specification requires), **FAIL** (it answered contrary to it), **SKIP** (the test does not apply or was not opted into) and **ERROR** (the test could not be evaluated, for example no answer or not SOAP). A fault is classified on its DODP element in `detail`, never on the HTTP status or `faultstring`; HTTP 500 without a DODP element is a FAIL. An optional operation is SKIP when it is not in `supportedOptionalOperations` and answers `operationNotSupported`, FAIL when it is declared but answers `operationNotSupported`, and PASS with a note when it works without being declared.
 - The run logs on with a Session of its own (never a stored one, ADR 0005) and ends it afterwards. A setup that cannot log on is an ERROR that ends the run at once; the tests of logging on, such as a wrong password, are separate PASS/FAIL tests.
 - `--only <prefix>` and `--skip <prefix>` (repeatable) choose tests by id prefix on whole dotted segments. State-changing tests are SKIP unless `--state-changing` is given, and against an Environment with `protected = true` that also needs `--confirm-env <name>`.
 - The text report is one line per test, a summary and an `Observations` section; a FAIL names the section of the specification with a link to the published HTML version (clickable on a terminal that supports it). `--format json` is a versioned report (`schema_version`) with Exchange ids and the masked Exchanges of FAIL and ERROR tests; `--report-exchanges all|failures|none` changes which are included.
+- The negative tests (`negative.*`) send deliberately invalid requests through a `RawChannel`: no Session (`noActiveSession`), an operation before the Initialisation sequence is complete (`invalidOperation`), an unknown operation, and invalid parameters (`invalidParameter`). Each works in an Ephemeral-mode Session of its own, so a stored Session is never touched. They are explicit: an ordinary run leaves them out and `dod test run --only negative` runs them (`dod test list` shows them). A `logOff` that fails afterwards is an ERROR on a record of its own, `<test id>.cleanup`, and the test keeps its PASS or FAIL.
 - Exit code 0 without FAIL or ERROR, 1 with FAIL and no ERROR, 2 with any ERROR. There are no requirement levels and no `--strict`.
 
 ### Finding the endpoint

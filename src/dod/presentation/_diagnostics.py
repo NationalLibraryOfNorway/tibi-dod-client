@@ -16,7 +16,7 @@ from pathlib import Path
 import typer
 from lxml import etree
 
-from dod.application import OpenPort
+from dod.application import OpenPort, OpenRawChannel
 from dod.domain.service import (
     Exchange,
     Observation,
@@ -29,6 +29,7 @@ from dod.domain.v1 import (
     Announcement,
     ContentList,
     ContentMetadata,
+    RawChannel,
     ReadingSystemAttributes,
     ServiceAttributes,
     ServicePort,
@@ -74,6 +75,14 @@ class Diagnostics:
 
         def open_recorded(url: str) -> ServicePort:
             return _RecordingPort(open_port(url), self)
+
+        return open_recorded
+
+    def wrap_raw(self, open_raw: OpenRawChannel) -> OpenRawChannel:
+        """An `OpenRawChannel` whose channels report what they send and receive."""
+
+        def open_recorded(url: str) -> RawChannel:
+            return _RecordingRawChannel(open_raw(url), self)
 
         return open_recorded
 
@@ -219,3 +228,28 @@ class _RecordingPort:
 
     def close(self) -> None:
         self._port.close()
+
+
+class _RecordingRawChannel:
+    """Reports every Exchange of the wrapped raw channel, then returns its answer."""
+
+    def __init__(self, channel: RawChannel, diagnostics: Diagnostics) -> None:
+        self._channel = channel
+        self._diagnostics = diagnostics
+
+    def send_raw(self, operation: str, body: str) -> Reply[str]:
+        try:
+            reply = self._channel.send_raw(operation, body)
+        except TransportError as error:
+            if error.exchange is not None:
+                self._diagnostics.record(error.exchange)
+            raise
+        self._diagnostics.record(reply.exchange)
+        self._diagnostics.observe(reply.observations)
+        return reply
+
+    def resume(self, session: SessionState) -> None:
+        self._channel.resume(session)
+
+    def close(self) -> None:
+        self._channel.close()

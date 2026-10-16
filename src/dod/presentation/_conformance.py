@@ -15,7 +15,7 @@ from dod.application import ConformanceTest, Outcome, Record, RunReport
 from dod.domain.service import Exchange, SpecReference
 from dod.presentation._masking import mask, mask_url
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 """Raised whenever the shape of the JSON report changes (ADR 0010)."""
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
@@ -160,5 +160,8 @@ def json_report(
 def list_json(tests: tuple[ConformanceTest, ...]) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
-        "tests": [{"id": t.id, "state_changing": t.state_changing} for t in tests],
+        "tests": [
+            {"id": t.id, "state_changing": t.state_changing, "explicit": t.explicit}
+            for t in tests
+        ],
     }

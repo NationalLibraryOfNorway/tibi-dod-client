@@ -12,7 +12,7 @@ from dod.domain.v1._models import (
     ReadingSystemConfig,
     ServiceAttributes,
 )
-from dod.domain.v1._port import ServicePort
+from dod.domain.v1._port import RawChannel, ServicePort
 from dod.domain.v1._spec_refs import SPEC_REFS, fault_ref, operation_ref
 
 __all__ = [
@@ -21,6 +21,7 @@ __all__ = [
     "ContentItem",
     "ContentList",
     "ContentMetadata",
+    "RawChannel",
     "ReadingSystemAttributes",
     "ReadingSystemConfig",
     "ServiceAttributes",

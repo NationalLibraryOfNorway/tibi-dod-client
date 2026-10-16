@@ -500,3 +500,186 @@ def test_an_optional_operation_that_is_declared_and_works_passes_without_a_note(
 
     assert record.outcome is Outcome.PASS
     assert record.note is None
+
+
+# -- explicit tests ---------------------------------------------------------------
+
+
+def _explicit_registry() -> Registry:
+    registry = Registry()
+    registry.test("demo.ordinary")(passing)
+    registry.test("neg.one.alpha", explicit=True)(passing)
+    registry.test("neg.two.beta", explicit=True)(passing)
+    return registry
+
+
+def test_an_explicit_test_is_left_out_of_a_run_that_does_not_choose_it(
+    service: InMemoryService,
+) -> None:
+    report = run(service, _explicit_registry())
+
+    assert list(outcomes(report)) == ["demo.ordinary"]
+
+
+def test_an_explicit_test_runs_when_only_names_it(service: InMemoryService) -> None:
+    report = run(service, _explicit_registry(), only=["neg.one"])
+
+    assert list(outcomes(report)) == ["neg.one.alpha"]
+
+
+def test_only_can_choose_a_whole_explicit_family_next_to_ordinary_tests(
+    service: InMemoryService,
+) -> None:
+    report = run(service, _explicit_registry(), only=["demo", "neg"])
+
+    assert list(outcomes(report)) == ["demo.ordinary", "neg.one.alpha", "neg.two.beta"]
+
+
+def test_skip_still_removes_a_chosen_explicit_test(service: InMemoryService) -> None:
+    report = run(service, _explicit_registry(), only=["neg"], skip=["neg.two"])
+
+    assert list(outcomes(report)) == ["neg.one.alpha"]
+
+
+def test_the_registry_says_which_tests_are_explicit() -> None:
+    assert [(t.id, t.explicit) for t in _explicit_registry().tests] == [
+        ("demo.ordinary", False),
+        ("neg.one.alpha", True),
+        ("neg.two.beta", True),
+    ]
+
+
+# -- cleanup ----------------------------------------------------------------------
+
+
+def _session_test(registry: Registry, test_id: str = "demo.session") -> None:
+    """A test that logs on a port of its own and registers the logOff as cleanup."""
+
+    @registry.test(test_id)
+    def session_test(ctx: Context) -> Result:
+        port = ctx.open_port()
+        ctx.call(lambda p: p.log_on(USER, PASSWORD), on=port)
+        ctx.cleanup(lambda: ctx.call(lambda p: p.log_off(), on=port))
+        return Result.passed()
+
+
+def test_a_cleanup_that_works_adds_no_record(service: InMemoryService) -> None:
+    registry = Registry()
+    _session_test(registry)
+
+    report = run(service, registry)
+
+    assert outcomes(report) == {"demo.session": Outcome.PASS}
+
+
+def test_a_cleanup_that_fails_is_an_error_on_the_cleanup_step_not_a_fail(
+    service: InMemoryService,
+) -> None:
+    registry = Registry()
+    _session_test(registry)
+    service.inject_fault("logOff", "internalServerError", "synthetic failure")
+
+    report = run(service, registry)
+
+    assert outcomes(report) == {
+        "demo.session": Outcome.PASS,
+        "demo.session.cleanup": Outcome.ERROR,
+    }
+    assert "internalServerError" in report.records[1].message
+    assert report.exit_code == 2
+
+
+def test_a_cleanup_with_no_answer_is_an_error_on_the_cleanup_step(
+    service: InMemoryService,
+) -> None:
+    registry = Registry()
+
+    @registry.test("demo.unreachable")
+    def unreachable(ctx: Context) -> Result:
+        def cleanup() -> object:
+            raise TransportError("no answer from the Service")
+
+        ctx.cleanup(cleanup)
+        return Result.passed()
+
+    report = run(service, registry)
+
+    assert outcomes(report) == {
+        "demo.unreachable": Outcome.PASS,
+        "demo.unreachable.cleanup": Outcome.ERROR,
+    }
+
+
+def test_cleanup_runs_after_a_failing_test_which_keeps_its_fail(
+    service: InMemoryService,
+) -> None:
+    registry = Registry()
+    ran: list[str] = []
+
+    @registry.test("demo.fails")
+    def fails(ctx: Context) -> Result:
+        ctx.cleanup(lambda: ran.append("cleanup"))
+        ctx.fail("it broke", SPEC_REFS["operation.logOn"])
+
+    report = run(service, registry)
+
+    assert outcomes(report) == {"demo.fails": Outcome.FAIL}
+    assert ran == ["cleanup"]
+
+
+def test_cleanups_run_last_first_and_a_failing_one_does_not_stop_the_rest(
+    service: InMemoryService,
+) -> None:
+    registry = Registry()
+    ran: list[str] = []
+
+    @registry.test("demo.two")
+    def two(ctx: Context) -> Result:
+        ctx.cleanup(lambda: ran.append("first"))
+
+        def broken() -> None:
+            ran.append("second")
+            raise RuntimeError("boom")
+
+        ctx.cleanup(broken)
+        return Result.passed()
+
+    report = run(service, registry)
+
+    assert ran == ["second", "first"]
+    assert outcomes(report)["demo.two.cleanup"] is Outcome.ERROR
+
+
+def test_the_exchanges_of_a_cleanup_belong_to_its_own_record(
+    service: InMemoryService,
+) -> None:
+    registry = Registry()
+    _session_test(registry)
+    service.inject_fault("logOff", "internalServerError", "synthetic failure")
+
+    report = run(service, registry)
+
+    test_record, cleanup_record = report.records
+    assert len(test_record.exchange_ids) == 1
+    assert len(cleanup_record.exchange_ids) == 1
+    assert set(test_record.exchange_ids).isdisjoint(cleanup_record.exchange_ids)
+
+
+# -- the raw channel --------------------------------------------------------------
+
+
+def test_a_test_that_needs_the_raw_channel_is_an_error_when_none_is_supplied(
+    service: InMemoryService,
+) -> None:
+    registry = Registry()
+
+    @registry.test("demo.raw")
+    def raw(ctx: Context) -> Result:
+        ctx.open_raw()
+        return Result.passed()
+
+    report = run(service, registry)
+
+    (record,) = report.records
+    assert record.outcome is Outcome.ERROR
+    assert "raw channel" in record.message

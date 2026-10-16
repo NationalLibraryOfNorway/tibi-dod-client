@@ -2,7 +2,7 @@
 
 import os
 
-from dod.domain.v1 import ServicePort
+from dod.domain.v1 import RawChannel, ServicePort
 from dod.infrastructure import (
     FileConfigStore,
     FileSessionStore,
@@ -18,6 +18,10 @@ def _open_http_port(url: str) -> ServicePort:
     return HttpServicePort(url)
 
 
+def _open_http_raw(url: str) -> RawChannel:
+    return HttpServicePort(url)
+
+
 def main() -> None:
     """Entry point of the `dod` console script."""
     create_app(
@@ -27,4 +31,5 @@ def main() -> None:
         parse_wsdl,
         session_store=FileSessionStore.from_environ(os.environ),
         parse_reading_system=parse_reading_system,
+        open_raw=_open_http_raw,
     )()

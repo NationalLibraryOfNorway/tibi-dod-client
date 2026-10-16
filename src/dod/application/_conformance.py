@@ -33,6 +33,7 @@ from dod.domain.service import (
     TransportError,
 )
 from dod.domain.v1 import (
+    RawChannel,
     ReadingSystemAttributes,
     ServiceAttributes,
     ServicePort,
@@ -71,6 +72,9 @@ class Result:
         return cls(Outcome.FAIL, message, spec_ref)
 
 
+type OpenRawChannel = Callable[[str], RawChannel]
+"""Opens a raw channel towards the Service at a URL; given by the composition root."""
+
 type TestFunction = Callable[[Context], Result]
 
 
@@ -81,6 +85,8 @@ class ConformanceTest:
     id: str
     function: TestFunction
     state_changing: bool = False
+    explicit: bool = False
+    """Runs only when `--only` names it, never in an ordinary run."""
 
 
 class Registry:
@@ -94,12 +100,13 @@ class Registry:
         return tuple(self._tests.values())
 
     def test(
-        self, id: str, *, state_changing: bool = False
+        self, id: str, *, state_changing: bool = False, explicit: bool = False
     ) -> Callable[[TestFunction], TestFunction]:
         """Register a test function under `id` (decorator).
 
         Ids are lower-case words joined by `-`, in dotted segments, such as
-        `session.logon.wrong-password`, and are never reused.
+        `session.logon.wrong-password`, and are never reused. An `explicit` test
+        is left out of every run that does not choose it with `only`.
         """
         if not _ID.match(id):
             raise ValueError(f"{id!r} is not a dotted, lower-case, hyphenated test id")
@@ -107,7 +114,7 @@ class Registry:
             raise ValueError(f"the test id {id} is already registered")
 
         def register(function: TestFunction) -> TestFunction:
-            self._tests[id] = ConformanceTest(id, function, state_changing)
+            self._tests[id] = ConformanceTest(id, function, state_changing, explicit)
             return function
 
         return register
@@ -139,6 +146,7 @@ class Context:
         attributes: ServiceAttributes,
         reading_system: ReadingSystemAttributes,
         record: Callable[[Exchange | None, Sequence[Observation]], str | None],
+        open_raw: Callable[[], RawChannel] | None = None,
     ) -> None:
         self.port = port
         """The setup's Session: logged on and initialised, for ordinary calls."""
@@ -149,7 +157,9 @@ class Context:
         self.reading_system = reading_system
         self._open_port = open_port
         self._record = record
-        self._opened: list[ServicePort] = []
+        self._open_raw = open_raw
+        self._opened: list[ServicePort | RawChannel] = []
+        self._cleanups: list[Callable[[], object]] = []
         self._notes: list[str] = []
         self.exchange_ids: list[str] = []
 
@@ -161,6 +171,34 @@ class Context:
         port = self._open_port()
         self._opened.append(port)
         return port
+
+    def open_raw(self) -> RawChannel:
+        """A new raw channel with no Session, for negative tests (ADR 0004).
+
+        The runner closes it when the test ends.
+        """
+        if self._open_raw is None:
+            raise RuntimeError("no raw channel was supplied to this run")
+        channel = self._open_raw()
+        self._opened.append(channel)
+        return channel
+
+    def send_raw(self, channel: RawChannel, operation: str, body: str) -> Reply[str]:
+        """Send `operation` with `body` as given and keep its Exchange for the
+        report. `TransportError` is not caught: it ends the test as ERROR."""
+        reply = channel.send_raw(operation, body)
+        self._remember(self._record(reply.exchange, reply.observations))
+        return reply
+
+    def cleanup(self, step: Callable[[], object]) -> None:
+        """Register a step that undoes what the test set up, such as a logOff.
+
+        Steps run after the test, last registered first, also when the test
+        failed. A step that raises, gets no answer or returns a `Fault` or a
+        `Deviation` is an ERROR on a record of its own, `<test id>.cleanup`; the
+        test keeps its Outcome.
+        """
+        self._cleanups.append(step)
 
     def call[T](
         self,
@@ -309,9 +347,16 @@ def _matches(test_id: str, prefix: str) -> bool:
 
 
 def select(
-    registry: Registry, only: Sequence[str] = (), skip: Sequence[str] = ()
+    registry: Registry,
+    only: Sequence[str] = (),
+    skip: Sequence[str] = (),
+    *,
+    include_explicit: bool = False,
 ) -> tuple[ConformanceTest, ...]:
     """The tests chosen by `--only` and `--skip`: prefixes on whole id segments.
+
+    An explicit test is chosen only by an `only` prefix that matches it, unless
+    `include_explicit` asks for every test (to list them).
 
     Raises `ValueError` for a prefix that matches no test.
     """
@@ -321,7 +366,11 @@ def select(
     return tuple(
         test
         for test in registry.tests
-        if (not only or any(_matches(test.id, p) for p in only))
+        if (
+            any(_matches(test.id, p) for p in only)
+            if only
+            else include_explicit or not test.explicit
+        )
         and not any(_matches(test.id, p) for p in skip)
     )
 
@@ -356,6 +405,7 @@ def run_conformance(
     state_changing: bool = False,
     insecure: bool = False,
     reading_system: ReadingSystemAttributes | None = None,
+    open_raw: OpenRawChannel | None = None,
 ) -> RunReport:
     """Run the selected Conformance tests against the Service at `url`.
 
@@ -363,6 +413,8 @@ def run_conformance(
     never uses the session manager or a stored Session (ADR 0005), so a fault
     is seen as data and not hidden by a relogin. A setup that fails ends the run
     at once. `state_changing` is the explicit opt-in for State-changing tests.
+    `open_raw` opens a `RawChannel` for the negative tests; a test that needs
+    one without it is an ERROR.
 
     Raises `EndpointError` before anything is sent when the address is refused
     and `ValueError` for an `only` or `skip` prefix that matches nothing.
@@ -383,8 +435,11 @@ def run_conformance(
                 attributes,
             )
         setup_ids = tuple(run.exchanges)
+        raw_opener = None if open_raw is None else (lambda: open_raw(url))
         records = tuple(
-            _run_one(
+            record
+            for test in selected
+            for record in _run_one(
                 test,
                 Context(
                     port,
@@ -394,10 +449,10 @@ def run_conformance(
                     attributes,
                     declared,
                     run.record,
+                    raw_opener,
                 ),
                 state_changing,
             )
-            for test in selected
         )
         with contextlib.suppress(TransportError):
             reply = port.log_off()
@@ -440,7 +495,56 @@ def _describe(reply: Reply[object]) -> str:
     return f"an answer contrary to the specification: {reply.description}"
 
 
-def _run_one(test: ConformanceTest, ctx: Context, state_changing: bool) -> Record:
+def _run_one(
+    test: ConformanceTest, ctx: Context, state_changing: bool
+) -> tuple[Record, ...]:
+    """The test's own record, then the record of a cleanup that went wrong."""
+    if test.state_changing and not state_changing:
+        return (
+            Record(
+                test.id,
+                Outcome.SKIP,
+                "a state-changing test; enable it with --state-changing",
+                state_changing=True,
+            ),
+        )
+    try:
+        record = _execute(test, ctx)
+        cleanup = _clean_up(test, ctx)
+    finally:
+        ctx._close_ports()
+    return (record,) if cleanup is None else (record, cleanup)
+
+
+def _clean_up(test: ConformanceTest, ctx: Context) -> Record | None:
+    """Run the registered steps; a step that goes wrong is an ERROR, not a FAIL."""
+    first = len(ctx.exchange_ids)
+    problems: list[str] = []
+    for step in reversed(ctx._cleanups):
+        try:
+            answer = step()
+        except TransportError as error:
+            ctx._remember(ctx._record(error.exchange, ()))
+            problems.append(str(error))
+        except Exception as error:
+            problems.append(f"defect in dod: {type(error).__name__}: {error}")
+        else:
+            if isinstance(answer, Fault | Deviation) or (
+                isinstance(answer, Ok) and answer.value is False
+            ):
+                problems.append(_describe(answer))
+    if not problems:
+        return None
+    return Record(
+        f"{test.id}.cleanup",
+        Outcome.ERROR,
+        "the cleanup failed: " + "; ".join(problems),
+        exchange_ids=tuple(ctx.exchange_ids[first:]),
+        state_changing=test.state_changing,
+    )
+
+
+def _execute(test: ConformanceTest, ctx: Context) -> Record:
     def record(result: Result) -> Record:
         outcome = result.outcome
         message = result.message
@@ -460,13 +564,6 @@ def _run_one(test: ConformanceTest, ctx: Context, state_changing: bool) -> Recor
             test.state_changing,
         )
 
-    if test.state_changing and not state_changing:
-        return Record(
-            test.id,
-            Outcome.SKIP,
-            "a state-changing test; enable it with --state-changing",
-            state_changing=True,
-        )
     try:
         result = test.function(ctx)
         if not isinstance(result, Result):
@@ -497,5 +594,3 @@ def _run_one(test: ConformanceTest, ctx: Context, state_changing: bool) -> Recor
             tuple(ctx.exchange_ids),
             test.state_changing,
         )
-    finally:
-        ctx._close_ports()

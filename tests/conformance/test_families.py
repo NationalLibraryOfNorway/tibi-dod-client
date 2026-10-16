@@ -71,7 +71,7 @@ def only_record(report: RunReport) -> Record:
 
 
 def test_the_default_registry_lists_the_first_families_by_stable_id() -> None:
-    assert [t.id for t in CONFORMANCE_TESTS.tests] == ALL_IDS
+    assert [t.id for t in CONFORMANCE_TESTS.tests if not t.explicit] == ALL_IDS
     assert not any(t.state_changing for t in CONFORMANCE_TESTS.tests)
 
 

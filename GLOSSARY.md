@@ -44,6 +44,14 @@ _Avoid_: Status, verdict
 A Service answer that contradicts the DODP v1 specification, such as a fault with no recognisable DODP fault element. Reported as FAIL.
 _Avoid_: Bug, quirk
 
+**Negative test**:
+A Conformance test that deliberately sends an invalid request, such as an operation with no Session or a parameter the specification forbids, and expects a DODP fault. Negative tests send through the **RawChannel**, run in an Ephemeral-mode Session of their own, and are explicit: an ordinary run never includes them, only `--only negative` does.
+_Avoid_: Fuzzing
+
+**RawChannel**:
+A port narrower than `ServicePort` (`send_raw(operation, body)`) that sends any operation name with any body, unchecked. Only the HTTP adapter implements it.
+_Avoid_: Raw port
+
 **State-changing test**:
 A Conformance test that alters data on the Service, such as the loan state of a content item. Skipped unless explicitly enabled.
 _Avoid_: Destructive test
