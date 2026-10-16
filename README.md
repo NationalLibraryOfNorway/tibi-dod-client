@@ -2,6 +2,31 @@
 
 `dod` is a cross-platform test client for DODP v1 (DAISY Online Delivery Protocol) backends. See [GLOSSARY.md](GLOSSARY.md) for the terms used and [docs/adr/](docs/adr/) for design decisions.
 
+## Development
+
+`dod` needs Python 3.12 or later and uses [uv](https://docs.astral.sh/uv/) for its development environment. The distribution is called `dod-client`, the command `dod` and the import package `dod`; the version comes from the git tag.
+
+```sh
+uv sync                      # create .venv with dod and the development tools
+uv run dod --help
+```
+
+Checks (CI runs the same on Linux, macOS and Windows):
+
+```sh
+uv run ruff check            # lint
+uv run ruff format --check   # formatting (drop --check to reformat)
+uv run mypy                  # strict type checking
+uv run tach check            # layer order and module interfaces, see tach.toml
+uv run pytest                # tests
+```
+
+Tests against a real Service are marked `real_backend` and deselected by default; run them with `uv run pytest -m real_backend`. They never run in CI, and no credentials or addresses belong in the repository.
+
+Build the wheel and sdist with `uv build`, and install the wheel with `pipx install dist/dod_client-*.whl`.
+
+Third-party dependencies and their licences are listed in [THIRD-PARTY.md](THIRD-PARTY.md).
+
 ## Credits
 
 The DAISY Online Delivery Protocol is specified by the [DAISY Consortium](https://daisy.org/). This repository keeps an unmodified local copy of the DODP v1 specification (Proposed Recommendation, 2 April 2010) with its WSDL and XML schemas:

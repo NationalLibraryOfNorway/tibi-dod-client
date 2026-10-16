@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    # Python 3.15 is non-blocking until lxml and miniaudio publish cp315 wheels.
+    continue-on-error: ${{ matrix.python == '3.15' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.12", "3.13", "3.14", "3.15"]
+        include:
+          - { os: macos-latest, python: "3.12" }
+          - { os: macos-latest, python: "3.15" }
+          - { os: windows-latest, python: "3.12" }
+          - { os: windows-latest, python: "3.15" }
+    env:
+      # Tools print non-ASCII (such as tach's check mark); avoid cp1252 on Windows.
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # hatch-vcs derives the version from git tags.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: uv sync --locked
+      - name: Ruff lint
+        run: uv run --no-sync ruff check
+      - name: Ruff format
+        run: uv run --no-sync ruff format --check
+      - name: mypy
+        run: uv run --no-sync mypy
+      - name: tach
+        run: uv run --no-sync tach check
+      - name: pytest
+        # Tests marked real_backend are deselected by default (pyproject.toml).
+        run: uv run --no-sync pytest
+
+  package:
+    name: Build and install with pipx
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.3.0
+      - name: Build wheel and sdist
+        run: uv build
+      - name: Install the wheel with pipx
+        run: pipx install dist/*.whl
+      - name: dod --help
+        run: dod --help

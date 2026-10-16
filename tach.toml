@@ -1,0 +1,62 @@
+# Module boundaries for `dod` (ADR 0003). Run with `uv run tach check`.
+#
+# Layers, outermost first. A module may only import modules in its own or a
+# lower layer, and only those it lists in `depends_on`.
+layers = ["main", "presentation", "infrastructure", "application", "domain"]
+layers_explicit_depends_on = true
+forbid_circular_dependencies = true
+source_roots = ["src"]
+exclude = ["**/__pycache__", "tests"]
+
+[[modules]]
+path = "dod.domain.service"
+layer = "domain"
+depends_on = []
+
+[[modules]]
+path = "dod.domain.v1"
+layer = "domain"
+depends_on = ["dod.domain.service"]
+
+[[modules]]
+path = "dod.application"
+layer = "application"
+depends_on = ["dod.domain.service", "dod.domain.v1"]
+
+[[modules]]
+path = "dod.infrastructure"
+layer = "infrastructure"
+depends_on = ["dod.application", "dod.domain.service", "dod.domain.v1"]
+
+# The presentation layer never imports the infrastructure layer.
+[[modules]]
+path = "dod.presentation"
+layer = "presentation"
+depends_on = ["dod.application", "dod.domain.service", "dod.domain.v1"]
+
+# Composition root: the only module that sees every layer.
+[[modules]]
+path = "dod.main"
+layer = "main"
+depends_on = [
+    "dod.application",
+    "dod.domain.service",
+    "dod.domain.v1",
+    "dod.infrastructure",
+    "dod.presentation",
+]
+
+# Every module is reached through its package `__init__` only: public names
+# defined or re-exported there, never names starting with `_` and never names
+# inside a submodule (`from dod.domain.v1.models import X` is rejected).
+# tach cannot tell a public submodule from a public name, so `import
+# dod.domain.v1.models` passes; give implementation submodules a leading `_`.
+[[interfaces]]
+expose = ["[A-Za-z][A-Za-z0-9_]*"]
+from = [
+    "dod.domain.service",
+    "dod.domain.v1",
+    "dod.application",
+    "dod.infrastructure",
+    "dod.presentation",
+]

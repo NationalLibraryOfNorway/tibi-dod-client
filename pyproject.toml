@@ -1,0 +1,75 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dod-client"
+dynamic = ["version"]
+description = "Test client for DODP v1 (DAISY Online Delivery Protocol) Services"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "National Library of Norway" }]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = ["typer>=0.15"]
+
+[project.scripts]
+dod = "dod.main:main"
+
+[project.urls]
+Repository = "https://github.com/NationalLibraryOfNorway/tibi-dod-client"
+
+[dependency-groups]
+dev = ["mypy>=1.15", "pytest>=8.3", "ruff>=0.11", "tach>=0.29"]
+
+[tool.uv]
+# The version comes from git, so rebuild the project when the commit or tags change.
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dod"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/.agents", "/.claude", "/skills-lock.json"]
+
+[tool.ruff]
+line-length = 88
+src = ["src", "tests"]
+extend-exclude = [".agents", ".claude", "docs"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--import-mode=importlib",
+    "-p",
+    "no:tach",
+    "-m",
+    "not real_backend",
+]
+markers = [
+    "real_backend: runs against a real Service; deselected by default, select with -m real_backend",
+]
