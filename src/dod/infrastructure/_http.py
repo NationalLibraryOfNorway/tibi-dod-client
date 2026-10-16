@@ -364,6 +364,21 @@ class HttpServicePort:
 
         return self._call("getContentMetadata", fill, read)
 
+    def send_raw(self, operation: str, body: str) -> Reply[str]:
+        """`RawChannel`: send `operation` and `body` as given, unchecked."""
+        request_body = (
+            f'<soap:Envelope xmlns:soap="{_SOAP}"><soap:Body>'
+            f'<{operation} xmlns="{_NS}">{body}</{operation}>'
+            "</soap:Body></soap:Envelope>"
+        ).encode()
+
+        def read(
+            response: etree._Element,
+        ) -> tuple[str, tuple[SchemaViolation, ...]] | Deviation | None:
+            return etree.tostring(response, encoding="unicode"), ()
+
+        return self._transact(operation, request_body, read, expect_response=False)
+
     def close(self) -> None:
         self._client.close()
 
@@ -400,7 +415,19 @@ class HttpServicePort:
             tuple[T, tuple[SchemaViolation, ...]] | Deviation | None,
         ],
     ) -> Reply[T]:
-        request_body = _envelope(operation, fill)
+        return self._transact(operation, _envelope(operation, fill), read)
+
+    def _transact[T](
+        self,
+        operation: str,
+        request_body: bytes,
+        read: Callable[
+            [etree._Element],
+            tuple[T, tuple[SchemaViolation, ...]] | Deviation | None,
+        ],
+        *,
+        expect_response: bool = True,
+    ) -> Reply[T]:
         started = time.perf_counter()
         try:
             response = self._client.post(
@@ -443,7 +470,7 @@ class HttpServicePort:
             )
         if payload.tag == f"{{{_SOAP}}}Fault":
             return self._fault(payload, exchange=exchange, observations=observations)
-        if payload.tag != _dodp(f"{operation}Response"):
+        if expect_response and payload.tag != _dodp(f"{operation}Response"):
             return Deviation(
                 description=(
                     f"expected {operation}Response, got "

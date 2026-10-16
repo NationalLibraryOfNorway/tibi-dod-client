@@ -29,6 +29,7 @@ from dod.application import (
     MemorySessionStore,
     NoCredentialsError,
     OpenPort,
+    OpenRawChannel,
     ReadingSystemError,
     ReadingSystemParser,
     SessionManager,
@@ -131,6 +132,7 @@ def create_app(
     terminal: Terminal | None = None,
     session_store: SessionStore | None = None,
     parse_reading_system: ReadingSystemParser | None = None,
+    open_raw: OpenRawChannel | None = None,
 ) -> typer.Typer:
     """Build the `dod` command line application.
 
@@ -140,7 +142,8 @@ def create_app(
     never imports the infrastructure layer. `terminal` answers whether stderr
     and stdin are terminals (the real ones by default), and `session_store` is
     where Session files live (in memory, so lost at exit, by default).
-    `parse_reading_system` reads a Reading System declaration file.
+    `parse_reading_system` reads a Reading System declaration file, and
+    `open_raw` opens the raw channel the negative tests send through.
     """
     terminal = terminal or _SystemTerminal()
     store = session_store or MemorySessionStore()
@@ -751,8 +754,10 @@ def create_app(
         "list",
         epilog=_EPILOG,
         help=(
-            "List the ids of the Conformance tests, one per line. Nothing is "
-            "sent to a Service. --only and --skip narrow the list."
+            "List the ids of the Conformance tests, one per line, including "
+            "the explicit ones (negative.*) that a run only includes when "
+            "--only names them. Nothing is sent to a Service. --only and "
+            "--skip narrow the list."
         ),
     )
     def test_list(
@@ -762,7 +767,7 @@ def create_app(
     ) -> None:
         g = _globals(ctx)
         _no_xml(g, "test list")
-        tests = _selected(only, skip)
+        tests = _selected(only, skip, include_explicit=True)
         if g.format is OutputFormat.JSON:
             typer.echo(json.dumps(list_json(tests), indent=2))
         else:
@@ -777,7 +782,9 @@ def create_app(
             "(PASS, FAIL, SKIP or ERROR) per test. The run logs on with a "
             "Session of its own and never uses a stored one. Exit code 0 "
             "without FAIL or ERROR, 1 with FAIL only, 2 with any ERROR. "
-            "--format json gives a versioned report with masked Exchanges."
+            "--format json gives a versioned report with masked Exchanges. "
+            "The negative tests (deliberately invalid requests, each in a "
+            "Session of its own) run only when chosen: --only negative."
         ),
     )
     def test_run(
@@ -831,6 +838,7 @@ def create_app(
                 target.url,
                 target.username,
                 password,
+                open_raw=None if open_raw is None else target.diag.wrap_raw(open_raw),
                 only=only or (),
                 skip=skip or (),
                 state_changing=state_changing,
@@ -860,7 +868,8 @@ _ONLY = Annotated[
     typer.Option(
         "--only",
         help="Only tests whose id starts with this prefix (whole dotted "
-        "segments, e.g. session.logon). Can be repeated.",
+        "segments, e.g. session.logon). Can be repeated. Explicit tests, such "
+        "as negative, run only when named here.",
     ),
 ]
 _SKIP = Annotated[
@@ -872,9 +881,13 @@ _SKIP = Annotated[
 ]
 
 
-def _selected(only: list[str] | None, skip: list[str] | None) -> tuple[Any, ...]:
+def _selected(
+    only: list[str] | None, skip: list[str] | None, *, include_explicit: bool = False
+) -> tuple[Any, ...]:
     try:
-        return select(CONFORMANCE_TESTS, only or (), skip or ())
+        return select(
+            CONFORMANCE_TESTS, only or (), skip or (), include_explicit=include_explicit
+        )
     except ValueError as error:
         _fail(str(error))
 

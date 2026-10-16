@@ -3,7 +3,10 @@
 May import the domain packages only.
 """
 
-from dod.application import _conformance_tests  # noqa: F401  (registers the tests)
+from dod.application import (  # noqa: F401  (registers the tests)
+    _conformance_tests,
+    _negative_tests,
+)
 from dod.application._address import (
     MAX_WSDL_BYTES,
     Attempt,
@@ -42,6 +45,7 @@ from dod.application._conformance import (
     CONFORMANCE_TESTS,
     ConformanceTest,
     Context,
+    OpenRawChannel,
     Outcome,
     Record,
     Registry,
@@ -99,6 +103,7 @@ __all__ = [
     "MemorySessionStore",
     "NoCredentialsError",
     "OpenPort",
+    "OpenRawChannel",
     "Outcome",
     "ReadingSystemError",
     "ReadingSystemParser",

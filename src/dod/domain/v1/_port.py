@@ -70,3 +70,31 @@ class ServicePort(Protocol):
     def close(self) -> None:
         """Release the connection; the port is not used afterwards."""
         ...
+
+
+class RawChannel(Protocol):
+    """A narrower port for negative tests: it sends what it is given (ADR 0004).
+
+    Where `ServicePort` builds a valid request for each operation, a
+    `RawChannel` sends any operation name with any body, so a test can ask for
+    something the specification forbids. Only the HTTP adapter implements it.
+    Answers are classified as for `ServicePort`, and `TransportError` is raised
+    only when there was no usable answer.
+    """
+
+    def send_raw(self, operation: str, body: str) -> Reply[str]:
+        """Send `operation` with `body` as the content of the operation element.
+
+        Nothing is checked or escaped: `body` is the XML text between the
+        start and end tag of the operation element, in the DODP namespace.
+        `Ok.value` is the answer's payload element as text.
+        """
+        ...
+
+    def resume(self, session: SessionState) -> None:
+        """Continue a Session started by a `ServicePort`; sends nothing."""
+        ...
+
+    def close(self) -> None:
+        """Release the connection; the channel is not used afterwards."""
+        ...

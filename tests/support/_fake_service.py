@@ -80,6 +80,10 @@ def service_wsdl(address: str, binding: str = "do:DaisyOnlineService") -> bytes:
     ).encode()
 
 
+_INITIALISATION = {"getServiceAttributes", "setReadingSystemAttributes"}
+_ALLOWED_BEFORE_INITIALISATION = _INITIALISATION | {"logOn", "logOff"}
+
+
 def _envelope(inner: str) -> bytes:
     return (
         f'<soap:Envelope xmlns:soap="{SOAP}"><soap:Body>{inner}</soap:Body>'
@@ -93,6 +97,13 @@ class FakeService:
     def __init__(self) -> None:
         self.users: dict[str, str] = {}
         self.sessions: set[str] = set()
+        # What each Session has done of the Initialisation sequence (4.2.1).
+        self._initialised: dict[str, set[str]] = {}
+        # A Service that refuses other operations before the Initialisation
+        # sequence is complete (invalidOperation) is what the specification
+        # requires; it is off here so that tests that skip the sequence on
+        # purpose keep working.
+        self.enforce_initialisation = False
         self.requests: list[RecordedRequest] = []
         # Plain GET requests (WSDL and anything else a client fetches).
         self.fetches: list[RecordedRequest] = []
@@ -277,17 +288,27 @@ class FakeService:
             return injected
         if isinstance(injected, tuple):
             return self._fault(*injected)
-        return getattr(self, f"_op_{operation}", self._unknown)(payload, headers)
+        known = getattr(self, f"_op_{operation}", None)
+        if known is None:
+            if self._session(headers) is None:
+                return self._no_session()
+            return self._fault(FaultKind.INVALID_OPERATION, "unknown operation")
+        if (
+            self.enforce_initialisation
+            and operation not in _ALLOWED_BEFORE_INITIALISATION
+        ):
+            token = self._session(headers)
+            if token is not None and self._initialised.get(token) != _INITIALISATION:
+                return self._fault(
+                    FaultKind.INVALID_OPERATION,
+                    "the initialisation sequence is not complete",
+                )
+        return known(payload, headers)  # type: ignore[no-any-return]
 
-    def _unknown(self, payload: Any, headers: dict[str, str]) -> _Raw:
-        return _Raw(
-            500,
-            _envelope(
-                "<soap:Fault><faultcode>soap:Client</faultcode>"
-                "<faultstring>unknown operation</faultstring>"
-                "</soap:Fault>"
-            ),
-        )
+    def _initialising(self, headers: dict[str, str], step: str) -> None:
+        token = self._session(headers)
+        if token is not None:
+            self._initialised.setdefault(token, set()).add(step)
 
     def _checked(self, document: str) -> None:
         """Record a document of ours that the local schemas do not accept."""
@@ -331,6 +352,7 @@ class FakeService:
             return self._result("logOn", False)
         token = secrets.token_hex(8)
         self.sessions.add(token)
+        self._initialised[token] = set()
         return self._result(
             "logOn", True, {"Set-Cookie": f"session={token}; {self.cookie_attributes}"}
         )
@@ -338,11 +360,13 @@ class FakeService:
     def _op_logOff(self, payload: Any, headers: dict[str, str]) -> _Raw:
         token = self._session(headers)
         self.sessions.discard(token or "")
+        self._initialised.pop(token or "", None)
         return self._result("logOff", token is not None)
 
     def _op_getServiceAttributes(self, payload: Any, headers: dict[str, str]) -> _Raw:
         if self._session(headers) is None:
             return self._no_session()
+        self._initialising(headers, "getServiceAttributes")
         xml = (
             f'<getServiceAttributesResponse xmlns="{NS}">'
             f"{self.service_attributes_xml.split('?>')[-1]}"
@@ -356,6 +380,7 @@ class FakeService:
     ) -> _Raw:
         if self._session(headers) is None:
             return self._no_session()
+        self._initialising(headers, "setReadingSystemAttributes")
         return self._result("setReadingSystemAttributes", True)
 
     def _op_getServiceAnnouncements(
@@ -390,8 +415,11 @@ class FakeService:
             "lastItem",
         ]
         wanted = payload.findtext(f"{{{NS}}}id") or ""
-        first = int(payload.findtext(f"{{{NS}}}firstItem") or "0")
-        last = int(payload.findtext(f"{{{NS}}}lastItem") or "-1")
+        try:
+            first = int(payload.findtext(f"{{{NS}}}firstItem") or "0")
+            last = int(payload.findtext(f"{{{NS}}}lastItem") or "-1")
+        except ValueError:
+            return self._fault(FaultKind.INVALID_PARAMETER, "not a number")
         known = self.lists.get(wanted)
         if known is None and wanted == "issued":
             known = ContentList(id="issued", total_items=0)

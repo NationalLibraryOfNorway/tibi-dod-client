@@ -38,12 +38,21 @@ ALL_IDS = [
     "catalog.metadata.get",
     "catalog.metadata.unknown-id",
 ]
+NEGATIVE_IDS = [
+    "negative.session.no-session",
+    "negative.init.operation-before-init",
+    "negative.operation.unknown",
+    "negative.parameter.content-list-non-numeric-range",
+    "negative.parameter.content-list-empty-id",
+    "negative.parameter.content-metadata-empty-id",
+]
 
 
 @pytest.fixture
 def service() -> Iterator[FakeService]:
     fake = FakeService()
     fake.add_user(USER, PASSWORD)
+    fake.enforce_initialisation = True
     fake.offer_catalog([ContentList(id="issued", total_items=3, items=ITEMS)], [BOOK])
     yield fake
     fake.stop()
@@ -69,7 +78,7 @@ def test_list_shows_every_test_id_one_per_line() -> None:
     result = run_dod("test", "list")
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.splitlines() == ALL_IDS
+    assert result.stdout.splitlines() == ALL_IDS + NEGATIVE_IDS
 
 
 def test_list_as_json_gives_ids_and_whether_they_change_state() -> None:
@@ -77,12 +86,25 @@ def test_list_as_json_gives_ids_and_whether_they_change_state() -> None:
 
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == {
-        "schema_version": 1,
+        "schema_version": 2,
         "tests": [
-            {"id": "catalog.metadata.get", "state_changing": False},
-            {"id": "catalog.metadata.unknown-id", "state_changing": False},
+            {"id": "catalog.metadata.get", "state_changing": False, "explicit": False},
+            {
+                "id": "catalog.metadata.unknown-id",
+                "state_changing": False,
+                "explicit": False,
+            },
         ],
     }
+
+
+def test_list_as_json_marks_the_negative_tests_as_explicit() -> None:
+    result = run_dod("test", "list", "--format", "json", "--only", "negative")
+
+    assert result.returncode == 0, result.stderr
+    tests = json.loads(result.stdout)["tests"]
+    assert [t["id"] for t in tests] == NEGATIVE_IDS
+    assert all(t["explicit"] for t in tests)
 
 
 def test_run_prints_one_line_per_test_and_exits_0_when_all_pass(
@@ -198,7 +220,7 @@ def test_the_json_report_has_a_schema_version_and_exchange_ids(
 
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
-    assert report["schema_version"] == 1
+    assert report["schema_version"] == 2
     assert report["exit_code"] == 0
     assert report["summary"] == {"PASS": 2, "FAIL": 0, "SKIP": 0, "ERROR": 0}
     assert report["setup"] is None
@@ -436,3 +458,82 @@ def test_help_lists_the_run_options() -> None:
         "--report-exchanges",
     ):
         assert option in result.stdout
+
+
+def test_a_run_without_only_leaves_the_negative_tests_out(
+    service: FakeService, tmp_path: Path
+) -> None:
+    result = dod(service, tmp_path, "test", "run")
+
+    assert result.returncode == 0, result.stderr
+    assert "negative" not in result.stdout
+    assert "dodConformanceUnknownOperation" not in [
+        r.operation for r in service.requests
+    ]
+
+
+def test_only_negative_runs_the_family_and_exits_0_against_a_conforming_service(
+    service: FakeService, tmp_path: Path
+) -> None:
+    result = dod(service, tmp_path, "test", "run", "--only", "negative")
+
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert lines[: len(NEGATIVE_IDS)] == [f"PASS {name}" for name in NEGATIVE_IDS]
+    assert "6 tests: 6 PASS, 0 FAIL, 0 SKIP, 0 ERROR" in lines
+    assert "dodConformanceUnknownOperation" in [r.operation for r in service.requests]
+    assert service.sessions == set()
+
+
+def test_the_negative_tests_never_touch_a_stored_session(
+    service: FakeService, tmp_path: Path
+) -> None:
+    dod(service, tmp_path, "test", "run", "--only", "negative")
+
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_a_cleanup_that_goes_wrong_is_an_error_line_of_its_own_and_exit_2(
+    service: FakeService, tmp_path: Path
+) -> None:
+    service.inject_fault("logOff", "internalServerError", "synthetic")
+
+    result = dod(
+        service,
+        tmp_path,
+        "test",
+        "run",
+        "--only",
+        "negative.parameter.content-list-empty-id",
+    )
+
+    assert result.returncode == 2, result.stderr
+    lines = result.stdout.splitlines()
+    assert lines[0] == "PASS negative.parameter.content-list-empty-id"
+    assert lines[1].startswith(
+        "ERROR negative.parameter.content-list-empty-id.cleanup: "
+    )
+    assert not any(line.startswith("FAIL") for line in lines)
+
+
+def test_the_raw_exchanges_are_in_the_json_report_with_the_password_masked(
+    service: FakeService, tmp_path: Path
+) -> None:
+    result = dod(
+        service,
+        tmp_path,
+        "test",
+        "run",
+        "--only",
+        "negative.operation.unknown",
+        "--format",
+        "json",
+        "--report-exchanges",
+        "all",
+    )
+
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    bodies = [e["request_body"] for e in report["exchanges"].values()]
+    assert any("dodConformanceUnknownOperation" in body for body in bodies)
+    assert PASSWORD not in result.stdout
