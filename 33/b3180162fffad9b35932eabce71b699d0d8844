@@ -1,0 +1,19 @@
+.habit-hooks/snooze.json
+  s_638cd1922b2803::t_42d0504a57ac47 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "33b3180162fffad9b35932eabce71b699d0d8844",
+  "prompts": {},
+  "sessions": {
+    "s_638cd1922b2803": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d675cb34-ad8c-42a9-87d0-cea72229a6f6",
+        "model": "unknown"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
