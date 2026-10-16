@@ -33,6 +33,21 @@ class Harness(Protocol):
         """Publish announcements, and let the Service declare the operations."""
         ...
 
+    def declare_operations(self, *tokens: str) -> None:
+        """Declare optional operations in `supportedOptionalOperations`."""
+        ...
+
+    def offer_bookmarks(
+        self, content_id: str, bookmark_set: str, *, schema_valid: bool = True
+    ) -> None:
+        """Store the bookmark set of a book (`schema_valid=False`: it breaks the
+        schema on purpose and is answered as it is)."""
+        ...
+
+    def offer_key_exchange(self, key_name: str, key_exchange: str) -> None:
+        """Answer `getKeyExchangeObject` for `key_name` with this element."""
+        ...
+
     def offer_catalog(
         self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
     ) -> None:

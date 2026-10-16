@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import secrets
 import threading
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -31,6 +31,7 @@ from dod.domain.v1 import (
 from dod.infrastructure import HttpServicePort, validate_document
 
 NS = "http://www.daisy.org/ns/daisy-online/"
+BOOKMARK_NS = "http://www.daisy.org/z3986/2005/bookmark/"
 SOAP = "http://schemas.xmlsoap.org/soap/envelope/"
 
 _SERVICE_ATTRIBUTES = f"""\
@@ -116,6 +117,13 @@ class FakeService:
         self.invalid_documents: list[str] = []
         self.invalid_responses: list[str] = []
         self.service_attributes_xml = _SERVICE_ATTRIBUTES
+        # Bookmark sets by content id (none stored: an empty set), whether the
+        # Service builds them schema-valid, and key exchange objects by key name.
+        self.bookmarks: dict[str, str] = {}
+        self._invalid_bookmarks: set[str] = set()
+        self.key_exchange: dict[str, str] = {}
+        # A Service that stores a different set than it was given.
+        self.store_bookmarks_as: Callable[[str], str] | None = None
         self.announcements: list[Announcement] = []
         self.read_announcements: set[str] = set()
         self.lists: dict[str, ContentList] = {}
@@ -179,6 +187,27 @@ class FakeService:
             "<operation>SERVICE_ANNOUNCEMENTS</operation>"
             "</supportedOptionalOperations>",
         )
+
+    def declare_operations(self, *tokens: str) -> None:
+        """Declare optional operations in `supportedOptionalOperations`."""
+        listed = "".join(f"<operation>{token}</operation>" for token in tokens)
+        self.service_attributes_xml = self.service_attributes_xml.replace(
+            "<supportedOptionalOperations/>",
+            f"<supportedOptionalOperations>{listed}</supportedOptionalOperations>",
+        )
+
+    def offer_bookmarks(
+        self, content_id: str, bookmark_set: str, *, schema_valid: bool = True
+    ) -> None:
+        """Store the bookmark set of a book; `schema_valid=False` is for a set
+        that breaks the schema on purpose, answered as it is."""
+        self.bookmarks[content_id] = bookmark_set
+        if not schema_valid:
+            self._invalid_bookmarks.add(content_id)
+
+    def offer_key_exchange(self, key_name: str, key_exchange: str) -> None:
+        """Answer `getKeyExchangeObject` for `key_name` with this element."""
+        self.key_exchange[key_name] = key_exchange
 
     def offer_catalog(
         self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
@@ -340,6 +369,10 @@ class FakeService:
             child = etree.tostring(payload[0]).decode()
             if validate_document(child):
                 self.invalid_documents.append(child)
+        if operation == "setBookmarks":
+            whole = etree.tostring(payload).decode()
+            if validate_document(whole):
+                self.invalid_documents.append(whole)
         if self._raw is not None:
             raw, self._raw = self._raw, None
             return raw
@@ -613,6 +646,53 @@ class FakeService:
         self.books[wanted] = (files, issued)
         return self._result(operation, True)
 
+    def _known(self, content_id: str) -> bool:
+        return content_id in self.books or content_id in self.metadata
+
+    def _op_getBookmarks(self, payload: Any, headers: dict[str, str]) -> _Raw:
+        if self._session(headers) is None:
+            return self._no_session()
+        wanted = payload.findtext(f"{{{NS}}}contentID") or ""
+        if not self._known(wanted):
+            return self._fault(FaultKind.INVALID_PARAMETER, "unknown content")
+        stored = self.bookmarks.get(wanted) or (
+            f'<bookmarkSet xmlns="{BOOKMARK_NS}"><title><text/></title>'
+            f"<uid>{escape(wanted)}</uid></bookmarkSet>"
+        )
+        xml = f'<getBookmarksResponse xmlns="{NS}">{stored}</getBookmarksResponse>'
+        if wanted not in self._invalid_bookmarks:
+            self._checked(xml)
+        return _Raw(200, _envelope(xml))
+
+    def _op_setBookmarks(self, payload: Any, headers: dict[str, str]) -> _Raw:
+        if self._session(headers) is None:
+            return self._no_session()
+        wanted = payload.findtext(f"{{{NS}}}contentID") or ""
+        if not self._known(wanted):
+            return self._fault(FaultKind.INVALID_PARAMETER, "unknown content")
+        stored = payload.find(f"{{{BOOKMARK_NS}}}bookmarkSet")
+        if stored is None or stored.findtext(f"{{{BOOKMARK_NS}}}uid") != wanted:
+            return self._fault(FaultKind.INVALID_PARAMETER, "the uid is not the id")
+        text = etree.tostring(stored).decode()
+        self.bookmarks[wanted] = (
+            self.store_bookmarks_as(text) if self.store_bookmarks_as else text
+        )
+        self._invalid_bookmarks.discard(wanted)
+        return self._result("setBookmarks", True)
+
+    def _op_getKeyExchangeObject(self, payload: Any, headers: dict[str, str]) -> _Raw:
+        if self._session(headers) is None:
+            return self._no_session()
+        name = payload.findtext(f"{{{NS}}}requestedKeyName") or ""
+        if name not in self.key_exchange:
+            return self._fault(FaultKind.INVALID_PARAMETER, "unknown key")
+        xml = (
+            f'<getKeyExchangeObjectResponse xmlns="{NS}">'
+            f"{self.key_exchange[name]}</getKeyExchangeObjectResponse>"
+        )
+        self._checked(xml)
+        return _Raw(200, _envelope(xml))
+
     def _op_markAnnouncementsAsRead(
         self, payload: Any, headers: dict[str, str]
     ) -> _Raw:
@@ -681,6 +761,19 @@ class HttpHarness:
 
     def offer_announcements(self, *announcements: Announcement) -> None:
         self.service.offer_announcements(*announcements)
+
+    def declare_operations(self, *tokens: str) -> None:
+        self.service.declare_operations(*tokens)
+
+    def offer_bookmarks(
+        self, content_id: str, bookmark_set: str, *, schema_valid: bool = True
+    ) -> None:
+        self.service.offer_bookmarks(
+            content_id, bookmark_set, schema_valid=schema_valid
+        )
+
+    def offer_key_exchange(self, key_name: str, key_exchange: str) -> None:
+        self.service.offer_key_exchange(key_name, key_exchange)
 
     def offer_catalog(
         self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]

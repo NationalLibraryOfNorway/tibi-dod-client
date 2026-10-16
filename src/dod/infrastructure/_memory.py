@@ -10,6 +10,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Sequence
 from dataclasses import replace
+from xml.sax.saxutils import escape
 
 from dod.domain.service import (
     Deviation,
@@ -24,17 +25,20 @@ from dod.domain.service import (
 from dod.domain.v1 import (
     SPEC_REFS,
     Announcement,
+    BookmarkSet,
     ByteRange,
     ContentList,
     ContentMetadata,
     ContentResource,
     ContentResources,
+    KeyExchangeObject,
     ReadingSystemAttributes,
     ResourceSink,
     ServiceAttributes,
     SinkRefused,
     operation_ref,
 )
+from dod.infrastructure._bookmarks import bookmark_set, parse_for_sending
 
 
 class InMemoryService:
@@ -51,6 +55,8 @@ class InMemoryService:
         self._metadata: dict[str, ContentMetadata] = {}
         self._resources: dict[str, tuple[ContentResources, bool]] = {}
         self._files: dict[str, bytes] = {}
+        self._bookmarks: dict[str, str] = {}
+        self._key_exchange: dict[str, str] = {}
         self.attributes = attributes or ServiceAttributes(
             service_provider_id="synthetic-provider",
             service_id="synthetic-service",
@@ -83,6 +89,21 @@ class InMemoryService:
         self.attributes = replace(
             self.attributes, supported_optional_operations=tuple(sorted(operations))
         )
+
+    def declare_operations(self, *tokens: str) -> None:
+        """Declare optional operations in `supportedOptionalOperations`."""
+        operations = {*self.attributes.supported_optional_operations, *tokens}
+        self.attributes = replace(
+            self.attributes, supported_optional_operations=tuple(sorted(operations))
+        )
+
+    def offer_bookmarks(self, content_id: str, bookmark_set: str) -> None:
+        """Store the bookmark set of a book (a `bookmarkSet` document)."""
+        self._bookmarks[content_id] = bookmark_set
+
+    def offer_key_exchange(self, key_name: str, key_exchange: str) -> None:
+        """Answer `getKeyExchangeObject` for `key_name` with this element."""
+        self._key_exchange[key_name] = key_exchange
 
     def offer_catalog(
         self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
@@ -331,6 +352,67 @@ class InMemoryPort:
             self._service._false.discard(operation)
             return Ok(value=False, exchange=exchange)
         return Ok(value=True, exchange=exchange)
+
+    def get_bookmarks(self, content_id: str) -> Reply[BookmarkSet]:
+        found = self._bookmark_precheck("getBookmarks", content_id)
+        if isinstance(found, (Fault, Deviation)):
+            return found
+        stored = self._service._bookmarks.get(content_id) or (
+            '<bookmarkSet xmlns="http://www.daisy.org/z3986/2005/bookmark/">'
+            f"<title><text/></title><uid>{escape(content_id)}</uid></bookmarkSet>"
+        )
+        return Ok(
+            value=bookmark_set(parse_for_sending(stored)),
+            exchange=found,
+        )
+
+    def set_bookmarks(self, content_id: str, bookmark_set: str) -> Reply[bool]:
+        parse_for_sending(bookmark_set)
+        found = self._bookmark_precheck("setBookmarks", content_id)
+        if isinstance(found, (Fault, Deviation)):
+            return found
+        self._service._bookmarks[content_id] = bookmark_set
+        return Ok(value=True, exchange=found)
+
+    def _bookmark_precheck(
+        self, operation: str, content_id: str
+    ) -> Exchange | Fault | Deviation:
+        injected = self._service._take_injected(operation)
+        if injected is not None:
+            assert not isinstance(injected, Ok)
+            return injected
+        if not self._active():
+            return _no_active_session(operation)
+        exchange = _exchange(operation)
+        if (
+            content_id not in self._service._resources
+            and content_id not in self._service._metadata
+        ):
+            return Fault(
+                kind=FaultKind.INVALID_PARAMETER,
+                reason="unknown content",
+                exchange=exchange,
+            )
+        return exchange
+
+    def get_key_exchange_object(
+        self, requested_key_name: str
+    ) -> Reply[KeyExchangeObject]:
+        injected = self._service._take_injected("getKeyExchangeObject")
+        if injected is not None:
+            assert not isinstance(injected, Ok)
+            return injected
+        if not self._active():
+            return _no_active_session("getKeyExchangeObject")
+        exchange = _exchange("getKeyExchangeObject")
+        known = self._service._key_exchange.get(requested_key_name)
+        if known is None:
+            return Fault(
+                kind=FaultKind.INVALID_PARAMETER,
+                reason="unknown key",
+                exchange=exchange,
+            )
+        return Ok(value=KeyExchangeObject(xml=known), exchange=exchange)
 
     def get_content_resources(self, content_id: str) -> Reply[ContentResources]:
         injected = self._service._take_injected("getContentResources")

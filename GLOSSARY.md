@@ -53,7 +53,7 @@ A port narrower than `ServicePort` (`send_raw(operation, body)`) that sends any 
 _Avoid_: Raw port
 
 **State-changing test**:
-A Conformance test that alters data on the Service, such as the loan state of a content item. Skipped unless explicitly enabled. The `content` tests are State-changing and also need an explicit `--content-id`; they return what they issued.
+A Conformance test that alters data on the Service, such as the loan state of a content item. Skipped unless explicitly enabled. The `content` tests and the bookmark round trip are State-changing and also need an explicit `--content-id`; the content tests return what they issued and the round trip writes back the set it read.
 _Avoid_: Destructive test
 
 **Environment**:
@@ -88,6 +88,10 @@ _Avoid_: Borrowed book, checked-out item
 **Service Delegate**:
 A host other than the Service that serves content resources on its behalf, possibly with credentials embedded in the resource URI.
 _Avoid_: CDN, mirror
+
+**Bookmark set**:
+The `bookmarkSet` a Service stores for one book: title, uid, an optional lastmark and any bookmarks and highlights. `setBookmarks` replaces the whole set, so a change is always read, modified and written back; `dod` reads it leniently and never validates what a Service sends.
+_Avoid_: Bookmarks file
 
 **Playlist**:
 The ordered sequence of Clips that makes up the playing order of a book, derived from the book's own structure.

@@ -35,17 +35,26 @@ from dod.domain.v1 import (
     QUIRKS,
     SPEC_REFS,
     Announcement,
+    BookmarkSet,
     ByteRange,
     ContentItem,
     ContentList,
     ContentMetadata,
     ContentResource,
     ContentResources,
+    KeyExchangeObject,
     ReadingSystemAttributes,
     ResourceSink,
     ServiceAttributes,
     SinkRefused,
     operation_ref,
+)
+from dod.infrastructure._bookmarks import (
+    BOOKMARK_NS,
+    KEY_EXCHANGE_NS,
+    bookmark_set,
+    element_text,
+    parse_for_sending,
 )
 from dod.infrastructure._schema import SchemaUnavailableError, validate_document
 
@@ -402,6 +411,48 @@ class HttpServicePort:
                 observations=reply.observations,
             )
         return reply
+
+    def get_bookmarks(self, content_id: str) -> Reply[BookmarkSet]:
+        def fill(parent: etree._Element) -> None:
+            _text_element(parent, "contentID", content_id)
+
+        def read(
+            response: etree._Element,
+        ) -> tuple[BookmarkSet, tuple[SchemaViolation, ...]] | Deviation | None:
+            element = response.find(f"{{{BOOKMARK_NS}}}bookmarkSet")
+            if element is None:
+                return None
+            return bookmark_set(element), self._validate(element)
+
+        return self._call("getBookmarks", fill, read)
+
+    def set_bookmarks(self, content_id: str, bookmark_set: str) -> Reply[bool]:
+        parsed = parse_for_sending(bookmark_set)
+
+        def fill(parent: etree._Element) -> None:
+            _text_element(parent, "contentID", content_id)
+            parent.append(parsed)
+
+        return self._call("setBookmarks", fill, self._result("setBookmarks"))
+
+    def get_key_exchange_object(
+        self, requested_key_name: str
+    ) -> Reply[KeyExchangeObject]:
+        def fill(parent: etree._Element) -> None:
+            _text_element(parent, "requestedKeyName", requested_key_name)
+
+        def read(
+            response: etree._Element,
+        ) -> tuple[KeyExchangeObject, tuple[SchemaViolation, ...]] | Deviation | None:
+            element = response.find(f"{{{KEY_EXCHANGE_NS}}}KeyExchange")
+            if element is None:
+                return None
+            return (
+                KeyExchangeObject(xml=element_text(element)),
+                self._validate(element),
+            )
+
+        return self._call("getKeyExchangeObject", fill, read)
 
     def get_content_list(
         self, id: str, first_item: int, last_item: int
