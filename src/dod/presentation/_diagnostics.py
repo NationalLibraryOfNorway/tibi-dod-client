@@ -50,6 +50,7 @@ from dod.presentation._masking import (
     MaskPolicy,
     mask,
 )
+from dod.presentation._text import plain, plain_lines
 
 _HIGHLIGHT_ON = "\x1b[1;31m"
 _HIGHLIGHT_OFF = "\x1b[0m"
@@ -155,7 +156,9 @@ class Diagnostics:
             if observation not in self._seen:
                 self._seen.add(observation)
                 typer.echo(
-                    f"observation {observation.id}: {observation.message}", err=True
+                    f"observation {plain(observation.id)}: "
+                    f"{plain(observation.message)}",
+                    err=True,
                 )
 
     def record(self, exchange: Exchange) -> None:
@@ -182,7 +185,7 @@ class Diagnostics:
         if masked.response_truncated:
             lines.append("[the body is cut here; the rest went to a file]")
         lines.append("")
-        text = "\n".join(lines)
+        text = plain_lines("\n".join(lines))
         if self._colour:
             text = text.replace(HIGHLIGHT_START, _HIGHLIGHT_ON).replace(
                 HIGHLIGHT_END, _HIGHLIGHT_OFF
@@ -218,7 +221,7 @@ class Diagnostics:
 
     @staticmethod
     def _abort(message: str) -> None:
-        typer.echo(f"error: {message}", err=True)
+        typer.echo(f"error: {plain_lines(message)}", err=True)
         raise typer.Exit(EXIT_UNUSABLE)
 
 

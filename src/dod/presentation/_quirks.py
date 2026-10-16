@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from dod.application import QuirkUse
-from dod.presentation._conformance import plain, ref_json
+from dod.presentation._conformance import ref_json
+from dod.presentation._text import plain
 
 
 def quirk_lines(uses: tuple[QuirkUse, ...]) -> list[str]:

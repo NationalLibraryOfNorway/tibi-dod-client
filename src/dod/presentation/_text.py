@@ -20,6 +20,11 @@ def plain(text: str) -> str:
     return _CONTROL.sub(" ", text)
 
 
+def plain_lines(text: str) -> str:
+    """Like `plain`, but keeps the line breaks of multi-line text."""
+    return "\n".join(plain(line) for line in text.split("\n"))
+
+
 def field_lines(value: Any, prefix: str = "") -> list[str]:
     """`name: value` for every field of a model, nested ones with a prefix."""
     lines: list[str] = []
@@ -44,15 +49,20 @@ def metadata_lines(book: ContentMetadata) -> list[str]:
     return [*lines, f"meta: {pairs or '-'}"]
 
 
-def step_line(step: Step) -> str:
-    """One line on how an operation went, as the Service answered."""
+def step_result(step: Step) -> str:
+    """How an operation went, as the Service answered, without control characters."""
     reply = step.reply
     if isinstance(reply, Ok):
-        return f"{step.operation}: {'failed' if reply.value is False else 'ok'}"
+        return "failed" if reply.value is False else "ok"
     if isinstance(reply, Fault):
         reason = f": {reply.reason}" if reply.reason else ""
-        return f"{step.operation}: fault {reply.kind}{reason}"
-    return f"{step.operation}: deviation: {reply.description}"
+        return plain(f"fault {reply.kind}{reason}")
+    return plain(f"deviation: {reply.description}")
+
+
+def step_line(step: Step) -> str:
+    """One line on how an operation went, as the Service answered."""
+    return f"{plain(step.operation)}: {step_result(step)}"
 
 
 def download_summary(report: DownloadReport, directory: str) -> str:
