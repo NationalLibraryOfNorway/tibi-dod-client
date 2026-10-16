@@ -50,6 +50,7 @@ OPTIONAL_IDS = [
     "bookmarks.get.unknown-id",
     "bookmarks.set.round-trip",
     "key-exchange.unknown-key",
+    "questions.default",
 ]
 NEGATIVE_IDS = [
     "negative.session.no-session",
@@ -131,7 +132,7 @@ def test_run_prints_one_line_per_test_and_exits_0_when_all_pass(
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
     assert lines[: len(ALL_IDS)] == [f"PASS {name}" for name in ALL_IDS]
-    assert "21 tests: 15 PASS, 0 FAIL, 6 SKIP, 0 ERROR" in lines
+    assert "22 tests: 16 PASS, 0 FAIL, 6 SKIP, 0 ERROR" in lines
     assert [line.split(":")[0] for line in lines[len(ALL_IDS) :][:5]] == [
         f"SKIP {name}" for name in CONTENT_IDS
     ]

@@ -33,11 +33,13 @@ from dod.domain.v1 import (
     ContentMetadata,
     ContentResources,
     KeyExchangeObject,
+    Questions,
     RawChannel,
     ReadingSystemAttributes,
     ResourceSink,
     ServiceAttributes,
     ServicePort,
+    UserResponse,
 )
 from dod.presentation._masking import (
     HIGHLIGHT_END,
@@ -244,6 +246,9 @@ class _RecordingPort:
         return self._call(
             lambda: self._port.get_key_exchange_object(requested_key_name)
         )
+
+    def get_questions(self, responses: Sequence[UserResponse]) -> Reply[Questions]:
+        return self._call(lambda: self._port.get_questions(responses))
 
     def get_content_list(
         self, id: str, first_item: int, last_item: int

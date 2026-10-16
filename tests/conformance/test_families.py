@@ -58,6 +58,7 @@ OPTIONAL_OUTCOMES = {
     "bookmarks.get.unknown-id": Outcome.PASS,
     "bookmarks.set.round-trip": Outcome.SKIP,
     "key-exchange.unknown-key": Outcome.PASS,
+    "questions.default": Outcome.PASS,
 }
 
 

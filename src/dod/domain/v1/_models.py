@@ -201,3 +201,72 @@ class KeyExchangeObject:
     """
 
     xml: str
+
+
+@dataclass(frozen=True)
+class UserResponse:
+    """One answer sent with `getQuestions` (specification 5.2.6).
+
+    `question_id` and `value` are sent exactly as given. Three question IDs are
+    reserved: `default` (the root menu), `search` (with the search text as the
+    value) and `back` (one step up).
+    """
+
+    question_id: str
+    value: str | None = None
+
+
+@dataclass(frozen=True)
+class Choice:
+    """One choice of a multiple choice question, read leniently.
+
+    Some Services use IDs with spaces, against `xs:NMTOKEN`; the ID is kept
+    exactly as received and is what an answer sends. The label is untrusted
+    text (ADR 0008).
+    """
+
+    id: str
+    label: str
+    lang: str | None = None
+
+
+@dataclass(frozen=True)
+class MultipleChoiceQuestion:
+    """A question answered by picking one of its choices (specification 6.7)."""
+
+    id: str
+    label: str
+    choices: tuple[Choice, ...] = ()
+    allow_multiple_selections: bool = False
+    lang: str | None = None
+
+
+@dataclass(frozen=True)
+class InputQuestion:
+    """A question answered by typed or spoken input (specification 6.7).
+
+    `input_types` are the input types the Service accepts: `TEXT_NUMERIC`,
+    `TEXT_ALPHANUMERIC` or `AUDIO`.
+    """
+
+    id: str
+    label: str
+    input_types: tuple[str, ...] = ()
+    lang: str | None = None
+
+
+type Question = MultipleChoiceQuestion | InputQuestion
+
+
+@dataclass(frozen=True)
+class Questions:
+    """The answer to `getQuestions` (specification 6.7), read leniently.
+
+    It is a menu (`questions`), or an endpoint: a `content_list_ref` to show
+    with `getContentList`, or a `label` with a message. All text is untrusted
+    (ADR 0008).
+    """
+
+    questions: tuple[Question, ...] = ()
+    content_list_ref: str | None = None
+    label: str | None = None

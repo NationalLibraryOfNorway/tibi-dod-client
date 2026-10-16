@@ -122,6 +122,8 @@ class FakeService:
         self.bookmarks: dict[str, str] = {}
         self._invalid_bookmarks: set[str] = set()
         self.key_exchange: dict[str, str] = {}
+        self.menus: dict[tuple[str, str | None], str] = {}
+        self._invalid_menus: set[tuple[str, str | None]] = set()
         # A Service that stores a different set than it was given.
         self.store_bookmarks_as: Callable[[str], str] | None = None
         self.announcements: list[Announcement] = []
@@ -204,6 +206,21 @@ class FakeService:
         self.bookmarks[content_id] = bookmark_set
         if not schema_valid:
             self._invalid_bookmarks.add(content_id)
+
+    def offer_menu(
+        self,
+        questions: str,
+        *,
+        answer_to: str,
+        value: str | None = None,
+        schema_valid: bool = True,
+    ) -> None:
+        """Answer `getQuestions` for the answer (`answer_to`, `value`) with this
+        `questions` document; `schema_valid=False` is for a menu that breaks the
+        schema on purpose (a choice id with a space), answered as it is."""
+        self.menus[(answer_to, value)] = questions
+        if not schema_valid:
+            self._invalid_menus.add((answer_to, value))
 
     def offer_key_exchange(self, key_name: str, key_exchange: str) -> None:
         """Answer `getKeyExchangeObject` for `key_name` with this element."""
@@ -680,6 +697,28 @@ class FakeService:
         self._invalid_bookmarks.discard(wanted)
         return self._result("setBookmarks", True)
 
+    def _op_getQuestions(self, payload: Any, headers: dict[str, str]) -> _Raw:
+        if self._session(headers) is None:
+            return self._no_session()
+        sent = payload.find(f"{{{NS}}}userResponses")
+        first = None if sent is None else sent.find(f"{{{NS}}}userResponse")
+        key = (
+            None
+            if first is None
+            else (first.get("questionID") or "", first.get("value"))
+        )
+        if key == ("default", None) and key not in self.menus:
+            self.menus[key] = (
+                f'<questions xmlns="{NS}"><label xml:lang="en"><text>Menu</text></label>'
+                "</questions>"
+            )
+        if key is None or key not in self.menus:
+            return self._fault(FaultKind.INVALID_PARAMETER, "unknown question")
+        xml = f'<getQuestionsResponse xmlns="{NS}">{self.menus[key]}</getQuestionsResponse>'
+        if key not in self._invalid_menus:
+            self._checked(xml)
+        return _Raw(200, _envelope(xml))
+
     def _op_getKeyExchangeObject(self, payload: Any, headers: dict[str, str]) -> _Raw:
         if self._session(headers) is None:
             return self._no_session()
@@ -770,6 +809,18 @@ class HttpHarness:
     ) -> None:
         self.service.offer_bookmarks(
             content_id, bookmark_set, schema_valid=schema_valid
+        )
+
+    def offer_menu(
+        self,
+        questions: str,
+        *,
+        answer_to: str,
+        value: str | None = None,
+        schema_valid: bool = True,
+    ) -> None:
+        self.service.offer_menu(
+            questions, answer_to=answer_to, value=value, schema_valid=schema_valid
         )
 
     def offer_key_exchange(self, key_name: str, key_exchange: str) -> None:

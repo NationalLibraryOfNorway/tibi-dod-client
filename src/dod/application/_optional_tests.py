@@ -1,4 +1,4 @@
-"""The `bookmarks` and `key-exchange` families: the optional operations.
+"""The `bookmarks`, `key-exchange` and `questions` families: the optional operations.
 
 Each test gates on `supportedOptionalOperations` through `Context.optional`:
 an operation that is neither declared nor supported is SKIP, one that is
@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dod.application._conformance import Context, Result, conformance_test
 from dod.domain.service import FaultKind, Ok
-from dod.domain.v1 import SPEC_REFS, BookmarkSet, operation_ref
+from dod.domain.v1 import SPEC_REFS, BookmarkSet, UserResponse, operation_ref
 
 _UNKNOWN_CONTENT = "dod-conformance-unknown-content"
 _UNKNOWN_KEY = "dod-conformance-unknown-key"
@@ -96,4 +96,20 @@ def key_exchange_unknown_key(ctx: Context) -> Result:
         operation_ref("getKeyExchangeObject"),
     )
     ctx.expect_fault(reply, FaultKind.INVALID_PARAMETER)
+    return Result.passed()
+
+
+@conformance_test("questions.default")
+def questions_default(ctx: Context) -> Result:
+    """getQuestions answers the reserved `default` with a schema-valid root menu.
+
+    Only `default` is sent: it is the one answer every Service with menus has to
+    understand. Which questions follow, and what `back` does, is up to the Service.
+    """
+    reply = ctx.optional(
+        "DYNAMIC_MENUS",
+        lambda p: p.get_questions([UserResponse("default")]),
+        operation_ref("getQuestions"),
+    )
+    ctx.expect_ok(reply, SPEC_REFS["type.questions"])
     return Result.passed()

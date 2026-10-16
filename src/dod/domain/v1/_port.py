@@ -13,8 +13,10 @@ from dod.domain.v1._models import (
     ContentMetadata,
     ContentResources,
     KeyExchangeObject,
+    Questions,
     ReadingSystemAttributes,
     ServiceAttributes,
+    UserResponse,
 )
 
 type ResourceSink = Callable[[bytes], None]
@@ -99,6 +101,14 @@ class ServicePort(Protocol):
     ) -> Reply[KeyExchangeObject]:
         """Ask for a PDTB2 Key Exchange Object (optional operation
         `PDTB2_KEY_PROVISION`). The answer is returned as it came, uninterpreted."""
+        ...
+
+    def get_questions(self, responses: Sequence[UserResponse]) -> Reply[Questions]:
+        """Send answers and get the next menu (optional operation `DYNAMIC_MENUS`).
+
+        The answers are sent exactly as given. The Service decides what comes
+        next; the port keeps no position in the menus.
+        """
         ...
 
     def get_content_list(
