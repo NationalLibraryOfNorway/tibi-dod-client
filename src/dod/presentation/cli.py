@@ -2261,7 +2261,7 @@ def _add_quirks_commands(group: typer.Typer, store: ConfigStore) -> None:
         g = _globals(ctx)
         _no_xml(g, "quirks list")
         try:
-            uses = list_quirks(load_config(store, g.config), g.env)
+            uses = list_quirks(load_config(store, g.config), g.env, os.environ)
         except ConfigError as error:
             _fail(str(error))
         if g.format is OutputFormat.JSON:

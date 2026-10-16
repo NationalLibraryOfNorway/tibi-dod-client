@@ -120,6 +120,56 @@ def test_list_with_an_unknown_environment_is_exit_2(
     assert "gone" in result.stderr
 
 
+def test_list_follows_dod_env_like_other_commands(
+    tmp_path: Path, service: FakeService
+) -> None:
+    path = config(tmp_path, service)
+    on = run_dod("--config", str(path), "quirks", "list", env={"DOD_ENV": "tolerant"})
+    off = run_dod("--config", str(path), "quirks", "list", env={"DOD_ENV": "strict"})
+    flag_wins = run_dod(
+        "--config",
+        str(path),
+        "quirks",
+        "list",
+        "--env",
+        "strict",
+        env={"DOD_ENV": "tolerant"},
+    )
+
+    assert on.stdout.splitlines()[0] == NAME
+    assert off.returncode == 0, off.stderr
+    assert off.stdout == ""
+    assert flag_wins.stdout == ""
+
+
+def test_list_follows_default_environment(tmp_path: Path, service: FakeService) -> None:
+    path = config(tmp_path, service)
+    path.write_text(
+        'default_environment = "strict"\n' + path.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    result = run_dod("--config", str(path), "quirks", "list")
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == ""
+
+
+def test_list_with_an_unknown_dod_env_is_exit_2(
+    tmp_path: Path, service: FakeService
+) -> None:
+    result = run_dod(
+        "--config",
+        str(config(tmp_path, service)),
+        "quirks",
+        "list",
+        env={"DOD_ENV": "gone"},
+    )
+
+    assert result.returncode == 2
+    assert "gone" in result.stderr
+
+
 def test_list_as_json(tmp_path: Path, service: FakeService) -> None:
     result = dod(tmp_path, service, "quirks", "list", "--format", "json")
 
