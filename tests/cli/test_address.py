@@ -260,6 +260,18 @@ def test_discover_tries_known_paths_and_says_what_it_tried(
     assert service.url in result.stdout
 
 
+def test_discover_tries_services_daisyonline_before_the_other_known_paths(
+    service: FakeService,
+) -> None:
+    base = service.url.removesuffix("/dodp")
+
+    result = discover(base, "--insecure")
+
+    assert result.returncode == 0, result.stderr
+    tried = [fetch.path for fetch in service.fetches]
+    assert tried[:2] == ["/?wsdl", "/services/daisyonline?wsdl"]
+
+
 def test_discover_notes_that_a_wsdl_names_another_host(
     service: FakeService, other: FakeService
 ) -> None:

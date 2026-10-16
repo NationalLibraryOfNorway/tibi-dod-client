@@ -151,7 +151,7 @@ dod discover https://dod.example.org; echo "exit=$?"
 ```
 
 - Expect: every address tried is printed with the kind of answer (never the content); for the real host a WSDL is found or the next steps are given. Nothing stored, no credentials sent (check with `--debug` that no `Authorization` header or `logOn` body appears). For `dod.example.org`: exit 2 with next steps (this one cannot reach a Service).
-- Record: which of `?wsdl`, `/service`, `/dodp`, `/daisy-online`, `/DaisyOnline` the Service answers on. Whether `<service>` is among them is Tibi-specific: if it is not, discovery will not find it and that is not a defect, but write it down.
+- Record: which of `?wsdl`, `/services/daisyonline`, `/service`, `/dodp`, `/daisy-online`, `/DaisyOnline` the Service answers on. Whether `<service>` is among them is Tibi-specific: if it is not, discovery will not find it and that is not a defect, but write it down.
 
 #### B2. WSDL and host boundary. Stories 26, 31, 32, 34. OPTIONAL (when `<wsdl>` exists)
 

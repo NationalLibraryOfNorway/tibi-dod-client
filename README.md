@@ -175,7 +175,7 @@ Start with `dod test run --write-baseline conformance/baseline.toml`, review it,
 - The WSDL is fetched without credentials or cookies on every command and read safely: no DTD, no entities, no network, at most 1 MiB, with a timeout. `import` elements are never fetched; the bundled abstract DODP WSDL is used. Exactly one SOAP 1.1 port bound to the DODP portType is accepted; otherwise the ports are listed and the command exits with 2.
 - A `soap:address` with another host, port or scheme than the WSDL came from is refused unless `--trust-host` (or `trust_host = true`) is given. A redirect across a host, port or scheme boundary is always refused.
 - `https` is required; `http` needs `--insecure`, also on loopback.
-- `dod discover <address>` tries `?wsdl` on the address and on the known paths (`/service`, `/dodp`, `/daisy-online`, `/DaisyOnline`), prints every address it tried and the kind of answer (never the content), sends no credentials and stores nothing. It exits with 2 and next steps when nothing is found. `logon` suggests it when an address does not answer like a DODP Service.
+- `dod discover <address>` tries `?wsdl` on the address and on the known paths (`/services/daisyonline` first, then `/service`, `/dodp`, `/daisy-online`, `/DaisyOnline`), prints every address it tried and the kind of answer (never the content), sends no credentials and stores nothing. It exits with 2 and next steps when nothing is found. `logon` suggests it when an address does not answer like a DODP Service.
 - Every command that contacts a Service prints `[environment] url` on stderr (`[-]` when no Environment is used); `--quiet` turns it off.
 
 ```sh
