@@ -21,7 +21,7 @@ from dod.application import (
 from dod.domain.service import Exchange, SpecReference
 from dod.presentation._masking import mask, mask_url
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 """Raised whenever the shape of the JSON report changes (ADR 0010)."""
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
@@ -63,8 +63,10 @@ def text_report(
     *,
     hyperlinks: bool = False,
     baseline: BaselineComparison | None = None,
+    quirks: tuple[str, ...] = (),
 ) -> list[str]:
-    """One line per test, a summary, the Baseline lines and the Observations."""
+    """One line per test, a summary, the Quirks that were on, the Baseline lines
+    and the Observations."""
     lines: list[str] = []
     if report.setup_error is not None:
         lines.append(f"ERROR setup: {plain(report.setup_error)}")
@@ -74,6 +76,8 @@ def text_report(
     lines.append(
         f"{total} tests: " + ", ".join(f"{counts[o.value]} {o.value}" for o in Outcome)
     )
+    if quirks:
+        lines.append(f"Quirks on: {', '.join(quirks)}")
     if baseline is not None:
         lines.append(
             f"Baseline: {len(baseline.new)} new, {len(baseline.resolved)} "
@@ -94,7 +98,7 @@ def _summary(report: RunReport) -> dict[str, int]:
     return counts
 
 
-def _ref_json(ref: SpecReference | None) -> dict[str, Any] | None:
+def ref_json(ref: SpecReference | None) -> dict[str, Any] | None:
     if ref is None:
         return None
     return {
@@ -128,11 +132,12 @@ def json_report(
     exchanges: ReportExchanges,
     baseline: BaselineComparison | None = None,
     exit_code: int | None = None,
+    quirks: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """The JSON report: results, Observations and the chosen masked Exchanges.
 
     `exit_code` is the one the run ends with, which a Baseline can change;
-    Outcomes never change.
+    Outcomes never change. `quirks` are the Quirks that were switched on.
     """
     included: list[str] = []
     if exchanges is ReportExchanges.ALL:
@@ -156,6 +161,7 @@ def json_report(
         "schema_version": SCHEMA_VERSION,
         "service": mask_url(url),
         "environment": environment,
+        "quirks": list(quirks),
         "exit_code": report.exit_code if exit_code is None else exit_code,
         "summary": _summary(report),
         "setup": setup,
@@ -174,7 +180,7 @@ def json_report(
                 "outcome": record.outcome.value,
                 "message": record.message,
                 "note": record.note,
-                "spec_ref": _ref_json(record.spec_ref),
+                "spec_ref": ref_json(record.spec_ref),
                 "state_changing": record.state_changing,
                 "exchanges": list(record.exchange_ids),
             }
