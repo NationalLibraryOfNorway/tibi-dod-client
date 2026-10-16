@@ -10,12 +10,21 @@ from collections.abc import Iterator
 import pytest
 from typer.testing import CliRunner
 
+from dod.application import ConfigFile
 from dod.infrastructure import InMemoryService
 from dod.presentation import create_app
 from support import FakeService, run_dod
 
 USER = "synthetic-user"
 PASSWORD = "synthetic-secret"
+
+
+class NoConfig:
+    def default_path(self) -> str:
+        return "unused.toml"
+
+    def read(self, path: str) -> ConfigFile | None:
+        return None
 
 
 @pytest.fixture
@@ -179,7 +188,7 @@ def test_an_empty_password_on_stdin_is_a_usage_error(service: FakeService) -> No
 def test_the_password_prompt_does_not_echo_the_password() -> None:
     memory = InMemoryService()
     memory.add_user(USER, PASSWORD)
-    app = create_app(lambda url: memory.open_port())
+    app = create_app(lambda url: memory.open_port(), NoConfig())
 
     result = CliRunner().invoke(
         app,

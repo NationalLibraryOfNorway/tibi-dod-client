@@ -14,6 +14,11 @@ layer = "domain"
 depends_on = []
 
 [[modules]]
+path = "dod.domain.config"
+layer = "domain"
+depends_on = ["dod.domain.service"]
+
+[[modules]]
 path = "dod.domain.v1"
 layer = "domain"
 depends_on = ["dod.domain.service"]
@@ -21,18 +26,18 @@ depends_on = ["dod.domain.service"]
 [[modules]]
 path = "dod.application"
 layer = "application"
-depends_on = ["dod.domain.service", "dod.domain.v1"]
+depends_on = ["dod.domain.config", "dod.domain.service", "dod.domain.v1"]
 
 [[modules]]
 path = "dod.infrastructure"
 layer = "infrastructure"
-depends_on = ["dod.application", "dod.domain.service", "dod.domain.v1"]
+depends_on = ["dod.application", "dod.domain.config", "dod.domain.service", "dod.domain.v1"]
 
 # The presentation layer never imports the infrastructure layer.
 [[modules]]
 path = "dod.presentation"
 layer = "presentation"
-depends_on = ["dod.application", "dod.domain.service", "dod.domain.v1"]
+depends_on = ["dod.application", "dod.domain.config", "dod.domain.service", "dod.domain.v1"]
 
 # Composition root: the only module that sees every layer.
 [[modules]]
@@ -40,6 +45,7 @@ path = "dod.main"
 layer = "main"
 depends_on = [
     "dod.application",
+    "dod.domain.config",
     "dod.domain.service",
     "dod.domain.v1",
     "dod.infrastructure",
@@ -55,6 +61,7 @@ depends_on = [
 expose = ["[A-Za-z][A-Za-z0-9_]*"]
 from = [
     "dod.domain.service",
+    "dod.domain.config",
     "dod.domain.v1",
     "dod.application",
     "dod.infrastructure",

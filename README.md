@@ -14,6 +14,33 @@ echo "$PASSWORD" | dod logon --no-session --url https://dod.example.org/service 
 
 The password is read from a prompt without echo, or from the first line of stdin with `--password-stdin`; it is never taken from an argument. An `http` address is refused unless `--insecure` is given, also on loopback, and then gives the Observation `transport-security`. Results go to stdout, Observations and diagnostics to stderr. Exit codes: 0 ok, 1 the Service answered with a Fault or contrary to the specification, 2 no usable answer or the command could not be run. `--no-session` can also be set with `DOD_NO_SESSION=1`. See `dod logon --help`.
 
+### Configuration and Environments
+
+Named Environments live in a TOML file in the platform's configuration directory (`dod config path` prints it; `--config` or `DOD_CONFIG` selects another file). A missing default file is fine; a missing explicit one is an error. There is no project-local file.
+
+```toml
+default_environment = "test"
+
+[environments.test]
+url = "https://dod.example.org/service"   # exactly one of url and wsdl
+username = "alice"
+password = "..."        # plaintext, see docs/adr/0006
+# insecure = false, trust_host = false, protected = false, quirks = []
+
+[environments.local]
+url = "http://127.0.0.1:8080/service"
+insecure = true
+```
+
+Names match `[a-z0-9][a-z0-9_-]*`. Unknown keys, wrong types, and `token` or `cookie` are rejected every time the file is loaded, for all Environments. Errors exit with 2 and name the file, the key (`environments.<name>.<key>`), the reason and, for TOML syntax errors, the line. Password values are never printed.
+
+- Environment: `--env`, then `DOD_ENV`, then `default_environment`. `--env` cannot be combined with `--url`.
+- Username: `--username`, then `DOD_USERNAME`, then the file.
+- Password: `--password-stdin`, then the file, then a prompt. There is no environment variable for it.
+- On Linux and macOS `dod` refuses a file with a `password` that group or others can read (`chmod 600` it). On Windows permissions are not checked and `dod config check` warns about it.
+
+`dod config check` validates every Environment without network access, and `dod config show` prints the effective configuration with the source of each value and `password = ***`. `dod logon --env test --no-session` logs on with an Environment.
+
 ## Development
 
 `dod` needs Python 3.12 or later and uses [uv](https://docs.astral.sh/uv/) for its development environment. The distribution is called `dod-client`, the command `dod` and the import package `dod`; the version comes from the git tag.
