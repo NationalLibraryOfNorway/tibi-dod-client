@@ -27,6 +27,8 @@ Installed with `dod-client`, directly or transitively.
 
 ## Optional runtime dependencies
 
+### `dod-client[play]`
+
 Installed only with `dod-client[play]` (audio playback for `dod play`). There are no wheels for every platform (not for Linux arm64, Windows arm64 or Python 3.15), where `dod play` explains what is missing. The development environment installs it too, for the tests on its NULL backend.
 
 | Package | Licence | Notes |
@@ -35,6 +37,18 @@ Installed only with `dod-client[play]` (audio playback for `dod play`). There ar
 | [cffi](https://pypi.org/project/cffi/) | MIT-0 | Via miniaudio. |
 | [pycparser](https://pypi.org/project/pycparser/) | BSD-3-Clause | Via cffi. |
 
+### `dod-client[tui]`
+
+Installed only with `dod-client[tui]` (the terminal user interface, `dod tui`). All of them are pure Python wheels, so there is no platform or Python version without them (Python 3.15 included). The development environment installs Textual too, for the TUI tests on its headless `Pilot`.
+
+| Package | Licence | Notes |
+| --- | --- | --- |
+| [Textual](https://pypi.org/project/textual/) | MIT | The terminal user interface framework. Needs no audio player. |
+| [markdown-it-py](https://pypi.org/project/markdown-it-py/) | MIT | Via Textual (with its `linkify` extra); already listed above. |
+| [mdit-py-plugins](https://pypi.org/project/mdit-py-plugins/) | MIT | Via Textual. |
+| [linkify-it-py](https://pypi.org/project/linkify-it-py/) | MIT | Via markdown-it-py's `linkify` extra. |
+| [typing-extensions](https://pypi.org/project/typing-extensions/) | PSF-2.0 | Via Textual. |
+
 ## Planned runtime dependencies
 
 Decided in the specification and added by the tickets that need them.
@@ -42,7 +56,6 @@ Decided in the specification and added by the tickets that need them.
 | Package | Licence | Notes |
 | --- | --- | --- |
 | [certifi](https://pypi.org/project/certifi/) | MPL-2.0 | Via HTTPX; CA bundle. |
-| [Textual](https://pypi.org/project/textual/) | MIT | Optional, `dod-client[tui]`. |
 
 **lxml and redistribution.** `dod` is distributed as a wheel and an sdist only; lxml is installed by the user's package installer from PyPI, not shipped by us. The assessment that this is compatible with the LGPL-2.1 libiconv in the lxml wheels is a technical assessment by the developers, not a legal opinion. Distributing standalone binaries, Docker images or anything else that contains lxml, or vendoring lxml, requires a new licence assessment first.
 

@@ -62,7 +62,7 @@ def test_mark_read_help_explains_all_and_the_one_by_one_fallback() -> None:
     assert "invalidParameter" in text
 
 
-@pytest.mark.parametrize("command", ["list", "metadata"])
+@pytest.mark.parametrize("command", ["list", "metadata", "tui"])
 def test_catalog_commands_are_listed_at_the_top_level(command: str) -> None:
     result = run_dod("--help")
 

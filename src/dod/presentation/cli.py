@@ -1,15 +1,15 @@
 """The `dod` command line: command groups arranged in help panels."""
 
+import contextlib
 import dataclasses
 import json
 import os
-import re
 import shlex
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Any, NoReturn
+from typing import TYPE_CHECKING, Annotated, Any, NoReturn
 
 import typer
 
@@ -76,7 +76,6 @@ from dod.application import (
 )
 from dod.domain.service import (
     Deviation,
-    Fault,
     Observation,
     Ok,
     Password,
@@ -110,9 +109,17 @@ from dod.presentation._globals import (
     OutputFormat,
     Terminal,
 )
+from dod.presentation._launch import create_tui
 from dod.presentation._masking import MaskPolicy, mask, mask_keys, mask_url
 from dod.presentation._play import piped_commands, run_playback, terminal_commands
 from dod.presentation._quirks import quirk_lines, quirks_json
+from dod.presentation._text import field_lines as _field_lines
+from dod.presentation._text import metadata_lines as _metadata_lines
+from dod.presentation._text import plain as _plain
+from dod.presentation._text import step_line as _line
+
+if TYPE_CHECKING:
+    from textual.app import App
 
 # Exit codes: 0 ok, 1 the Service answered with a Fault or contrary to the
 # specification, 2 no usable answer or the command could not be run.
@@ -187,6 +194,7 @@ def create_app(
     data_dir: Path | None = None,
     validate_bookmarks: DocumentValidator | None = None,
     open_player: OpenPlayer | None = None,
+    run_tui: Callable[["App[None]"], None] | None = None,
 ) -> typer.Typer:
     """Build the `dod` command line application.
 
@@ -202,7 +210,8 @@ def create_app(
     `data_dir` is where downloaded books go (`--output` needs no data directory),
     and `validate_bookmarks` checks a bookmark set file against the local schema,
     and `open_player` opens the audio player `dod play` uses (it may raise
-    `PlayerUnavailable`).
+    `PlayerUnavailable`), and `run_tui` runs the terminal interface `dod tui`
+    builds (it is `App.run` by default; tests capture the app instead).
     """
     terminal = terminal or _SystemTerminal()
     store = session_store or MemorySessionStore()
@@ -828,6 +837,50 @@ def create_app(
             lambda value: {"metadata": _metadata_json(value)},
             header=False,
         )
+
+    @app.command(
+        "tui",
+        rich_help_panel=BROWSE_AND_ISSUE,
+        epilog=_EPILOG,
+        help=(
+            "Browse the shelf and see the metadata of a book in an interactive "
+            "terminal: the same operations as `dod list` and `dod metadata`, "
+            "called without blocking the screen. Keys: Enter opens the metadata "
+            "of the selected book, Escape goes back, l chooses another list, n "
+            "and p page, r reloads, q quits. It needs the optional Textual "
+            "(`pip install 'dod-client\\[tui]'`) and exits 2 without it; it needs "
+            "no audio player. It uses the stored Session (run `dod logon` "
+            "first, or keep a password in the Environment) and is always "
+            "masked: --unmask and --unmask-password are refused (ADR 0007), "
+            "as are --password-stdin, --debug, --save-exchanges, --no-session "
+            "and --format, which need stdin or stderr or print results."
+        ),
+    )
+    def tui_command(ctx: typer.Context) -> None:
+        g = _globals(ctx)
+        if g.unmask or g.unmask_password:
+            _fail(
+                "the TUI is always masked (ADR 0007); --unmask and "
+                "--unmask-password are not accepted"
+            )
+        for flag, given, reason in (
+            ("--password-stdin", g.password_stdin, "the keyboard is stdin"),
+            ("--debug", g.debug, "stderr belongs to the screen"),
+            ("--save-exchanges", g.save_exchanges is not None, "see --debug"),
+            ("--no-session", g.no_session, "the TUI uses the stored Session"),
+            ("--format", g.format is not OutputFormat.TEXT, "the TUI draws a screen"),
+        ):
+            if given:
+                _fail(f"dod tui does not accept {flag}: {reason}")
+        try:
+            import textual  # noqa: F401
+        except ImportError:
+            _fail("the TUI needs the optional Textual: pip install 'dod-client[tui]'")
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        screen = create_tui(manager)
+        with contextlib.suppress(KeyboardInterrupt):
+            (run_tui or _run_app)(screen)
 
     def ask(ctx: typer.Context, response: UserResponse) -> None:
         """One step in the menus: send one answer and show the Service's reply."""
@@ -1560,6 +1613,10 @@ def _selected(
         _fail(str(error))
 
 
+def _run_app(app: "App[None]") -> None:
+    app.run()
+
+
 def _globals(ctx: typer.Context) -> GlobalOptions:
     obj = ctx.find_root().obj
     assert isinstance(obj, GlobalOptions)
@@ -1769,12 +1826,6 @@ def _content_list_lines(shown: ContentList) -> list[str]:
         f"list {name}: items {first}-{last} of {shown.total_items}",
         *(f"{_plain(item.id)}: {_plain(item.label)}" for item in shown.items),
     ]
-
-
-def _metadata_lines(book: ContentMetadata) -> list[str]:
-    lines = _field_lines(dataclasses.replace(book, meta=()))
-    pairs = ", ".join(f"{_plain(n)}={_plain(c)}" for n, c in book.meta)
-    return [*lines, f"meta: {pairs or '-'}"]
 
 
 def _metadata_json(book: ContentMetadata) -> dict[str, Any]:
@@ -2058,33 +2109,6 @@ def _credentials(
     return provide
 
 
-_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
-
-
-def _plain(text: str) -> str:
-    """Text from a Service is untrusted: control characters never reach the
-    terminal (ADR 0008)."""
-    return _CONTROL.sub(" ", text)
-
-
-def _field_lines(value: Any, prefix: str = "") -> list[str]:
-    """`name: value` for every field of a model, nested ones with a prefix."""
-    lines: list[str] = []
-    for field in dataclasses.fields(value):
-        item = getattr(value, field.name)
-        if dataclasses.is_dataclass(item):
-            lines += _field_lines(item, f"{prefix}{field.name}.")
-            continue
-        if isinstance(item, bool):
-            shown = str(item).lower()
-        elif isinstance(item, tuple):
-            shown = ", ".join(_plain(str(part)) for part in item) or "-"
-        else:
-            shown = "-" if item is None else _plain(str(item))
-        lines.append(f"{prefix}{field.name}: {shown}")
-    return lines
-
-
 def _present[T](
     g: GlobalOptions,
     diag: Diagnostics,
@@ -2300,13 +2324,3 @@ def _logon_json(report: LogonReport) -> dict[str, Any]:
                 _announcement_json(a) for a in step.reply.value
             ]
     return document
-
-
-def _line(step: Step) -> str:
-    reply = step.reply
-    if isinstance(reply, Ok):
-        return f"{step.operation}: {'failed' if reply.value is False else 'ok'}"
-    if isinstance(reply, Fault):
-        reason = f": {reply.reason}" if reply.reason else ""
-        return f"{step.operation}: fault {reply.kind}{reason}"
-    return f"{step.operation}: deviation: {reply.description}"
