@@ -1,0 +1,83 @@
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_1133c853ac5a82 18,21,41,45-46,66,68,113,188,202-204,1200-1271
+  s_614f17f4aee381::t_012ab2dc3767d8 1272
+src/dod/domain/book/_paths.py
+  s_614f17f4aee381::t_401a7a72492b42 1-45
+src/dod/application/__init__.py
+  s_614f17f4aee381::t_fa5867c7183894 102-113,126,133,137-138,168,173-178,213,215
+tests/cli/test_play.py
+  s_614f17f4aee381::t_1133c853ac5a82 62,181,257
+  s_614f17f4aee381::t_6908d0cda62cd5 1-11,13-31,37-41,43-61,63-94,96-137,139,141-146,148-149,151-154,156-157,159-162,164-168,171-172,185-256,258-287
+  s_614f17f4aee381::t_6256747297f9bd 12,32-35,95
+  s_614f17f4aee381::t_82a6302517d0a0 36,42,138,140,147,150,155,158,163,169-170,173-180,182-184
+src/dod/main.py
+  s_614f17f4aee381::t_1133c853ac5a82 12,45
+src/dod/domain/book/__init__.py
+  s_614f17f4aee381::t_401a7a72492b42 1-18
+src/dod/application/_play.py
+  s_614f17f4aee381::t_fa5867c7183894 1-50,55-190,192-253,257-262,264-306
+  s_614f17f4aee381::t_66a3dda79cdd03 51-54
+  s_614f17f4aee381::t_ef158ff0b3d769 191,254-256,263
+src/dod/infrastructure/_audio.py
+  s_614f17f4aee381::t_66a3dda79cdd03 1-77,81-119
+  s_614f17f4aee381::t_4d368ecfc41dff 78-80
+src/dod/domain/book/_daisy202.py
+  s_614f17f4aee381::t_401a7a72492b42 1-12,15-19,21-27,32,34-35,37,47,157-158,162-163,176
+  s_614f17f4aee381::t_e0b07e0b83fbe8 84-85
+  s_614f17f4aee381::t_b40983f379efe1 165-169
+  s_614f17f4aee381::t_df115a1cebc685 13-14,20,28-31,33,36,38-46,48-72,77-83,86-156,159-161,164,170-175,177-185
+  s_614f17f4aee381::t_fa5867c7183894 73-76
+tests/book/test_daisy202_playlist.py
+  s_614f17f4aee381::t_fa5867c7183894 32
+  s_614f17f4aee381::t_bf0544436716d4 70-269,271-275,286-289,291,293-305
+  s_614f17f4aee381::t_b40983f379efe1 270,276-285,290,292
+  s_614f17f4aee381::t_6995e49475241a 1-31,33-69
+README.md
+  s_614f17f4aee381::t_bc47138cf79e1c 75-84
+pyproject.toml
+  s_614f17f4aee381::t_9836951e399cbc 34-38,48-49
+  s_614f17f4aee381::t_9366d0d6e45388 103-107
+src/dod/domain/book/_model.py
+  s_614f17f4aee381::t_401a7a72492b42 1-50
+src/dod/presentation/_play.py
+  s_614f17f4aee381::t_1133c853ac5a82 1-120
+tests/support/_fake_player.py
+  s_614f17f4aee381::t_6a5e9309cd665d 1-19,21-23,25-40,44-60
+  s_614f17f4aee381::t_3b1e60282ce9fb 20
+  s_614f17f4aee381::t_66a3dda79cdd03 24,41-43
+src/dod/application/_download.py
+  s_614f17f4aee381::t_21ede7077c5dcf 21,25,103,341
+tests/play/test_miniaudio_player.py
+  s_614f17f4aee381::t_66a3dda79cdd03 1-132
+  s_614f17f4aee381::t_4d81f129346160 133-134
+tach.toml
+  s_614f17f4aee381::t_21ede7077c5dcf 17-20
+  s_614f17f4aee381::t_e0b07e0b83fbe8 34-39,73
+  s_614f17f4aee381::t_b1d475c112fa73 16
+tests/play/test_playback.py
+  s_614f17f4aee381::t_6a5e9309cd665d 1-256
+tests/play/test_open_book.py
+  s_614f17f4aee381::t_6a5e9309cd665d 1-43
+src/dod/infrastructure/__init__.py
+  s_614f17f4aee381::t_66a3dda79cdd03 6,29,33
+THIRD-PARTY.md
+  s_614f17f4aee381::t_bc47138cf79e1c 28-37
+uv.lock
+  s_614f17f4aee381::t_c8ec5bd596f4d0 104-188,209-213,217,229,233,238,574-602,723-731
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "22701372e9b798a9dec1f755512e5416d888c91a",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
