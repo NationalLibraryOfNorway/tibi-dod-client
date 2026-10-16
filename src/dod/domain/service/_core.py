@@ -60,13 +60,27 @@ class SchemaViolation:
     message: str
 
 
+SPEC_URL = "http://www.daisy.org/projects/daisy-online-delivery/drafts/20100402/do-spec-20100402.html"
+"""The published HTML version of the specification, which the local copy mirrors."""
+
+
 @dataclass(frozen=True)
 class SpecReference:
-    """A pointer to the part of the specification a Deviation contradicts."""
+    """A pointer to the part of the specification a FAIL or Deviation contradicts.
+
+    `anchor` is the id of the section heading in the HTML version and `rule` an
+    optional short statement of the requirement, in our own words.
+    """
 
     section: str
     title: str
-    url: str
+    anchor: str
+    rule: str | None = None
+
+    @property
+    def url(self) -> str:
+        """A link to the section in the published HTML version."""
+        return f"{SPEC_URL}#{self.anchor}"
 
 
 @dataclass(frozen=True, kw_only=True)

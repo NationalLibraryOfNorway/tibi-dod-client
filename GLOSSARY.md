@@ -70,7 +70,7 @@ Replacing secrets in a presented Exchange, such as the password and cookie value
 _Avoid_: Redaction, scrubbing
 
 **Spec reference**:
-A pointer from a FAIL or a Spec deviation to the part of the DODP v1 specification it contradicts, given as section number, title and a link to the published HTML version.
+A pointer from a FAIL or a Spec deviation to the part of the DODP v1 specification it contradicts, given as section number, title, anchor, an optional short rule and a link to the published HTML version. They come from a closed registry.
 _Avoid_: Citation, rule id
 
 **Issued content**:

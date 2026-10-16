@@ -41,6 +41,16 @@ Ordinary commands reach the Service through the session manager: they reuse the 
 - `--format json` is a stable document (`result` plus `list` or `metadata`) that can go to `jq`; `--format xml` is the raw, masked response. Elements `dod` does not model are left out of text and JSON but stay in the raw response.
 - Reading is tolerant: an identifier that is not an `xs:NMTOKEN` (some menus have spaces in theirs) or any other schema violation is reported on stderr as a schema violation, not as a failure.
 
+### Conformance tests
+
+`dod test run` runs Conformance tests against a Service and reports one Outcome per test; `dod test list` shows the stable, hierarchical test ids (`session.logon.wrong-password`). The first families are `session`, `attributes` and `catalog`.
+
+- Outcomes: **PASS** (the Service answered as the specification requires), **FAIL** (it answered contrary to it), **SKIP** (the test does not apply or was not opted into) and **ERROR** (the test could not be evaluated, for example no answer or not SOAP). A fault is classified on its DODP element in `detail`, never on the HTTP status or `faultstring`; HTTP 500 without a DODP element is a FAIL. An optional operation is SKIP when it is not in `supportedOptionalOperations` and answers `operationNotSupported`, FAIL when it is declared but answers `operationNotSupported`, and PASS with a note when it works without being declared.
+- The run logs on with a Session of its own (never a stored one, ADR 0005) and ends it afterwards. A setup that cannot log on is an ERROR that ends the run at once; the tests of logging on, such as a wrong password, are separate PASS/FAIL tests.
+- `--only <prefix>` and `--skip <prefix>` (repeatable) choose tests by id prefix on whole dotted segments. State-changing tests are SKIP unless `--state-changing` is given, and against an Environment with `protected = true` that also needs `--confirm-env <name>`.
+- The text report is one line per test, a summary and an `Observations` section; a FAIL names the section of the specification with a link to the published HTML version (clickable on a terminal that supports it). `--format json` is a versioned report (`schema_version`) with Exchange ids and the masked Exchanges of FAIL and ERROR tests; `--report-exchanges all|failures|none` changes which are included.
+- Exit code 0 without FAIL or ERROR, 1 with FAIL and no ERROR, 2 with any ERROR. There are no requirement levels and no `--strict`.
+
 ### Finding the endpoint
 
 `dod` never guesses the Service endpoint while logging on (ADR 0002). Name it with `--url` (the SOAP endpoint itself), with `--wsdl` (the Service's WSDL; its `soap:address` is used) or through an Environment that holds one of them. `--url`, `--wsdl` and `--env` cannot be combined.
@@ -132,6 +142,7 @@ Tests run against `FakeService` in `tests/support/`, a DODP v1 Service on `127.0
 | `inject_no_answer(op)` | no answer: the connection is closed |
 | `inject_delay(op, seconds)` | a correct answer after `seconds`, for timeout tests |
 | `inject_redirect(op, location)` | a redirect, for example to another host or to `https` |
+| `defer_injection(op, calls)` | lets `calls` normal answers through before an injection for `op` fires, e.g. to get past a test's setup |
 
 ```python
 def test_a_fault_is_a_value(service: FakeService, port: HttpServicePort) -> None:

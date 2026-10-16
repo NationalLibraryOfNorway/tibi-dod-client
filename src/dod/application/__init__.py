@@ -3,6 +3,7 @@
 May import the domain packages only.
 """
 
+from dod.application import _conformance_tests  # noqa: F401  (registers the tests)
 from dod.application._address import (
     MAX_WSDL_BYTES,
     Attempt,
@@ -37,6 +38,19 @@ from dod.application._config import (
     load_config,
     resolve_connection,
 )
+from dod.application._conformance import (
+    CONFORMANCE_TESTS,
+    ConformanceTest,
+    Context,
+    Outcome,
+    Record,
+    Registry,
+    Result,
+    RunReport,
+    conformance_test,
+    run_conformance,
+    select,
+)
 from dod.application._logon import (
     LogonReport,
     OpenPort,
@@ -59,13 +73,16 @@ from dod.application._session import (
 from dod.domain.config import ConfigError
 
 __all__ = [
+    "CONFORMANCE_TESTS",
     "MAX_WSDL_BYTES",
     "Attempt",
     "ConfigCheck",
     "ConfigError",
     "ConfigFile",
     "ConfigStore",
+    "ConformanceTest",
     "Connection",
+    "Context",
     "CredentialProvider",
     "Discovery",
     "Endpoint",
@@ -82,8 +99,13 @@ __all__ = [
     "MemorySessionStore",
     "NoCredentialsError",
     "OpenPort",
+    "Outcome",
     "ReadingSystemError",
     "ReadingSystemParser",
+    "Record",
+    "Registry",
+    "Result",
+    "RunReport",
     "SessionError",
     "SessionKey",
     "SessionManager",
@@ -96,6 +118,7 @@ __all__ = [
     "WsdlPort",
     "check_config",
     "check_endpoint",
+    "conformance_test",
     "default_reading_system",
     "discover",
     "load_config",
@@ -104,4 +127,6 @@ __all__ = [
     "origin",
     "resolve_connection",
     "resolve_endpoint",
+    "run_conformance",
+    "select",
 ]

@@ -29,15 +29,16 @@ from dod.domain.service import (
     TransportError,
 )
 from dod.domain.v1 import (
+    SPEC_REFS,
     Announcement,
     ContentItem,
     ContentList,
     ContentMetadata,
     ReadingSystemAttributes,
     ServiceAttributes,
+    operation_ref,
 )
 from dod.infrastructure._schema import SchemaUnavailableError, validate_document
-from dod.infrastructure._spec import FAULTS_REFERENCE, operation_reference
 
 _NS = "http://www.daisy.org/ns/daisy-online/"
 _DC = "http://purl.org/dc/elements/1.1/"
@@ -436,7 +437,7 @@ class HttpServicePort:
         if payload is None:
             return Deviation(
                 description="the SOAP body is empty",
-                spec_reference=operation_reference(operation),
+                spec_reference=operation_ref(operation),
                 exchange=exchange,
                 observations=observations,
             )
@@ -448,7 +449,7 @@ class HttpServicePort:
                     f"expected {operation}Response, got "
                     f"{etree.QName(payload).localname}"
                 ),
-                spec_reference=operation_reference(operation),
+                spec_reference=operation_ref(operation),
                 exchange=exchange,
                 observations=observations,
             )
@@ -456,7 +457,7 @@ class HttpServicePort:
         if parsed is None:
             return Deviation(
                 description=f"{operation}Response lacks a usable result",
-                spec_reference=operation_reference(operation),
+                spec_reference=operation_ref(operation),
                 exchange=exchange,
                 observations=observations,
             )
@@ -537,7 +538,7 @@ class HttpServicePort:
                 )
         return Deviation(
             description="a SOAP fault without a recognisable DODP fault element",
-            spec_reference=FAULTS_REFERENCE,
+            spec_reference=SPEC_REFS["faults"],
             exchange=exchange,
             observations=observations,
         )

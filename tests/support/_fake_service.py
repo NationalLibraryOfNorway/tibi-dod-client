@@ -112,6 +112,7 @@ class FakeService:
         self.cookie_attributes = "Path=/; HttpOnly"
         self._injected: dict[str, tuple[FaultKind, str] | str | _Raw] = {}
         self._raw: _Raw | None = None
+        self._deferred: dict[str, int] = {}
         self._delays: dict[str, float] = {}
         self._stopping = threading.Event()
         self._lock = threading.Lock()
@@ -198,6 +199,11 @@ class FakeService:
         """Hang up on the next `operation` without answering at all."""
         self._injected[operation] = _Raw(0, b"", drop=True)
 
+    def defer_injection(self, operation: str, calls: int) -> None:
+        """Answer the next `calls` calls of `operation` normally before an
+        injection for it fires, e.g. to get past the logon of a test's setup."""
+        self._deferred[operation] = calls
+
     def inject_delay(self, operation: str, seconds: float) -> None:
         """Answer the next `operation` correctly, but only after `seconds`.
 
@@ -260,7 +266,11 @@ class FakeService:
         if self._raw is not None:
             raw, self._raw = self._raw, None
             return raw
-        injected = self._injected.pop(operation, None)
+        if self._deferred.get(operation, 0) > 0 and operation in self._injected:
+            self._deferred[operation] -= 1
+            injected = None
+        else:
+            injected = self._injected.pop(operation, None)
         if injected == "deviation":
             return _Raw(200, _envelope(f'<unexpected xmlns="{NS}"/>'))
         if isinstance(injected, _Raw):
