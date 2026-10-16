@@ -36,3 +36,35 @@ def bookmark_set(
         f'<bookmarkSet xmlns="{BOOKMARK_NS}"><title><text>{title}</text></title>'
         f"<uid>{uid}</uid>{lastmark}{marks}{lights}</bookmarkSet>"
     )
+
+
+def questions(body: str) -> str:
+    """A `questions` document around `body`."""
+    return (
+        f'<questions xmlns="http://www.daisy.org/ns/daisy-online/">{body}</questions>'
+    )
+
+
+def label(text: str) -> str:
+    return f'<label xml:lang="en"><text>{text}</text></label>'
+
+
+def multiple_choice(question_id: str, text: str, *choices: tuple[str, str]) -> str:
+    """A `multipleChoiceQuestion`; `choices` are (id, label) pairs."""
+    listed = "".join(
+        f'<choice id="{choice_id}">{label(choice_text)}</choice>'
+        for choice_id, choice_text in choices
+    )
+    return (
+        f'<multipleChoiceQuestion id="{question_id}">{label(text)}'
+        f"<choices>{listed}</choices></multipleChoiceQuestion>"
+    )
+
+
+def input_question(question_id: str, text: str, *types: str) -> str:
+    """An `inputQuestion` accepting the given input types."""
+    listed = "".join(f'<input type="{kind}"/>' for kind in types)
+    return (
+        f'<inputQuestion id="{question_id}"><inputTypes>{listed}</inputTypes>'
+        f"{label(text)}</inputQuestion>"
+    )

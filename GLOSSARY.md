@@ -93,6 +93,10 @@ _Avoid_: CDN, mirror
 The `bookmarkSet` a Service stores for one book: title, uid, an optional lastmark and any bookmarks and highlights. `setBookmarks` replaces the whole set, so a change is always read, modified and written back; `dod` reads it leniently and never validates what a Service sends.
 _Avoid_: Bookmarks file
 
+**Menu**:
+The questions a Service answers `getQuestions` with: multiple choice and input questions, or an endpoint (a `contentListRef` or a label). `dod` takes one step per call and keeps no position; the reserved answers `default`, `search` and `back` are the Service's own.
+_Avoid_: Question tree, dynamic menu state
+
 **Playlist**:
 The ordered sequence of Clips that makes up the playing order of a book, derived from the book's own structure.
 _Avoid_: Queue

@@ -36,6 +36,16 @@ class _MemoryHarness:
     ) -> None:
         self._service.offer_bookmarks(content_id, bookmark_set)
 
+    def offer_menu(
+        self,
+        questions: str,
+        *,
+        answer_to: str,
+        value: str | None = None,
+        schema_valid: bool = True,
+    ) -> None:
+        self._service.offer_menu(questions, answer_to=answer_to, value=value)
+
     def offer_key_exchange(self, key_name: str, key_exchange: str) -> None:
         self._service.offer_key_exchange(key_name, key_exchange)
 

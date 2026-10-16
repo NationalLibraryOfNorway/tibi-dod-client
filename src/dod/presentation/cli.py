@@ -4,6 +4,7 @@ import dataclasses
 import json
 import os
 import re
+import shlex
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -80,9 +81,13 @@ from dod.domain.v1 import (
     ContentList,
     ContentMetadata,
     ContentResources,
+    InputQuestion,
     KeyExchangeObject,
+    MultipleChoiceQuestion,
+    Questions,
     ReadingSystemAttributes,
     ServicePort,
+    UserResponse,
 )
 from dod.presentation._conformance import (
     ReportExchanges,
@@ -122,6 +127,22 @@ _GROUPS: tuple[tuple[str, str, str], ...] = (
     ("questions", "Navigate the Service's menus.", BROWSE_AND_ISSUE),
     ("bookmarks", "Get and set bookmarks.", DOWNLOAD_AND_PLAY),
     ("test", "Run Conformance tests against a Service.", TESTING_AND_TOOLS),
+)
+
+
+_QUESTIONS_HELP = (
+    "Navigate the Service's dynamic menus (getQuestions). Without a "
+    "subcommand this sends the reserved answer `default` and shows the "
+    "root question. Every call is one step: the Service answers with "
+    "questions, each shown with the `answer <questionID> <value>` "
+    "arguments of its choices so that they can be copied into the next "
+    "command, or with an endpoint, a contentListRef to follow with "
+    "`dod list --id <ref>` or a label. Nothing in dod depends on one "
+    "backend's question IDs, and dod keeps no position in the menus. "
+    "The commands can always be called; whether the Service has menus "
+    "is in `dod attributes service` (DYNAMIC_MENUS). Questions that "
+    "need an input type dod does not declare (AUDIO) are shown but "
+    "cannot be answered."
 )
 
 
@@ -315,8 +336,14 @@ def create_app(
 
     groups: dict[str, typer.Typer] = {}
     for name, help_text, panel in _GROUPS:
-        groups[name] = typer.Typer(no_args_is_help=True)
-        app.add_typer(groups[name], name=name, help=help_text, rich_help_panel=panel)
+        groups[name] = typer.Typer(no_args_is_help=name != "questions")
+        app.add_typer(
+            groups[name],
+            name=name,
+            help=_QUESTIONS_HELP if name == "questions" else help_text,
+            short_help=help_text,
+            rich_help_panel=panel,
+        )
     _add_config_commands(groups["config"], config_store)
     _add_quirks_commands(groups["quirks"], config_store)
 
@@ -789,6 +816,80 @@ def create_app(
             lambda value: {"metadata": _metadata_json(value)},
             header=False,
         )
+
+    def ask(ctx: typer.Context, response: UserResponse) -> None:
+        """One step in the menus: send one answer and show the Service's reply."""
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        attributes = declaration(target.connection) or default_reading_system()
+        manager = service_manager(g, target, attributes)
+        reply = serve(g, target, manager, lambda port: port.get_questions([response]))
+        supported = frozenset(attributes.config.supported_input_types)
+        _present(
+            g,
+            target.diag,
+            "getQuestions",
+            reply,
+            lambda value: _questions_lines(value, supported),
+            lambda value: {"questions": _questions_json(value, supported)},
+            header=False,
+        )
+
+    @groups["questions"].callback(invoke_without_command=True, epilog=_EPILOG)
+    def questions_root(ctx: typer.Context) -> None:
+        if ctx.invoked_subcommand is None:
+            ask(ctx, UserResponse("default"))
+
+    @groups["questions"].command(
+        "answer",
+        epilog=_EPILOG,
+        help=(
+            "Answer one question (getQuestions with one answer): QUESTION_ID and "
+            "VALUE are sent as given, so copy them from the previous output. "
+            "Quote a value that has spaces. One answer per call; multiple "
+            "selections are not supported."
+        ),
+    )
+    def questions_answer(
+        ctx: typer.Context,
+        question_id: Annotated[
+            str, typer.Argument(metavar="QUESTION_ID", help="The question to answer.")
+        ],
+        value: Annotated[
+            str, typer.Argument(metavar="VALUE", help="The choice id or the text.")
+        ],
+    ) -> None:
+        ask(ctx, UserResponse(question_id, value))
+
+    @groups["questions"].command(
+        "search",
+        epilog=_EPILOG,
+        help=(
+            "Send the reserved answer `search`, with TEXT as the value when "
+            "given (getQuestions). The Service shows its search question or "
+            "the result."
+        ),
+    )
+    def questions_search(
+        ctx: typer.Context,
+        text: Annotated[
+            str | None,
+            typer.Argument(metavar="[TEXT]", help="What to search for."),
+        ] = None,
+    ) -> None:
+        ask(ctx, UserResponse("search", text))
+
+    @groups["questions"].command(
+        "back",
+        epilog=_EPILOG,
+        help=(
+            "Send the reserved answer `back` (getQuestions) and show the "
+            "Service's reply unchanged. Some Services do not support it and "
+            "answer with a fault or an error, which is shown as it came."
+        ),
+    )
+    def questions_back(ctx: typer.Context) -> None:
+        ask(ctx, UserResponse("back"))
 
     @groups["bookmarks"].command(
         "get",
@@ -1614,6 +1715,75 @@ def _bookmark_set_lines(shown: BookmarkSet) -> list[str]:
 
 def _key_exchange_lines(shown: KeyExchangeObject) -> list[str]:
     return _xml_lines(mask_keys(shown.xml))
+
+
+def _questions_lines(shown: Questions, supported: frozenset[str]) -> list[str]:
+    """Questions and choices as the arguments of the next command (ADR 0008:
+    everything from the Service is made plain, and quoted where it has spaces)."""
+    lines: list[str] = []
+    for question in shown.questions:
+        qid = shlex.quote(_plain(question.id))
+        if isinstance(question, MultipleChoiceQuestion):
+            lines.append(f"question {_plain(question.id)}: {_plain(question.label)}")
+            for choice in question.choices:
+                lines.append(
+                    f"  answer {qid} {shlex.quote(_plain(choice.id))}"
+                    f"    # {_plain(choice.label)}"
+                )
+        else:
+            types = ", ".join(_plain(t) for t in question.input_types)
+            head = f"input question {_plain(question.id)}: {_plain(question.label)}"
+            if _answerable(question, supported):
+                lines.append(f"{head} [{types}]")
+                lines.append(f"  answer {qid} <text>")
+            else:
+                lines.append(
+                    f"{head} [{types}] (cannot be answered: dod does not "
+                    "declare any of these input types)"
+                )
+    if shown.content_list_ref is not None:
+        ref = _plain(shown.content_list_ref)
+        lines.append(f"contentListRef: {ref}    # dod list --id {shlex.quote(ref)}")
+    if shown.label is not None:
+        lines.append(f"label: {_plain(shown.label)}")
+    return lines
+
+
+def _answerable(question: InputQuestion, supported: frozenset[str]) -> bool:
+    return any(kind in supported for kind in question.input_types)
+
+
+def _questions_json(shown: Questions, supported: frozenset[str]) -> dict[str, Any]:
+    items: list[dict[str, Any]] = []
+    for question in shown.questions:
+        if isinstance(question, MultipleChoiceQuestion):
+            items.append(
+                {
+                    "type": "multiple-choice",
+                    "id": question.id,
+                    "label": question.label,
+                    "lang": question.lang,
+                    "allow_multiple_selections": question.allow_multiple_selections,
+                    "choices": [dataclasses.asdict(c) for c in question.choices],
+                    "answerable": True,
+                }
+            )
+        else:
+            items.append(
+                {
+                    "type": "input",
+                    "id": question.id,
+                    "label": question.label,
+                    "lang": question.lang,
+                    "input_types": list(question.input_types),
+                    "answerable": _answerable(question, supported),
+                }
+            )
+    return {
+        "questions": items,
+        "content_list_ref": shown.content_list_ref,
+        "label": shown.label,
+    }
 
 
 def _problem_text(problem: Reply[int] | str) -> str:

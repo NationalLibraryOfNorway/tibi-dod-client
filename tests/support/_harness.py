@@ -44,6 +44,18 @@ class Harness(Protocol):
         schema on purpose and is answered as it is)."""
         ...
 
+    def offer_menu(
+        self,
+        questions: str,
+        *,
+        answer_to: str,
+        value: str | None = None,
+        schema_valid: bool = True,
+    ) -> None:
+        """Answer `getQuestions` for the answer (`answer_to`, `value`) with this
+        `questions` document."""
+        ...
+
     def offer_key_exchange(self, key_name: str, key_exchange: str) -> None:
         """Answer `getKeyExchangeObject` for `key_name` with this element."""
         ...

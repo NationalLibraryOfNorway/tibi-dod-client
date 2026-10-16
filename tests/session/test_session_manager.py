@@ -36,10 +36,12 @@ from dod.domain.v1 import (
     ContentResource,
     ContentResources,
     KeyExchangeObject,
+    Questions,
     ReadingSystemAttributes,
     ResourceSink,
     ServiceAttributes,
     ServicePort,
+    UserResponse,
 )
 from dod.infrastructure import InMemoryService
 
@@ -110,6 +112,10 @@ class Recording:
     ) -> Reply[KeyExchangeObject]:
         self._log.append("getKeyExchangeObject")
         return self._port.get_key_exchange_object(requested_key_name)
+
+    def get_questions(self, responses: Sequence[UserResponse]) -> Reply[Questions]:
+        self._log.append("getQuestions")
+        return self._port.get_questions(responses)
 
     def get_content_list(
         self, id: str, first_item: int, last_item: int

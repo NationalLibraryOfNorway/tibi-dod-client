@@ -32,13 +32,16 @@ from dod.domain.v1 import (
     ContentResource,
     ContentResources,
     KeyExchangeObject,
+    Questions,
     ReadingSystemAttributes,
     ResourceSink,
     ServiceAttributes,
     SinkRefused,
+    UserResponse,
     operation_ref,
 )
 from dod.infrastructure._bookmarks import bookmark_set, parse_for_sending
+from dod.infrastructure._questions import parse_questions, questions_from_element
 
 
 class InMemoryService:
@@ -57,6 +60,7 @@ class InMemoryService:
         self._files: dict[str, bytes] = {}
         self._bookmarks: dict[str, str] = {}
         self._key_exchange: dict[str, str] = {}
+        self._menus: dict[tuple[str, str | None], Questions] = {}
         self.attributes = attributes or ServiceAttributes(
             service_provider_id="synthetic-provider",
             service_id="synthetic-service",
@@ -100,6 +104,20 @@ class InMemoryService:
     def offer_bookmarks(self, content_id: str, bookmark_set: str) -> None:
         """Store the bookmark set of a book (a `bookmarkSet` document)."""
         self._bookmarks[content_id] = bookmark_set
+
+    def offer_menu(
+        self,
+        questions: str,
+        *,
+        answer_to: str,
+        value: str | None = None,
+        schema_valid: bool = True,
+    ) -> None:
+        """Answer `getQuestions` for the answer (`answer_to`, `value`) with this
+        `questions` document."""
+        self._menus[(answer_to, value)] = questions_from_element(
+            parse_questions(questions)
+        )
 
     def offer_key_exchange(self, key_name: str, key_exchange: str) -> None:
         """Answer `getKeyExchangeObject` for `key_name` with this element."""
@@ -394,6 +412,30 @@ class InMemoryPort:
                 exchange=exchange,
             )
         return exchange
+
+    def get_questions(self, responses: Sequence[UserResponse]) -> Reply[Questions]:
+        injected = self._service._take_injected("getQuestions")
+        if injected is not None:
+            assert not isinstance(injected, Ok)
+            return injected
+        if not self._active():
+            return _no_active_session("getQuestions")
+        exchange = _exchange("getQuestions")
+        first = responses[0] if responses else None
+        menu = (
+            None
+            if first is None
+            else self._service._menus.get((first.question_id, first.value))
+        )
+        if menu is None and first == UserResponse("default"):
+            menu = Questions(label="Menu")
+        if menu is None:
+            return Fault(
+                kind=FaultKind.INVALID_PARAMETER,
+                reason="unknown question",
+                exchange=exchange,
+            )
+        return Ok(value=menu, exchange=exchange)
 
     def get_key_exchange_object(
         self, requested_key_name: str

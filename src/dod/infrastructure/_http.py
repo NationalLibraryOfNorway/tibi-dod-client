@@ -43,10 +43,12 @@ from dod.domain.v1 import (
     ContentResource,
     ContentResources,
     KeyExchangeObject,
+    Questions,
     ReadingSystemAttributes,
     ResourceSink,
     ServiceAttributes,
     SinkRefused,
+    UserResponse,
     operation_ref,
 )
 from dod.infrastructure._bookmarks import (
@@ -56,6 +58,7 @@ from dod.infrastructure._bookmarks import (
     element_text,
     parse_for_sending,
 )
+from dod.infrastructure._questions import questions_from_element
 from dod.infrastructure._schema import SchemaUnavailableError, validate_document
 
 _NS = "http://www.daisy.org/ns/daisy-online/"
@@ -453,6 +456,25 @@ class HttpServicePort:
             )
 
         return self._call("getKeyExchangeObject", fill, read)
+
+    def get_questions(self, responses: Sequence[UserResponse]) -> Reply[Questions]:
+        def fill(parent: etree._Element) -> None:
+            sent = etree.SubElement(parent, _dodp("userResponses"))
+            for response in responses:
+                item = etree.SubElement(sent, _dodp("userResponse"))
+                item.set("questionID", response.question_id)
+                if response.value is not None:
+                    item.set("value", response.value)
+
+        def read(
+            response: etree._Element,
+        ) -> tuple[Questions, tuple[SchemaViolation, ...]] | Deviation | None:
+            element = response.find(_dodp("questions"))
+            if element is None:
+                return None
+            return questions_from_element(element), self._validate(element)
+
+        return self._call("getQuestions", fill, read)
 
     def get_content_list(
         self, id: str, first_item: int, last_item: int

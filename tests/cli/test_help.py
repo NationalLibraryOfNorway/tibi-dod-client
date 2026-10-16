@@ -39,6 +39,7 @@ def test_help_shows_command_groups_as_panels(panel: str) -> None:
     [
         ("attributes", ["service", "reading-system"]),
         ("announcements", ["list", "mark-read"]),
+        ("questions", ["answer", "search", "back"]),
     ],
 )
 def test_attribute_and_announcement_commands_are_listed(
