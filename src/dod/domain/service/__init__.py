@@ -4,6 +4,7 @@ Innermost layer. It must not import any other `dod` package.
 """
 
 from dod.domain.service._core import (
+    SPEC_URL,
     Deviation,
     Exchange,
     Fault,
@@ -19,6 +20,7 @@ from dod.domain.service._core import (
 )
 
 __all__ = [
+    "SPEC_URL",
     "Deviation",
     "Exchange",
     "Fault",

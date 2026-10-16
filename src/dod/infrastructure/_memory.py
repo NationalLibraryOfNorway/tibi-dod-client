@@ -27,8 +27,8 @@ from dod.domain.v1 import (
     ContentMetadata,
     ReadingSystemAttributes,
     ServiceAttributes,
+    operation_ref,
 )
-from dod.infrastructure._spec import operation_reference
 
 
 class InMemoryService:
@@ -103,7 +103,7 @@ class InMemoryService:
             return injected
         return Deviation(
             description=f"{operation} answered with something other than a response",
-            spec_reference=operation_reference(operation),
+            spec_reference=operation_ref(operation),
             exchange=_exchange(operation),
         )
 

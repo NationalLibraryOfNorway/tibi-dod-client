@@ -13,8 +13,10 @@ from dod.domain.v1._models import (
     ServiceAttributes,
 )
 from dod.domain.v1._port import ServicePort
+from dod.domain.v1._spec_refs import SPEC_REFS, fault_ref, operation_ref
 
 __all__ = [
+    "SPEC_REFS",
     "Announcement",
     "ContentItem",
     "ContentList",
@@ -23,4 +25,6 @@ __all__ = [
     "ReadingSystemConfig",
     "ServiceAttributes",
     "ServicePort",
+    "fault_ref",
+    "operation_ref",
 ]
