@@ -21,9 +21,11 @@ Installed with `dod-client`, directly or transitively.
 | [anyio](https://pypi.org/project/anyio/) | MIT | Via HTTPX. |
 | [certifi](https://pypi.org/project/certifi/) | MPL-2.0 | Via HTTPX; CA bundle. |
 | [idna](https://pypi.org/project/idna/) | BSD-3-Clause | Via HTTPX. |
-| [platformdirs](https://pypi.org/project/platformdirs/) | MIT | Platform configuration directory (later also state and data directories). |
+| [platformdirs](https://pypi.org/project/platformdirs/) | MIT | Platform configuration, state and data directories. |
 | [filelock](https://pypi.org/project/filelock/) | Unlicense | Session file locking (public domain dedication). |
 | [lxml](https://pypi.org/project/lxml/) | BSD-3-Clause | XML and schema validation. The binary wheels bundle libiconv, which is LGPL-2.1. |
+
+**lxml and redistribution.** `dod` is distributed as a wheel and an sdist only; lxml is installed by the user's package installer from PyPI, not shipped by us. The assessment that this is compatible with the LGPL-2.1 libiconv in the lxml wheels is a technical assessment by the developers, not a legal opinion. Distributing standalone binaries, Docker images or anything else that contains lxml, or vendoring lxml, requires a new licence assessment first.
 
 ## Optional runtime dependencies
 
@@ -48,16 +50,6 @@ Installed only with `dod-client[tui]` (the terminal user interface, `dod tui`). 
 | [mdit-py-plugins](https://pypi.org/project/mdit-py-plugins/) | MIT | Via Textual. |
 | [linkify-it-py](https://pypi.org/project/linkify-it-py/) | MIT | Via markdown-it-py's `linkify` extra. |
 | [typing-extensions](https://pypi.org/project/typing-extensions/) | PSF-2.0 | Via Textual. |
-
-## Planned runtime dependencies
-
-Decided in the specification and added by the tickets that need them.
-
-| Package | Licence | Notes |
-| --- | --- | --- |
-| [certifi](https://pypi.org/project/certifi/) | MPL-2.0 | Via HTTPX; CA bundle. |
-
-**lxml and redistribution.** `dod` is distributed as a wheel and an sdist only; lxml is installed by the user's package installer from PyPI, not shipped by us. The assessment that this is compatible with the LGPL-2.1 libiconv in the lxml wheels is a technical assessment by the developers, not a legal opinion. Distributing standalone binaries, Docker images or anything else that contains lxml, or vendoring lxml, requires a new licence assessment first.
 
 ## Build backend
 
