@@ -1,0 +1,29 @@
+README.md
+  s_614f17f4aee381::t_0e6bb9313a3d79 5-22,251-259
+  s_614f17f4aee381::t_99febc776a9e3e 260
+.github/workflows/release.yml
+  s_614f17f4aee381::t_778acb8d6dd798 3,10,75
+  s_614f17f4aee381::t_5323fae958ec47 1-2,4-9,11-74
+tests/packaging/test_distributions.py
+  s_614f17f4aee381::t_fd82a9f4d847a6 1-25,27-46,50-55,57-79
+  s_614f17f4aee381::t_6aad84630a467f 26,47-49
+  s_614f17f4aee381::t_5323fae958ec47 56
+CHANGELOG.md
+  s_614f17f4aee381::t_5323fae958ec47 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "73884159325fc11b7dfedb87a643acef84b26820",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
