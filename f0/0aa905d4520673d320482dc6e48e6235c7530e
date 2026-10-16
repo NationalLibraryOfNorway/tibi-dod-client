@@ -1,0 +1,45 @@
+README.md
+  s_614f17f4aee381::t_351b4f9d20fa1b 77,80
+src/dod/application/_play.py
+  s_614f17f4aee381::t_f65607521a7d7e 22,79
+  s_614f17f4aee381::t_6bd396f22c3115 102-107
+src/dod/domain/book/__init__.py
+  s_614f17f4aee381::t_708ecad5c44bdf 7,18
+src/dod/domain/book/_epub3.py
+  s_614f17f4aee381::t_708ecad5c44bdf 1-48,50-80
+  s_614f17f4aee381::t_6bd396f22c3115 49
+  s_614f17f4aee381::t_351b4f9d20fa1b 81
+tests/book/test_epub3_playlist.py
+  s_614f17f4aee381::t_6bd396f22c3115 13-17,98
+  s_614f17f4aee381::t_dceaf02dcb469f 1-12,18-52,55-68,70-75,80-87,91-97,99-126,130-193
+  s_614f17f4aee381::t_351b4f9d20fa1b 76-79,88-90,127-129
+  s_614f17f4aee381::t_ff6a6dde7eda7e 53-54,69
+src/dod/domain/book/_daisy202.py
+  s_614f17f4aee381::t_d6b0ca2985b8e6 20,36-44,49,55,89,98,100-101,143,145,149-152
+  s_614f17f4aee381::t_351b4f9d20fa1b 146-148
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_f65607521a7d7e 1205-1209,1212-1213
+tests/play/test_open_book.py
+  s_614f17f4aee381::t_dceaf02dcb469f 44-84
+src/dod/domain/book/_paths.py
+  s_614f17f4aee381::t_ff6a6dde7eda7e 46-76
+tests/cli/test_play.py
+  s_614f17f4aee381::t_f65607521a7d7e 288-336,338-350
+  s_614f17f4aee381::t_351b4f9d20fa1b 337,351
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f00aa905d4520673d320482dc6e48e6235c7530e",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
