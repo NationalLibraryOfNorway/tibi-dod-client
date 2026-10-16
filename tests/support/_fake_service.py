@@ -125,6 +125,8 @@ class FakeService:
         # Files served on plain GET by path (no leading slash), and exact answers.
         self.files: dict[str, bytes] = {}
         self.file_answers: dict[str, _Raw] = {}
+        # A Service Delegate that does not support Range answers the whole file.
+        self.ignore_range = False
         # The attributes of the Session cookie the Service sets on logOn.
         self.cookie_attributes = "Path=/; HttpOnly"
         self._injected: dict[str, tuple[FaultKind, str] | str | _Raw] = {}
@@ -299,7 +301,7 @@ class FakeService:
         if body is None:
             return None
         wanted = headers.get("Range", "")
-        if not wanted.startswith("bytes="):
+        if not wanted.startswith("bytes=") or self.ignore_range:
             return _Raw(200, body, {"Content-Type": "application/octet-stream"})
         first, _, last = wanted.removeprefix("bytes=").partition("-")
         start = int(first)

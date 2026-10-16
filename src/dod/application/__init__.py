@@ -5,6 +5,7 @@ May import the domain packages only.
 
 from dod.application import (  # noqa: F401  (registers the tests)
     _conformance_tests,
+    _content_tests,
     _negative_tests,
 )
 from dod.application._address import (
@@ -60,6 +61,7 @@ from dod.application._conformance import (
     Registry,
     Result,
     RunReport,
+    RunTarget,
     conformance_test,
     run_conformance,
     select,
@@ -154,6 +156,7 @@ __all__ = [
     "ReturnReport",
     "ReturnRequest",
     "RunReport",
+    "RunTarget",
     "SessionError",
     "SessionKey",
     "SessionManager",

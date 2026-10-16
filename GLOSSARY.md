@@ -53,7 +53,7 @@ A port narrower than `ServicePort` (`send_raw(operation, body)`) that sends any 
 _Avoid_: Raw port
 
 **State-changing test**:
-A Conformance test that alters data on the Service, such as the loan state of a content item. Skipped unless explicitly enabled.
+A Conformance test that alters data on the Service, such as the loan state of a content item. Skipped unless explicitly enabled. The `content` tests are State-changing and also need an explicit `--content-id`; they return what they issued.
 _Avoid_: Destructive test
 
 **Environment**:

@@ -44,6 +44,14 @@ ALL_IDS = [
     "catalog.metadata.unknown-id",
 ]
 
+CONTENT_IDS = [
+    "content.issue.returns-true",
+    "content.resources.list",
+    "content.resource.fetch",
+    "content.resource.range",
+    "content.resources.not-issued",
+]
+
 
 @pytest.fixture
 def service() -> Iterator[FakeService]:
@@ -71,16 +79,22 @@ def only_record(report: RunReport) -> Record:
 
 
 def test_the_default_registry_lists_the_first_families_by_stable_id() -> None:
-    assert [t.id for t in CONFORMANCE_TESTS.tests if not t.explicit] == ALL_IDS
-    assert not any(t.state_changing for t in CONFORMANCE_TESTS.tests)
+    assert [t.id for t in CONFORMANCE_TESTS.tests if not t.explicit] == [
+        *ALL_IDS,
+        *CONTENT_IDS,
+    ]
+    assert {t.id for t in CONFORMANCE_TESTS.tests if t.state_changing} == set(
+        CONTENT_IDS
+    )
 
 
 def test_every_test_passes_against_a_conforming_service(service: FakeService) -> None:
     report = run(service)
 
-    assert {r.id: r.outcome for r in report.records} == dict.fromkeys(
-        ALL_IDS, Outcome.PASS
-    )
+    assert {r.id: r.outcome for r in report.records} == {
+        **dict.fromkeys(ALL_IDS, Outcome.PASS),
+        **dict.fromkeys(CONTENT_IDS, Outcome.SKIP),
+    }
     assert report.exit_code == 0
     assert all(r.note is None for r in report.records)
 
@@ -97,9 +111,10 @@ def test_every_test_passes_against_the_in_memory_service() -> None:
         PASSWORD,
     )
 
-    assert {r.id: r.outcome for r in report.records} == dict.fromkeys(
-        ALL_IDS, Outcome.PASS
-    )
+    assert {r.id: r.outcome for r in report.records} == {
+        **dict.fromkeys(ALL_IDS, Outcome.PASS),
+        **dict.fromkeys(CONTENT_IDS, Outcome.SKIP),
+    }
 
 
 Inject = Callable[[FakeService], None]

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from dod.domain.v1 import ContentItem, ContentList, ContentMetadata
+from dod.domain.v1 import ContentItem, ContentList, ContentMetadata, ContentResource
 from support import FakeService, run_dod
 
 USER = "synthetic-user"
@@ -37,6 +37,13 @@ ALL_IDS = [
     "catalog.list.unknown-id",
     "catalog.metadata.get",
     "catalog.metadata.unknown-id",
+]
+CONTENT_IDS = [
+    "content.issue.returns-true",
+    "content.resources.list",
+    "content.resource.fetch",
+    "content.resource.range",
+    "content.resources.not-issued",
 ]
 NEGATIVE_IDS = [
     "negative.session.no-session",
@@ -78,7 +85,7 @@ def test_list_shows_every_test_id_one_per_line() -> None:
     result = run_dod("test", "list")
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.splitlines() == ALL_IDS + NEGATIVE_IDS
+    assert result.stdout.splitlines() == ALL_IDS + CONTENT_IDS + NEGATIVE_IDS
 
 
 def test_list_as_json_gives_ids_and_whether_they_change_state() -> None:
@@ -115,7 +122,10 @@ def test_run_prints_one_line_per_test_and_exits_0_when_all_pass(
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
     assert lines[: len(ALL_IDS)] == [f"PASS {name}" for name in ALL_IDS]
-    assert "12 tests: 12 PASS, 0 FAIL, 0 SKIP, 0 ERROR" in lines
+    assert "17 tests: 12 PASS, 0 FAIL, 5 SKIP, 0 ERROR" in lines
+    assert [line.split(":")[0] for line in lines[len(ALL_IDS) :][:5]] == [
+        f"SKIP {name}" for name in CONTENT_IDS
+    ]
 
 
 def test_run_never_reads_or_writes_a_stored_session(
@@ -456,6 +466,8 @@ def test_help_lists_the_run_options() -> None:
         "--state-changing",
         "--confirm-env",
         "--report-exchanges",
+        "--content-id",
+        "--unissued-content-id",
     ):
         assert option in result.stdout
 
@@ -764,3 +776,91 @@ def test_rewriting_a_baseline_keeps_the_reasons_of_entries_that_still_fail(
     text = rewritten.read_text(encoding="utf-8")
     assert f'id = "{FAILING}"\nreason = "synthetic reason"' in text
     assert "wrong-password" not in text
+
+
+def offer_content(service: FakeService) -> None:
+    body = b"synthetic book file"
+    service.offer_file("book0/ncc.html", body)
+    service.offer_resources(
+        "book0",
+        [
+            ContentResource(
+                service.file_url("book0/ncc.html"),
+                "text/html",
+                len(body),
+                "ncc.html",
+            )
+        ],
+        issued=False,
+    )
+    service.offer_resources("book1", [], issued=False)
+
+
+def test_the_content_tests_run_with_state_changing_and_a_content_id(
+    service: FakeService, tmp_path: Path
+) -> None:
+    offer_content(service)
+    other = ContentMetadata(
+        title="Book 1", identifier="book1", format="Daisy 2.02", size=1
+    )
+    service.offer_catalog([ContentList(id="issued", total_items=0)], [BOOK, other])
+
+    result = dod(
+        service,
+        tmp_path,
+        "test",
+        "run",
+        "--only",
+        "content",
+        "--state-changing",
+        "--content-id",
+        "book0",
+        "--unissued-content-id",
+        "book1",
+        "--format",
+        "json",
+    )
+
+    assert result.returncode == 0, result.stderr
+    results = json.loads(result.stdout)["results"]
+    assert [(r["id"], r["outcome"], r["state_changing"]) for r in results] == [
+        (name, "PASS", True) for name in CONTENT_IDS
+    ]
+    assert service.books["book0"][1] is False
+
+
+def test_the_content_tests_are_skipped_without_a_content_id(
+    service: FakeService, tmp_path: Path
+) -> None:
+    offer_content(service)
+
+    result = dod(
+        service, tmp_path, "test", "run", "--only", "content", "--state-changing"
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count("SKIP content.") == 5
+    assert "issueContent" not in [r.operation for r in service.requests]
+
+
+def test_the_content_tests_in_a_protected_environment_need_confirm_env(
+    service: FakeService, tmp_path: Path
+) -> None:
+    offer_content(service)
+    config = write_config(tmp_path, service, protected=True)
+
+    refused = run_in_env(
+        tmp_path,
+        config,
+        "test",
+        "run",
+        "--only",
+        "content",
+        "--state-changing",
+        "--content-id",
+        "book0",
+    )
+
+    assert refused.returncode == 2
+    assert "--confirm-env test" in refused.stderr
+    assert service.requests == []
