@@ -1,0 +1,67 @@
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_26741364b015b3 32,135,145-146,757-760,770,785-787,841,871-872,884-886,888-890
+README.md
+  s_614f17f4aee381::t_a10c91aa12d120 46,52
+src/dod/application/__init__.py
+  s_614f17f4aee381::t_2a673334bde33a 6-9
+  s_614f17f4aee381::t_7b09fe59d57661 48,106
+src/dod/presentation/_diagnostics.py
+  s_614f17f4aee381::t_26741364b015b3 19,32,81-88,231-255
+src/dod/presentation/_conformance.py
+  s_614f17f4aee381::t_26741364b015b3 18,163-166
+src/dod/domain/v1/__init__.py
+  s_614f17f4aee381::t_ef7847e732c33c 15,24
+src/dod/domain/v1/_port.py
+  s_614f17f4aee381::t_ef7847e732c33c 73-100
+tests/conformance/test_negative.py
+  s_614f17f4aee381::t_c5d7e135f37156 169-170
+  s_614f17f4aee381::t_a10c91aa12d120 108-110,159-161,235-237
+  s_614f17f4aee381::t_a959fb302b8d54 1-39,41-107,111-157,162,164-167,171-234,238-253
+  s_614f17f4aee381::t_e918e1306bc279 40
+  s_614f17f4aee381::t_f75f9f9fc0087f 158,163,168
+src/dod/application/_negative_tests.py
+  s_614f17f4aee381::t_2a673334bde33a 1-117
+tests/support/_fake_service.py
+  s_614f17f4aee381::t_c12b0222f939ae 84,298
+  s_614f17f4aee381::t_e918e1306bc279 102-106,296-297,299
+  s_614f17f4aee381::t_8b338cfe18d090 306
+  s_614f17f4aee381::t_f75f9f9fc0087f 83,85-86,100-101,291-295,300-305,307-311,355,363,369,383,418-422
+src/dod/main.py
+  s_614f17f4aee381::t_26741364b015b3 5,21-24,34
+tests/cli/test_conformance.py
+  s_614f17f4aee381::t_16fee855382df4 41-48,55,81,89,91-96,101-109,223,461-469,473-539
+  s_614f17f4aee381::t_a10c91aa12d120 470-472
+GLOSSARY.md
+  s_614f17f4aee381::t_a10c91aa12d120 47-54
+tests/conformance/test_runner.py
+  s_614f17f4aee381::t_953abaa107c324 503-685
+src/dod/infrastructure/_http.py
+  s_614f17f4aee381::t_ef7847e732c33c 367-381,418-430,473
+tests/port/test_raw_channel.py
+  s_614f17f4aee381::t_8b338cfe18d090 1
+  s_614f17f4aee381::t_f59b718c02c024 2-112
+src/dod/application/_conformance.py
+  s_614f17f4aee381::t_881014e54ff173 36,88-89,103,108-109,117,149,160-162,175-201
+  s_614f17f4aee381::t_5b5c053b84fd6a 75,77,350-354,358-360,369-373,408,416-417,438,440-442,452,498-513,516-547
+  s_614f17f4aee381::t_406885066a7596 514-515
+  s_614f17f4aee381::t_a5cfd544f4aa61 76
+  s_614f17f4aee381::t_a97803ea73bd0c 202
+tests/conformance/test_families.py
+  s_614f17f4aee381::t_a959fb302b8d54 74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b9fd16cab71cef0addf891d9e197d33bd2983b68",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
