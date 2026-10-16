@@ -14,6 +14,20 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
+## Known `gh` failures
+
+Projects (classic) is sunset, so any `gh` call that fetches `projectCards` fails with a GraphQL error:
+
+- `gh issue view <n>` and `gh pr view <n>` without `--json` fail. Pass `--json <fields>` (as above) or use `gh api repos/{owner}/{repo}/issues/<n>`.
+- `gh pr edit` fails. Edit a PR with `gh api -X PATCH repos/{owner}/{repo}/pulls/<n> -F title=... -F body=@<file>`.
+- `gh pr ready`, `gh pr create` and `gh issue comment` work.
+
+## Stacks (`gh stack`)
+
+- `gh stack merge <pr> --yes --squash` needs every PR non-draft (`gh pr ready <n>`) and merges all or nothing.
+- `gh stack rebase --upstack` can stall on a spurious conflict. Recover with `git commit --no-gpg-sign -C <original-sha>`, then `GIT_EDITOR=true git rebase --continue`, then `gh stack rebase --continue`.
+- After merging, `gh stack unstack <n> --local` drops the stale local tracking.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_

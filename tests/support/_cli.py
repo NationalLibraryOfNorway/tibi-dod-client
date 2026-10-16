@@ -21,6 +21,9 @@ FORCE_TERMINAL_VARS = {
 # Tests must never touch the developer's own Session files: unless a test says
 # otherwise, the child process gets a throwaway state directory.
 _STATE_DIR = tempfile.TemporaryDirectory(prefix="dod-test-state-")
+# Likewise the developer's configuration file: the platform's config directory is
+# redirected to an empty one, so a test sees no Environments unless it passes --config.
+_CONFIG_HOME = tempfile.TemporaryDirectory(prefix="dod-test-config-")
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 
 
@@ -42,6 +45,9 @@ def run_dod(
         "PYTHONIOENCODING": "utf-8",
         "COLUMNS": "100",
         "DOD_STATE_DIR": _STATE_DIR.name,
+        "XDG_CONFIG_HOME": _CONFIG_HOME.name,
+        "APPDATA": _CONFIG_HOME.name,
+        "HOME": _CONFIG_HOME.name,
     }
     child_env |= env or {}
     result = subprocess.run(
