@@ -113,17 +113,24 @@ def resolve_connection(
     username: str | None,
     insecure: bool,
     environ: Mapping[str, str],
+    wsdl: str | None = None,
+    trust_host: bool = False,
 ) -> Connection:
     """Combine flags, variables and the selected Environment.
 
-    `env` is the `--env` flag, `url` the `--url` flag. The Environment is
-    `--env`, then `DOD_ENV`, then `default_environment`; an explicit `--url`
-    selects none (and `--env` together with it is an error). The selected
+    `env` is the `--env` flag, `url` the `--url` flag and `wsdl` the `--wsdl`
+    flag. The Environment is `--env`, then `DOD_ENV`, then
+    `default_environment`; an explicit `--url` or `--wsdl` selects none (and
+    `--env` together with either, or both of them, is an error). The selected
     Environment is validated semantically.
     """
-    if env and url:
-        raise ConfigError("--env cannot be combined with --url")
-    selected = None if url else _select(loaded, env, environ)
+    if url and wsdl:
+        raise ConfigError("--url cannot be combined with --wsdl")
+    if env and (url or wsdl):
+        raise ConfigError(
+            f"--env cannot be combined with {'--url' if url else '--wsdl'}"
+        )
+    selected = None if url or wsdl else _select(loaded, env, environ)
     if selected is not None:
         name = selected[0]
         _check_semantics(loaded.path, loaded.config.environments[name])
@@ -136,7 +143,7 @@ def resolve_connection(
     return Connection(
         environment=Sourced(*selected) if selected else None,
         url=Sourced(url, "--url") if url else _from(environment, "url", prefix),
-        wsdl=_from(environment, "wsdl", prefix),
+        wsdl=Sourced(wsdl, "--wsdl") if wsdl else _from(environment, "wsdl", prefix),
         username=_username(
             username,
             environ,
@@ -144,7 +151,7 @@ def resolve_connection(
         ),
         password=configured(environment.password if environment else None, "password"),
         insecure=_flag(insecure, environment, "insecure", prefix),
-        trust_host=_flag(False, environment, "trust_host", prefix),
+        trust_host=_flag(trust_host, environment, "trust_host", prefix),
         protected=_flag(False, environment, "protected", prefix),
         quirks=(
             Sourced(environment.quirks, prefix + "quirks")

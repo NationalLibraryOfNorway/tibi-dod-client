@@ -11,14 +11,21 @@ from dod.application import (
     ConfigError,
     ConfigStore,
     Connection,
+    Discovery,
+    Endpoint,
     EndpointError,
+    Fetcher,
     LogonReport,
     OpenPort,
     Step,
+    WsdlParser,
     check_config,
+    discover,
     load_config,
     logon_ephemeral,
+    origin,
     resolve_connection,
+    resolve_endpoint,
 )
 from dod.domain.service import (
     Deviation,
@@ -82,14 +89,48 @@ _InsecureOption = Annotated[
         help="Allow an unencrypted http address, also on loopback.",
     ),
 ]
+_UrlOption = Annotated[
+    str | None,
+    typer.Option(
+        "--url",
+        help="The SOAP endpoint itself, e.g. https://dod.example.org/service.",
+    ),
+]
+_WsdlOption = Annotated[
+    str | None,
+    typer.Option(
+        "--wsdl",
+        help="The Service's WSDL; its soap:address is the endpoint. Fetched without "
+        "credentials; not with --url or --env.",
+    ),
+]
+_TrustHostOption = Annotated[
+    bool,
+    typer.Option(
+        "--trust-host",
+        help="Accept a WSDL whose soap:address has another host, port or scheme.",
+    ),
+]
+_QuietOption = Annotated[
+    bool,
+    typer.Option(
+        "--quiet", help="Do not print the environment and endpoint line on stderr."
+    ),
+]
 
 
-def create_app(open_port: OpenPort, config_store: ConfigStore) -> typer.Typer:
+def create_app(
+    open_port: OpenPort,
+    config_store: ConfigStore,
+    fetcher: Fetcher,
+    parse_wsdl: WsdlParser,
+) -> typer.Typer:
     """Build the `dod` command line application.
 
-    `open_port` is how commands reach a Service and `config_store` where the
-    configuration file lives; the composition root supplies both, because
-    presentation never imports the infrastructure layer.
+    `open_port` is how commands reach a Service, `config_store` where the
+    configuration file lives, and `fetcher` and `parse_wsdl` how a WSDL is
+    fetched and read; the composition root supplies them, because presentation
+    never imports the infrastructure layer.
     """
     app = typer.Typer(
         name="dod",
@@ -112,13 +153,8 @@ def create_app(open_port: OpenPort, config_store: ConfigStore) -> typer.Typer:
         ),
     )
     def logon(
-        url: Annotated[
-            str | None,
-            typer.Option(
-                "--url",
-                help="The Service endpoint, e.g. https://dod.example.org/service.",
-            ),
-        ] = None,
+        url: _UrlOption = None,
+        wsdl: _WsdlOption = None,
         username: _UsernameOption = None,
         env: _EnvOption = None,
         config: _ConfigOption = None,
@@ -138,17 +174,24 @@ def create_app(open_port: OpenPort, config_store: ConfigStore) -> typer.Typer:
             ),
         ] = False,
         insecure: _InsecureOption = False,
+        trust_host: _TrustHostOption = False,
+        quiet: _QuietOption = False,
     ) -> None:
         if not no_session:
             _fail("stored Sessions are not available yet; pass --no-session")
-        connection = _connection(config_store, config, env, url, username, insecure)
-        if connection.url is None:
-            if connection.wsdl is not None:
-                _fail("an Environment with a wsdl is not supported by logon yet")
+        connection = _connection(
+            config_store, config, env, url, wsdl, username, insecure, trust_host
+        )
+        try:
+            endpoint = resolve_endpoint(connection, fetcher, parse_wsdl)
+        except EndpointError as error:
+            _fail(str(error))
+        if endpoint is None:
             _fail(
-                "no Service address: pass --url or --env, or set "
+                "no Service address: pass --url, --wsdl or --env, or set "
                 "default_environment in the configuration file"
             )
+        _banner(connection, endpoint, quiet)
         if connection.username is None:
             _fail(
                 "no username: pass --username, set DOD_USERNAME or give the "
@@ -158,7 +201,7 @@ def create_app(open_port: OpenPort, config_store: ConfigStore) -> typer.Typer:
         try:
             report = logon_ephemeral(
                 open_port,
-                connection.url.value,
+                endpoint.url,
                 connection.username.value,
                 password,
                 insecure=connection.insecure.value,
@@ -166,11 +209,68 @@ def create_app(open_port: OpenPort, config_store: ConfigStore) -> typer.Typer:
         except EndpointError as error:
             _fail(str(error))
         except TransportError as error:
-            _fail(str(error))
+            _fail(
+                f"{error}\nIf {_without_userinfo(endpoint.url)} is not the SOAP "
+                f"endpoint, try: dod discover {_without_userinfo(endpoint.url)}"
+            )
         _render(report)
         raise typer.Exit(EXIT_OK if report.succeeded else EXIT_SERVICE_FAILED)
 
+    @app.command(
+        "discover",
+        rich_help_panel=SESSION_AND_SETUP,
+        help=(
+            "Look for the SOAP endpoint of a Service: try ?wsdl and known paths. "
+            "Sends no credentials and stores nothing."
+        ),
+    )
+    def discover_command(
+        address: Annotated[
+            str,
+            typer.Argument(help="Address of the Service, e.g. https://dod.example.org"),
+        ],
+        insecure: _InsecureOption = False,
+        quiet: _QuietOption = False,
+    ) -> None:
+        if not quiet:
+            typer.echo(f"[-] {_without_userinfo(address)}", err=True)
+        try:
+            discovery = discover(address, fetcher, parse_wsdl, insecure=insecure)
+        except EndpointError as error:
+            _fail(str(error))
+        _render_discovery(discovery, address)
+
     return app
+
+
+def _banner(connection: Connection, endpoint: Endpoint, quiet: bool) -> None:
+    if quiet:
+        return
+    name = connection.environment.value if connection.environment else "-"
+    typer.echo(f"[{name}] {_without_userinfo(endpoint.url)}", err=True)
+
+
+def _render_discovery(discovery: Discovery, address: str) -> None:
+    for attempt in discovery.attempts:
+        typer.echo(f"tried {attempt.url}: {attempt.outcome}", err=True)
+    found = discovery.found
+    if found is None or found.port is None:
+        _fail(
+            f"no DODP endpoint found at {_without_userinfo(address)}.\n"
+            "Next steps: pass the SOAP endpoint with --url, give the address of "
+            "the WSDL with --wsdl, or ask the Service's owner for the endpoint."
+        )
+    endpoint = found.port.address
+    typer.echo(f"endpoint: {endpoint}")
+    typer.echo(f"wsdl: {found.url}")
+    if origin(found.url) != origin(endpoint):
+        typer.echo(
+            "note: the WSDL names another host, port or scheme than it came from; "
+            f"using it needs --trust-host (or: --url {endpoint})",
+            err=True,
+        )
+    else:
+        typer.echo(f"use it with: --wsdl {found.url}  or  --url {endpoint}", err=True)
 
 
 def _fail(message: str) -> NoReturn:
@@ -195,16 +295,20 @@ def _connection(
     config: str | None,
     env: str | None,
     url: str | None,
+    wsdl: str | None,
     username: str | None,
     insecure: bool,
+    trust_host: bool = False,
 ) -> Connection:
     try:
         return resolve_connection(
             load_config(store, config),
             env=env,
             url=url,
+            wsdl=wsdl,
             username=username,
             insecure=insecure,
+            trust_host=trust_host,
             environ=os.environ,
         )
     except ConfigError as error:
@@ -240,11 +344,11 @@ def _add_config_commands(group: typer.Typer, store: ConfigStore) -> None:
     def config_show(
         config: _ConfigOption = None,
         env: _EnvOption = None,
-        url: Annotated[
-            str | None, typer.Option("--url", help="The Service endpoint.")
-        ] = None,
+        url: _UrlOption = None,
+        wsdl: _WsdlOption = None,
         username: _UsernameOption = None,
         insecure: _InsecureOption = False,
+        trust_host: _TrustHostOption = False,
     ) -> None:
         try:
             loaded = load_config(store, config)
@@ -252,8 +356,10 @@ def _add_config_commands(group: typer.Typer, store: ConfigStore) -> None:
                 loaded,
                 env=env,
                 url=url,
+                wsdl=wsdl,
                 username=username,
                 insecure=insecure,
+                trust_host=trust_host,
                 environ=os.environ,
             )
         except ConfigError as error:
