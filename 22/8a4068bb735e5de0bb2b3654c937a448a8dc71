@@ -1,0 +1,56 @@
+src/dod/presentation/_text.py
+  s_614f17f4aee381::t_2f4632e5a97c9f 12,83-115
+src/dod/presentation/_diagnostics.py
+  s_614f17f4aee381::t_2934b059999b83 13-14,17,60-106,117,119,149-153,162-163,247
+src/dod/presentation/_tui.py
+  s_614f17f4aee381::t_9286303b6b1788 112-113
+  s_614f17f4aee381::t_6c70897c55ae94 512,524
+  s_614f17f4aee381::t_76142a02d8fca2 109-111
+  s_614f17f4aee381::t_b943b9b66cc414 26,498-502
+  s_614f17f4aee381::t_646a9f613e3991 461-462
+  s_614f17f4aee381::t_a89f5d53cab9c0 463-464,479,483,545,548,553
+  s_614f17f4aee381::t_2f4632e5a97c9f 28,40-41,49,51-58,102-108,141,201-204,243,260-262,294,405-407,417-450,452-453,456-460,465-467,470-474,480-482,484,488-497,503-511,513-523,525-544,546-547,549-552
+README.md
+  s_614f17f4aee381::t_dfcbb760927c9a 89,95-97
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_6c471bf0d24754 852
+  s_614f17f4aee381::t_76c90d29eb1b6f 381-382,384-387,896-897,910,1661-1664,1704
+  s_614f17f4aee381::t_f20425916aaa2b 105,856-869
+  s_614f17f4aee381::t_b98e6d3cf78770 848
+  s_614f17f4aee381::t_dd7f3c52d48385 849
+  s_614f17f4aee381::t_41c1d9166976aa 850-851
+  s_614f17f4aee381::t_a89f5d53cab9c0 853-854
+src/dod/presentation/_player_control.py
+  s_614f17f4aee381::t_0912a097551241 61-62
+  s_614f17f4aee381::t_6c70897c55ae94 92,99-100
+  s_614f17f4aee381::t_d51bc7246fba90 1-60,63-91,93-98,101-138
+src/dod/presentation/__init__.py
+  s_614f17f4aee381::t_6c70897c55ae94 6,13
+src/dod/presentation/_launch.py
+  s_614f17f4aee381::t_2f4632e5a97c9f 10,15-16,30-34,38-43,50
+tests/cli/test_tui.py
+  s_614f17f4aee381::t_f20425916aaa2b 15,18,23,77,84,170-244
+  s_614f17f4aee381::t_b98e6d3cf78770 85
+THIRD-PARTY.md
+  s_614f17f4aee381::t_dfcbb760927c9a 46
+tests/tui/test_player.py
+  s_614f17f4aee381::t_bd05db2434cc75 15-20,24,72,74,86-91,123-216,219-221,232-266,270,283-294,303
+  s_614f17f4aee381::t_0912a097551241 21,40,217-218,222-231,267-269,271-282,295-302,304-317
+  s_614f17f4aee381::t_239a5d67121c74 1-14,22-23,25-39,41-71,73,75-85,92-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "228a4068bb735e5de0bb2b3654c937a448a8dc71",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": null
+    }
+  }
+}
