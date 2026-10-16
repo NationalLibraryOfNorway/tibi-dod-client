@@ -43,7 +43,7 @@ Installed only with `dod-client[tui]` (the terminal user interface, `dod tui`). 
 
 | Package | Licence | Notes |
 | --- | --- | --- |
-| [Textual](https://pypi.org/project/textual/) | MIT | The terminal user interface framework. Needs no audio player. |
+| [Textual](https://pypi.org/project/textual/) | MIT | The terminal user interface framework. Playing in it needs `dod-client[play]`, as `dod play` does. |
 | [markdown-it-py](https://pypi.org/project/markdown-it-py/) | MIT | Via Textual (with its `linkify` extra); already listed above. |
 | [mdit-py-plugins](https://pypi.org/project/mdit-py-plugins/) | MIT | Via Textual. |
 | [linkify-it-py](https://pypi.org/project/linkify-it-py/) | MIT | Via markdown-it-py's `linkify` extra. |

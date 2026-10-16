@@ -102,7 +102,7 @@ from dod.presentation._conformance import (
     list_json,
     text_report,
 )
-from dod.presentation._diagnostics import Diagnostics
+from dod.presentation._diagnostics import ActivityLog, Diagnostics
 from dod.presentation._globals import (
     GlobalOptions,
     GlobalOptionsFirst,
@@ -378,11 +378,13 @@ def create_app(
         opener = open_quirky
         return lambda url: opener(url, names)
 
-    def diagnostics(ctx: typer.Context) -> Diagnostics:
-        return _start_diagnostics(ctx, _globals(ctx), terminal)
+    def diagnostics(ctx: typer.Context, log: ActivityLog | None = None) -> Diagnostics:
+        return _start_diagnostics(ctx, _globals(ctx), terminal, log)
 
-    def network_target(ctx: typer.Context, g: GlobalOptions) -> _Target:
-        diag = diagnostics(ctx)
+    def network_target(
+        ctx: typer.Context, g: GlobalOptions, log: ActivityLog | None = None
+    ) -> _Target:
+        diag = diagnostics(ctx, log)
         connection = _connection(config_store, g)
         try:
             endpoint = resolve_endpoint(connection, fetcher, parse_wsdl)
@@ -843,20 +845,28 @@ def create_app(
         rich_help_panel=BROWSE_AND_ISSUE,
         epilog=_EPILOG,
         help=(
-            "Browse the shelf, see the metadata of a book and download its files "
-            "in an interactive terminal: the same operations as `dod list`, "
-            "`dod metadata`, `dod resources` and `dod download`, called without "
-            "blocking the screen. Keys: Enter opens the metadata of the selected "
-            "book, f lists its files, Escape goes back, l chooses another list, "
-            "n and p page, r reloads, q quits. On the file list d downloads "
-            "every file one after the other with progress, to the same "
+            "Browse the shelf, see the metadata of a book, download its files "
+            "and play it in an interactive terminal: the same operations as "
+            "`dod list`, `dod metadata`, `dod resources` and `dod download`, "
+            "called without blocking the screen. Keys: Enter opens the metadata of "
+            "the selected book, f lists its files, Escape goes back, l chooses "
+            "another list, n and p page, r reloads, q quits. On the file list d "
+            "downloads every file one after the other with progress, to the same "
             "directory as `dod download` (needs an Environment and "
-            "DOD_DATA_DIR), and c cancels. It never issues a book and never "
-            "overwrites a file (use `dod download --force`); the address rules "
-            "of `dod download` apply, other hosts only with --trust-host. It needs "
-            "the optional Textual "
-            "(`pip install 'dod-client\\[tui]'`) and exits 2 without it; it needs "
-            "no audio player. It uses the stored Session (run `dod logon` "
+            "DOD_DATA_DIR), and c cancels. P plays the selected book from the "
+            "files on disk (never streamed, nothing fetched: download first), "
+            "Space pauses and resumes, x stops, ] and [ go to the next and "
+            "previous Clip, . and , move 30 s forward and back, with the "
+            "player bar on every screen. L opens the log of Exchanges and "
+            "Observations, always masked (Escape closes it). It never issues "
+            "a book and never overwrites a file (use `dod download --force`); "
+            "the address rules of `dod download` apply, other hosts only with "
+            "--trust-host. It needs the optional Textual "
+            "(`pip install 'dod-client\\[tui]'`) and exits 2 without it; "
+            "playing needs the optional miniaudio "
+            "(`pip install 'dod-client\\[play]'`), without which the rest "
+            "works and the player bar says what is missing. It uses the stored "
+            "Session (run `dod logon` "
             "first, or keep a password in the Environment) and is always "
             "masked: --unmask and --unmask-password are refused (ADR 0007), "
             "as are --password-stdin, --debug, --save-exchanges, --no-session "
@@ -883,7 +893,8 @@ def create_app(
             import textual  # noqa: F401
         except ImportError:
             _fail("the TUI needs the optional Textual: pip install 'dod-client[tui]'")
-        target = network_target(ctx, g)
+        log = ActivityLog()
+        target = network_target(ctx, g, log)
         manager = service_manager(g, target, declaration(target.connection))
         environment = target.connection.environment
         downloads = DownloadSettings(
@@ -896,7 +907,7 @@ def create_app(
             trust_host=target.connection.trust_host.value,
             insecure=target.connection.insecure.value,
         )
-        screen = create_tui(manager, downloads)
+        screen = create_tui(manager, downloads, open_player=open_player, log=log)
         with contextlib.suppress(KeyboardInterrupt):
             (run_tui or _run_app)(screen)
 
@@ -1647,7 +1658,10 @@ def _text_only(g: GlobalOptions, command: str) -> None:
 
 
 def _start_diagnostics(
-    ctx: typer.Context, g: GlobalOptions, terminal: Terminal
+    ctx: typer.Context,
+    g: GlobalOptions,
+    terminal: Terminal,
+    log: ActivityLog | None = None,
 ) -> Diagnostics:
     """Apply the unmask rules (ADR 0007), then build the run's diagnostics."""
     unmasking = g.unmask or g.unmask_password
@@ -1687,6 +1701,7 @@ def _start_diagnostics(
         save_to=g.save_exchanges,
         policy=MaskPolicy(unmask=g.unmask, unmask_password=g.unmask_password),
         colour=unmasking and "NO_COLOR" not in os.environ,
+        log=log,
     )
 
 

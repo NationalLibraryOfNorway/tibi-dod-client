@@ -10,8 +10,11 @@ from __future__ import annotations
 
 import json
 import re
+import threading
+from collections import deque
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Protocol
 
 import typer
 from lxml import etree
@@ -54,6 +57,53 @@ _UNSAFE = re.compile(r"[^A-Za-z0-9_-]")
 EXIT_UNUSABLE = 2
 
 
+class _Sink(Protocol):
+    def record(self, exchange: Exchange) -> None: ...
+
+    def observe(self, observations: tuple[Observation, ...]) -> None: ...
+
+
+class ActivityLog:
+    """What the TUI's log panel shows: the Exchanges and Observations of a run.
+
+    Every Exchange is masked on the way in with the default policy, so nothing
+    unmasked is ever held here and there is no way to ask for it (ADR 0007).
+    Calls come from worker threads and the screen reads from its own; only the
+    last `limit` entries are kept.
+    """
+
+    def __init__(self, limit: int = 500) -> None:
+        self._lock = threading.Lock()
+        self._entries: deque[Exchange | Observation] = deque(maxlen=limit)
+        self._seen: set[Observation] = set()
+
+    def record(self, exchange: Exchange) -> None:
+        masked = mask(exchange)
+        with self._lock:
+            self._entries.append(masked)
+
+    def observe(self, observations: tuple[Observation, ...]) -> None:
+        """Add each Observation once per run, as `--debug` shows it."""
+        with self._lock:
+            for observation in observations:
+                if observation not in self._seen:
+                    self._seen.add(observation)
+                    self._entries.append(observation)
+
+    def entries(self) -> tuple[Exchange | Observation, ...]:
+        """The entries in the order they happened, oldest first."""
+        with self._lock:
+            return tuple(self._entries)
+
+    def wrap(self, open_port: OpenPort) -> OpenPort:
+        """An `OpenPort` whose ports log what they send and receive."""
+
+        def open_recorded(url: str) -> ServicePort:
+            return _RecordingPort(open_port(url), self)
+
+        return open_recorded
+
+
 class Diagnostics:
     """Collects the Exchanges and Observations of a run and presents them."""
 
@@ -64,7 +114,9 @@ class Diagnostics:
         save_to: str | None = None,
         policy: MaskPolicy | None = None,
         colour: bool = False,
+        log: ActivityLog | None = None,
     ) -> None:
+        self._log = log
         self._debug = debug
         self._save_to = Path(save_to) if save_to else None
         self._policy = policy or MaskPolicy()
@@ -94,7 +146,11 @@ class Diagnostics:
         return open_recorded
 
     def observe(self, observations: tuple[Observation, ...]) -> None:
-        """Write each Observation once per run on stderr."""
+        """Write each Observation once per run on stderr, or to the log panel
+        when there is one (stderr belongs to the screen then)."""
+        if self._log is not None:
+            self._log.observe(observations)
+            return
         for observation in observations:
             if observation not in self._seen:
                 self._seen.add(observation)
@@ -103,6 +159,8 @@ class Diagnostics:
                 )
 
     def record(self, exchange: Exchange) -> None:
+        if self._log is not None:
+            self._log.record(exchange)
         masked = mask(exchange, self._policy)
         # The stored copy is always fully masked: it feeds stdout and files.
         self.masked_exchanges.append(mask(exchange))
@@ -186,7 +244,7 @@ def _pretty(body: str) -> str:
 class _RecordingPort:
     """Reports every Exchange of the wrapped port, then returns its answer."""
 
-    def __init__(self, port: ServicePort, diagnostics: Diagnostics) -> None:
+    def __init__(self, port: ServicePort, diagnostics: _Sink) -> None:
         self._port = port
         self._diagnostics = diagnostics
 
