@@ -15,8 +15,10 @@ import typer
 
 from dod.application import (
     CONFORMANCE_TESTS,
+    AudioError,
     Baseline,
     BaselineError,
+    BookError,
     ConfigError,
     ConfigStore,
     Connection,
@@ -36,9 +38,12 @@ from dod.application import (
     MarkReport,
     MemorySessionStore,
     NoCredentialsError,
+    OpenPlayer,
     OpenPort,
     OpenQuirkPort,
     OpenRawChannel,
+    PlayerUnavailable,
+    PlayRefused,
     ReadingSystemError,
     ReadingSystemParser,
     ReturnReport,
@@ -58,7 +63,9 @@ from dod.application import (
     load_config,
     logon_ephemeral,
     mark_read,
+    open_book,
     origin,
+    prepare_playback,
     resolve_connection,
     resolve_endpoint,
     return_content,
@@ -103,6 +110,7 @@ from dod.presentation._globals import (
     Terminal,
 )
 from dod.presentation._masking import MaskPolicy, mask, mask_keys, mask_url
+from dod.presentation._play import piped_commands, run_playback, terminal_commands
 from dod.presentation._quirks import quirk_lines, quirks_json
 
 # Exit codes: 0 ok, 1 the Service answered with a Fault or contrary to the
@@ -177,6 +185,7 @@ def create_app(
     open_quirky: OpenQuirkPort | None = None,
     data_dir: Path | None = None,
     validate_bookmarks: DocumentValidator | None = None,
+    open_player: OpenPlayer | None = None,
 ) -> typer.Typer:
     """Build the `dod` command line application.
 
@@ -190,7 +199,9 @@ def create_app(
     `open_raw` opens the raw channel the negative tests send through, and
     `open_quirky` opens a port that may use the named Quirks (ADR 0010), and
     `data_dir` is where downloaded books go (`--output` needs no data directory),
-    and `validate_bookmarks` checks a bookmark set file against the local schema.
+    and `validate_bookmarks` checks a bookmark set file against the local schema,
+    and `open_player` opens the audio player `dod play` uses (it may raise
+    `PlayerUnavailable`).
     """
     terminal = terminal or _SystemTerminal()
     store = session_store or MemorySessionStore()
@@ -1185,6 +1196,79 @@ def create_app(
         )
         report = guarded(g, target, lambda: download(manager, request))
         _render_download(g, target.diag, report, directory)
+
+    @app.command(
+        "play",
+        rich_help_panel=DOWNLOAD_AND_PLAY,
+        epilog=_EPILOG,
+        help=(
+            "Play a downloaded DAISY 2.02 book from the files on disk; nothing is "
+            "fetched or streamed. The order comes from master.smil, else from the "
+            "SMIL files ncc.html first links to, and never from file names. It "
+            "needs the optional `miniaudio` (`pip install 'dod-client[play]'`; "
+            "WAV, FLAC, MP3 and Ogg Vorbis, not AAC) and exits 2 without it. A "
+            "book without SMIL (audioOnly) is refused. The book is read from "
+            "<data>/<environment>/books/<id>/ (DOD_DATA_DIR sets <data>), or from "
+            "--directory. While playing, type a command and Enter: p "
+            "pause/resume, n next clip, b previous clip, f forward 30 s, r back "
+            "30 s, q stop; the display shows the file's place in the book "
+            "(`file 3 of 7`) and the elapsed Playlist time."
+        ),
+    )
+    def play_command(
+        ctx: typer.Context,
+        id: Annotated[str, typer.Argument(help="The identifier of the book.")],
+        directory: Annotated[
+            Path | None,
+            typer.Option(
+                "--directory",
+                help="The directory the book is in, instead of the default.",
+            ),
+        ] = None,
+    ) -> None:
+        g = _globals(ctx)
+        if g.format is not OutputFormat.TEXT:
+            _fail("dod play has text output only; --format is text")
+        if not id:
+            _fail("the book identifier is empty")
+        diag = diagnostics(ctx)
+        connection = _connection(config_store, g)
+        book = directory
+        if book is None:
+            if connection.environment is None:
+                _fail(
+                    "there is no Environment to locate the book: select one with "
+                    "--env, or pass --directory"
+                )
+            if data_dir is None:
+                _fail("there is no data directory: pass --directory")
+            book = book_directory(data_dir, connection.environment.value, id)
+        if open_player is None:
+            _fail("audio playback is not available here")
+        try:
+            player = open_player()
+        except PlayerUnavailable as error:
+            _fail(str(error))
+        try:
+            playback = prepare_playback(book, open_book(book), player)
+            playback.start()
+            run_playback(
+                playback,
+                terminal_commands() if terminal.stdin_is_tty() else piped_commands(),
+                _plain,
+            )
+        except PlayRefused as error:
+            diag.observe(error.observations)
+            _fail(_plain(str(error)))
+        except BookError as error:
+            _fail(_plain(str(error)))
+        except AudioError as error:
+            _fail(_plain(f"playback failed: {error}"))
+        except KeyboardInterrupt:
+            pass
+        finally:
+            player.stop()
+            player.close()
 
     @groups["test"].command(
         "list",

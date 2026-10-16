@@ -31,6 +31,11 @@ dependencies = [
     "typer>=0.15",
 ]
 
+[project.optional-dependencies]
+# Audio playback for `dod play`; there are no wheels for every platform (for
+# example Linux arm64 or Python 3.15), where `dod play` explains what is missing.
+play = ["miniaudio>=1.61"]
+
 [project.scripts]
 dod = "dod.main:main"
 
@@ -40,6 +45,8 @@ Repository = "https://github.com/NationalLibraryOfNorway/tibi-dod-client"
 [dependency-groups]
 dev = [
     "lxml-stubs>=0.5.1",
+    # The Backend.NULL playback tests; no wheels for Python 3.15 yet.
+    "miniaudio>=1.61; python_version < '3.15'",
     "mypy>=1.15",
     "pytest>=8.3",
     "ruff>=0.11",
@@ -93,3 +100,8 @@ markers = [
 [tool.ruff.lint.per-file-ignores]
 # Inline XML and long literals in the fake Service read better unwrapped.
 "tests/support/_fake_service.py" = ["E501"]
+
+[[tool.mypy.overrides]]
+# Optional (`dod-client[play]`) and without type information.
+module = ["miniaudio"]
+ignore_missing_imports = true

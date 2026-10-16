@@ -18,10 +18,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from urllib.parse import unquote, urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit
 
 from dod.application._address import EndpointError, check_endpoint, origin
 from dod.application._session import SessionManager
+from dod.domain.book import local_uri_segments
 from dod.domain.service import Deviation, Observation, Ok, Reply
 from dod.domain.v1 import (
     SPEC_REFS,
@@ -31,8 +32,6 @@ from dod.domain.v1 import (
     SinkRefused,
 )
 
-_MAX_SEGMENT_BYTES = 255
-_UNSAFE_CHARACTERS = frozenset('<>:"\\|?*')
 _RESERVED_NAME = re.compile(r"^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$", re.I)
 _SAFE_SEGMENT_CHARACTERS = frozenset(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
@@ -87,35 +86,6 @@ def book_directory(data_dir: Path, environment: str, content_id: str) -> Path:
     return data_dir / safe_segment(environment) / "books" / safe_segment(content_id)
 
 
-def _segments(local_uri: str) -> tuple[tuple[str, ...] | None, str | None]:
-    """The path segments of a `localURI`, or what is wrong with it."""
-    if not local_uri:
-        return None, "it is empty"
-    try:
-        text = unquote(local_uri, errors="strict")
-    except UnicodeDecodeError:
-        return None, "its percent-encoding is not valid UTF-8"
-    if any(ord(c) < 32 or ord(c) == 127 for c in text):
-        return None, "it has a control character"
-    if text.startswith("/"):
-        return None, "it is an absolute path"
-    if bad := _UNSAFE_CHARACTERS & set(text):
-        return None, f"it has the character {''.join(sorted(bad))!r}"
-    segments = tuple(text.split("/"))
-    for segment in segments:
-        if segment == "":
-            return None, "it has an empty path segment"
-        if segment in {".", ".."}:
-            return None, f"it has a {segment!r} segment"
-        if segment != segment.strip() or segment.endswith("."):
-            return None, "a segment starts or ends with a space or ends with a dot"
-        if _RESERVED_NAME.match(segment):
-            return None, f"{segment!r} is a reserved file name"
-        if len(segment.encode()) > _MAX_SEGMENT_BYTES:
-            return None, "a segment is too long"
-    return segments, None
-
-
 def _shown(text: str) -> str:
     return repr(text if len(text) <= 60 else text[:57] + "...")
 
@@ -130,7 +100,7 @@ def validate_resources(resources: Sequence[ContentResource]) -> tuple[str, ...]:
     seen: dict[str, str] = {}
     keys: list[tuple[str, str]] = []
     for item in resources:
-        segments, problem = _segments(item.local_uri)
+        segments, problem = local_uri_segments(item.local_uri)
         if problem is not None:
             problems.append(f"localURI {_shown(item.local_uri)}: {problem}")
             continue
@@ -368,7 +338,7 @@ def _select(
 
 
 def _destination(directory: Path, item: ContentResource) -> Path:
-    segments, problem = _segments(item.local_uri)
+    segments, problem = local_uri_segments(item.local_uri)
     assert segments is not None and problem is None
     return directory.joinpath(*segments)
 

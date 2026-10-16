@@ -25,6 +25,16 @@ Installed with `dod-client`, directly or transitively.
 | [filelock](https://pypi.org/project/filelock/) | Unlicense | Session file locking (public domain dedication). |
 | [lxml](https://pypi.org/project/lxml/) | BSD-3-Clause | XML and schema validation. The binary wheels bundle libiconv, which is LGPL-2.1. |
 
+## Optional runtime dependencies
+
+Installed only with `dod-client[play]` (audio playback for `dod play`). There are no wheels for every platform (not for Linux arm64, Windows arm64 or Python 3.15), where `dod play` explains what is missing. The development environment installs it too, for the tests on its NULL backend.
+
+| Package | Licence | Notes |
+| --- | --- | --- |
+| [miniaudio](https://pypi.org/project/miniaudio/) | MIT | Python bindings; the wheels bundle the C libraries miniaudio, dr_libs and stb_vorbis, which are public domain or MIT-0. |
+| [cffi](https://pypi.org/project/cffi/) | MIT-0 | Via miniaudio. |
+| [pycparser](https://pypi.org/project/pycparser/) | BSD-3-Clause | Via cffi. |
+
 ## Planned runtime dependencies
 
 Decided in the specification and added by the tickets that need them.
@@ -33,7 +43,6 @@ Decided in the specification and added by the tickets that need them.
 | --- | --- | --- |
 | [certifi](https://pypi.org/project/certifi/) | MPL-2.0 | Via HTTPX; CA bundle. |
 | [Textual](https://pypi.org/project/textual/) | MIT | Optional, `dod-client[tui]`. |
-| [miniaudio](https://pypi.org/project/miniaudio/) | MIT | Optional, `dod-client[play]`. |
 
 **lxml and redistribution.** `dod` is distributed as a wheel and an sdist only; lxml is installed by the user's package installer from PyPI, not shipped by us. The assessment that this is compatible with the LGPL-2.1 libiconv in the lxml wheels is a technical assessment by the developers, not a legal opinion. Distributing standalone binaries, Docker images or anything else that contains lxml, or vendoring lxml, requires a new licence assessment first.
 

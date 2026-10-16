@@ -9,6 +9,7 @@ from dod.infrastructure import (
     HttpFetcher,
     HttpServicePort,
     data_directory,
+    open_miniaudio_player,
     parse_reading_system,
     parse_wsdl,
     validate_bookmark_set,
@@ -41,4 +42,5 @@ def main() -> None:
         open_quirky=_open_http_quirky,
         data_dir=data_directory(os.environ),
         validate_bookmarks=validate_bookmark_set,
+        open_player=open_miniaudio_player,
     )()

@@ -3,6 +3,7 @@
 May import the application and domain packages.
 """
 
+from dod.infrastructure._audio import MiniaudioPlayer, open_miniaudio_player
 from dod.infrastructure._bookmarks import validate_bookmark_set
 from dod.infrastructure._config_file import FileConfigStore
 from dod.infrastructure._data_dir import data_directory
@@ -25,9 +26,11 @@ __all__ = [
     "HttpServicePort",
     "InMemoryPort",
     "InMemoryService",
+    "MiniaudioPlayer",
     "SchemaFinding",
     "SchemaUnavailableError",
     "data_directory",
+    "open_miniaudio_player",
     "parse_reading_system",
     "parse_wsdl",
     "validate_bookmark_set",
