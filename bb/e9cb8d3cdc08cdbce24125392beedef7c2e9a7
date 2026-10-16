@@ -1,0 +1,99 @@
+src/dod/domain/v1/_models.py
+  s_614f17f4aee381::t_cfd738e774585b 158-203
+src/dod/infrastructure/__init__.py
+  s_614f17f4aee381::t_17f252c4a02520 6,33
+src/dod/infrastructure/_http.py
+  s_614f17f4aee381::t_b0c059e75c1c3a 56,451
+  s_614f17f4aee381::t_17f252c4a02520 38,45,52-55,57-58,415-450,452-455
+  s_614f17f4aee381::t_2f76e7663cbf0e 456
+tests/port/test_bookmarks.py
+  s_614f17f4aee381::t_17f252c4a02520 71
+  s_614f17f4aee381::t_4fee004143913f 1-70,72-74,78-161
+  s_614f17f4aee381::t_71b132a19cb003 75-77
+tests/conformance/test_families.py
+  s_614f17f4aee381::t_3075ba00a14af2 54-61,93,95-98,107,110,128
+src/dod/infrastructure/_memory.py
+  s_614f17f4aee381::t_17f252c4a02520 13,28,34,58-59,93-107,355-381,383-402,404-415
+  s_614f17f4aee381::t_6262ae5f01f96f 41
+  s_614f17f4aee381::t_03a6a48f674905 382,403
+src/dod/application/__init__.py
+  s_614f17f4aee381::t_b6094fbe19b468 34-39,132,141
+  s_614f17f4aee381::t_e0e9802369c4f8 10
+src/dod/infrastructure/_bookmarks.py
+  s_614f17f4aee381::t_b0c059e75c1c3a 10,13,40-47,55
+  s_614f17f4aee381::t_b6094fbe19b468 1-9,14-39,48-54,56-83,85-86,90-103
+  s_614f17f4aee381::t_03a6a48f674905 11,84,87
+  s_614f17f4aee381::t_e0e9802369c4f8 12,88-89
+tests/cli/test_conformance.py
+  s_614f17f4aee381::t_fc6ae8ad5b132e 134
+  s_614f17f4aee381::t_3075ba00a14af2 48-53,94-97
+src/dod/presentation/_diagnostics.py
+  s_614f17f4aee381::t_6262ae5f01f96f 30,35
+  s_614f17f4aee381::t_e8a8d08230a2b6 235-247
+src/dod/domain/v1/__init__.py
+  s_614f17f4aee381::t_cfd738e774585b 8,14-15,41,48-49
+README.md
+  s_614f17f4aee381::t_7f915dc0b71211 50-56,77,176
+tests/masking/test_mask.py
+  s_614f17f4aee381::t_bb13d84e756823 155-184
+src/dod/domain/v1/_spec_refs.py
+  s_614f17f4aee381::t_b6094fbe19b468 56
+src/dod/main.py
+  s_614f17f4aee381::t_295f2e56679773 14,43
+tests/cli/test_bookmarks.py
+  s_614f17f4aee381::t_b0c059e75c1c3a 1
+  s_614f17f4aee381::t_bb13d84e756823 2-252,256-309
+  s_614f17f4aee381::t_295f2e56679773 253-255
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_7f915dc0b71211 1128-1132,1159-1161
+  s_614f17f4aee381::t_295f2e56679773 24,79,83,100,158,171-172,793-890,1585-1616
+  s_614f17f4aee381::t_1d46ec271f265e 1617-1618
+tests/support/samples.py
+  s_614f17f4aee381::t_4fee004143913f 1-38
+src/dod/application/_optional_tests.py
+  s_614f17f4aee381::t_e0e9802369c4f8 1-99
+GLOSSARY.md
+  s_614f17f4aee381::t_7f915dc0b71211 56,92-94
+  s_614f17f4aee381::t_b184ea036dbb87 95
+tests/conformance/test_bookmarks.py
+  s_614f17f4aee381::t_23c0d99fef23e2 130-131
+  s_614f17f4aee381::t_865ab51f7c1594 1-129,132-223
+tests/support/_harness.py
+  s_614f17f4aee381::t_04f0088ea59be2 36-50
+src/dod/presentation/_masking.py
+  s_614f17f4aee381::t_295f2e56679773 5
+  s_614f17f4aee381::t_be309f8c21b66c 40-44,76-80,85-89,146-151
+  s_614f17f4aee381::t_62ee6d2110ef91 152-154
+tests/session/test_session_manager.py
+  s_614f17f4aee381::t_e8a8d08230a2b6 100-113
+  s_614f17f4aee381::t_6262ae5f01f96f 32,38
+src/dod/application/_attributes.py
+  s_614f17f4aee381::t_b6094fbe19b468 10-11,25-40
+  s_614f17f4aee381::t_f239d1403bac11 41
+src/dod/domain/v1/_port.py
+  s_614f17f4aee381::t_17f252c4a02520 97-99
+  s_614f17f4aee381::t_cfd738e774585b 11,15,83-96,100-102
+  s_614f17f4aee381::t_5568d8910b338a 103
+tests/support/_fake_service.py
+  s_614f17f4aee381::t_865ab51f7c1594 15,125-126,676-679
+  s_614f17f4aee381::t_04f0088ea59be2 34,120-124,191-211,372-375,649-675,680-695,765-776
+  s_614f17f4aee381::t_0839694ea9a02c 777
+tests/conftest.py
+  s_614f17f4aee381::t_04f0088ea59be2 31-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bbe9cb8d3cdc08cdbce24125392beedef7c2e9a7",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
