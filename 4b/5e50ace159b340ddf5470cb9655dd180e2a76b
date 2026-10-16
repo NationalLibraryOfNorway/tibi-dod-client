@@ -1,0 +1,90 @@
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_2aa0a22910d6bf 824
+  s_614f17f4aee381::t_b5a0d3053d7afb 84,86-87,90,339,820-823,825-837,839-893,1720-1786
+  s_614f17f4aee381::t_5ba199ba56cad2 7
+  s_614f17f4aee381::t_5a1010a85dd774 133-148,340-346,838
+  s_614f17f4aee381::t_7395c3e7fac12d 1787-1788
+tests/conformance/test_families.py
+  s_614f17f4aee381::t_05d0d34ab59f31 61
+src/dod/domain/v1/__init__.py
+  s_614f17f4aee381::t_8224fd667e64dd 9,15,18-20,24,49,55,58-60,69
+src/dod/presentation/_diagnostics.py
+  s_614f17f4aee381::t_90a66644473609 36,250-251
+  s_614f17f4aee381::t_cd2e1863b1c3c1 42
+  s_614f17f4aee381::t_0f5719839bd8f9 252
+src/dod/domain/v1/_port.py
+  s_614f17f4aee381::t_8224fd667e64dd 16,19,106-111
+  s_614f17f4aee381::t_3df90c993ec818 112-113
+GLOSSARY.md
+  s_614f17f4aee381::t_8ef19b809eab57 96-99
+src/dod/infrastructure/_memory.py
+  s_614f17f4aee381::t_a4f0c4d6d16bb5 430-431
+  s_614f17f4aee381::t_cd2e1863b1c3c1 44,109-114,119
+  s_614f17f4aee381::t_90a66644473609 35,40,63,108,115-118,120-121,416-429,432-438
+  s_614f17f4aee381::t_43ae14d34e70f3 439
+tests/cli/test_conformance.py
+  s_614f17f4aee381::t_05d0d34ab59f31 53
+  s_614f17f4aee381::t_c553a83fff7753 135
+tests/support/samples.py
+  s_614f17f4aee381::t_90a66644473609 43-45
+  s_614f17f4aee381::t_2e2ac71b111672 39-42,46-70
+tests/support/_harness.py
+  s_614f17f4aee381::t_90a66644473609 47,54-58
+  s_614f17f4aee381::t_cd2e1863b1c3c1 48-53
+src/dod/application/_optional_tests.py
+  s_614f17f4aee381::t_fb88ba8f381f95 1,15,100-114
+  s_614f17f4aee381::t_97d0d337cf44e2 115
+tests/session/test_session_manager.py
+  s_614f17f4aee381::t_6a7186e7b8c515 39,44
+  s_614f17f4aee381::t_c553a83fff7753 116-119
+src/dod/domain/v1/_models.py
+  s_614f17f4aee381::t_8224fd667e64dd 204-272
+src/dod/infrastructure/_questions.py
+  s_614f17f4aee381::t_b9b3b2995c0588 1-34,48-63,67-82,86-96
+  s_614f17f4aee381::t_cd2e1863b1c3c1 35-47
+  s_614f17f4aee381::t_90a66644473609 64-66,83-85
+tests/support/_fake_service.py
+  s_614f17f4aee381::t_05d0d34ab59f31 710-714
+  s_614f17f4aee381::t_90a66644473609 125-126,210-224,700-709,715-721,812-823
+tests/port/test_questions.py
+  s_614f17f4aee381::t_2e2ac71b111672 1-21,23-50,52-61,67-71,73-74,78-106
+  s_614f17f4aee381::t_cd2e1863b1c3c1 22,51,62-66,72,75-77
+src/dod/infrastructure/_http.py
+  s_614f17f4aee381::t_90a66644473609 46,51,61,460-477
+  s_614f17f4aee381::t_cbc46db64e89d4 478
+tests/conftest.py
+  s_614f17f4aee381::t_90a66644473609 39,46-48
+  s_614f17f4aee381::t_cd2e1863b1c3c1 40-45
+src/dod/domain/v1/_spec_refs.py
+  s_614f17f4aee381::t_b9b3b2995c0588 59
+tests/cli/test_help.py
+  s_614f17f4aee381::t_8ef19b809eab57 42
+README.md
+  s_614f17f4aee381::t_8ef19b809eab57 44-51
+  s_614f17f4aee381::t_76fe26a3e023ec 85
+tests/conformance/test_questions.py
+  s_614f17f4aee381::t_fb88ba8f381f95 1-101,103-106
+  s_614f17f4aee381::t_a4f0c4d6d16bb5 102
+tests/cli/test_questions.py
+  s_614f17f4aee381::t_5ba199ba56cad2 64-66,147,156,158,161-162,165,187,198
+  s_614f17f4aee381::t_43b497148613cb 289
+  s_614f17f4aee381::t_8ef19b809eab57 309
+  s_614f17f4aee381::t_6e1cb631317756 1-63,67-90,92-146,148-155,157,159-160,163-164,166-186,188-197,199-288,290-308
+  s_614f17f4aee381::t_0745c1d87e126f 91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4b5e50ace159b340ddf5470cb9655dd180e2a76b",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
