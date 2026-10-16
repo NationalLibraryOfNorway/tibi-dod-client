@@ -221,6 +221,10 @@ class FakeService:
         """Answer the next `operation` with the DODP fault `kind` (HTTP 500)."""
         self._injected[operation] = (FaultKind(kind), reason)
 
+    def inject_false(self, operation: str) -> None:
+        """Answer the next `operation` with a result of `false`."""
+        self._injected[operation] = "false"
+
     def inject_deviation(self, operation: str) -> None:
         self._injected[operation] = "deviation"
 
@@ -342,6 +346,8 @@ class FakeService:
             injected = None
         else:
             injected = self._injected.pop(operation, None)
+        if injected == "false":
+            return self._result(operation, False)
         if injected == "deviation":
             return _Raw(200, _envelope(f'<unexpected xmlns="{NS}"/>'))
         if isinstance(injected, _Raw):
@@ -587,6 +593,24 @@ class FakeService:
         self._checked(xml)
         return _Raw(200, _envelope(xml))
 
+    def _op_issueContent(self, payload: Any, headers: dict[str, str]) -> _Raw:
+        return self._lend("issueContent", payload, headers, issued=True)
+
+    def _op_returnContent(self, payload: Any, headers: dict[str, str]) -> _Raw:
+        return self._lend("returnContent", payload, headers, issued=False)
+
+    def _lend(
+        self, operation: str, payload: Any, headers: dict[str, str], *, issued: bool
+    ) -> _Raw:
+        if self._session(headers) is None:
+            return self._no_session()
+        wanted = payload.findtext(f"{{{NS}}}contentID") or ""
+        if wanted not in self.books and wanted not in self.metadata:
+            return self._fault(FaultKind.INVALID_PARAMETER, "unknown content")
+        files = self.books.get(wanted, ((), issued))[0]
+        self.books[wanted] = (files, issued)
+        return self._result(operation, True)
+
     def _op_markAnnouncementsAsRead(
         self, payload: Any, headers: dict[str, str]
     ) -> _Raw:
@@ -649,6 +673,9 @@ class HttpHarness:
 
     def inject_deviation(self, operation: str) -> None:
         self.service.inject_deviation(operation)
+
+    def inject_false(self, operation: str) -> None:
+        self.service.inject_false(operation)
 
     def offer_announcements(self, *announcements: Announcement) -> None:
         self.service.offer_announcements(*announcements)

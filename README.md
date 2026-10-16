@@ -41,6 +41,12 @@ Ordinary commands reach the Service through the session manager: they reuse the 
 - `--format json` is a stable document (`result` plus `list` or `metadata`) that can go to `jq`; `--format xml` is the raw, masked response. Elements `dod` does not model are left out of text and JSON but stay in the raw response.
 - Reading is tolerant: an identifier that is not an `xs:NMTOKEN` (some menus have spaces in theirs) or any other schema violation is reported on stderr as a schema violation, not as a failure.
 
+### Issue and return
+
+- `dod issue <id>` calls `issueContent` and shows the Reply unchanged (`issueContent: ok`, or the fault as it came). It is the only command that borrows a book.
+- `dod return <id>` deletes the local copy first, as the specification requires, and then calls `returnContent`. Only `<data>/<environment>/books/<id>/` is ever deleted (see below for `<data>`), after a confirmation unless `--yes`; when the Service's metadata says `requiresReturn` is `false` the return is refused with nothing deleted, unless `--force`. `--keep-local` returns without deleting and warns that this breaks the specification; it is also the only way to return without an Environment, since the local copy cannot be located then. A declined confirmation, a failed deletion or a refusal sends no `returnContent` (exit 2 for a refusal).
+- `returnContent` answers `true` or a fault, also when the book was already returned; `false` is reported as a Spec deviation (exit 1). `--format json` is a document with `result`, `local_copy` (`deleted`, `none` or `kept`) and `directory`; `return` has no xml output.
+
 ### Resources and download
 
 - `dod resources <id>` shows `getContentResources` for an issued book as the Service gave it: address, `localURI`, size and MIME type. Nothing is downloaded. Userinfo in an address is masked.

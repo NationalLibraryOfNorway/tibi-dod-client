@@ -87,6 +87,14 @@ class Recording:
         self._log.append("markAnnouncementsAsRead")
         return self._port.mark_announcements_as_read(ids)
 
+    def issue_content(self, content_id: str) -> Reply[bool]:
+        self._log.append("issueContent")
+        return self._port.issue_content(content_id)
+
+    def return_content(self, content_id: str) -> Reply[bool]:
+        self._log.append("returnContent")
+        return self._port.return_content(content_id)
+
     def get_content_list(
         self, id: str, first_item: int, last_item: int
     ) -> Reply[ContentList]:

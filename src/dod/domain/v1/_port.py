@@ -68,6 +68,16 @@ class ServicePort(Protocol):
         """Mark announcements as read; `false` means already read (optional)."""
         ...
 
+    def issue_content(self, content_id: str) -> Reply[bool]:
+        """Borrow content: after `true` its resources can be listed and fetched."""
+        ...
+
+    def return_content(self, content_id: str) -> Reply[bool]:
+        """Give content back. The specification allows only `true` or a fault, so
+        a `false` answer is a `Deviation`; returning twice answers `true` again.
+        """
+        ...
+
     def get_content_list(
         self, id: str, first_item: int, last_item: int
     ) -> Reply[ContentList]:

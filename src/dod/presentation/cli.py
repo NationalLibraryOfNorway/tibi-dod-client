@@ -28,6 +28,7 @@ from dod.application import (
     Fetcher,
     FileOutcome,
     InitialisationFailed,
+    LocalCopy,
     LogonReport,
     MarkOutcome,
     MarkReport,
@@ -38,6 +39,8 @@ from dod.application import (
     OpenRawChannel,
     ReadingSystemError,
     ReadingSystemParser,
+    ReturnReport,
+    ReturnRequest,
     SessionManager,
     SessionStore,
     Step,
@@ -56,6 +59,7 @@ from dod.application import (
     origin,
     resolve_connection,
     resolve_endpoint,
+    return_content,
     run_conformance,
     select,
     write_baseline,
@@ -785,6 +789,105 @@ def create_app(
         rich_help_panel=DOWNLOAD_AND_PLAY,
         epilog=_EPILOG,
         help=(
+            "Borrow a book: issueContent, shown as the Service answered. Only "
+            "issued books can be listed with `dod resources` and fetched with "
+            "`dod download`, which never issue anything themselves. Quote an id "
+            "that has spaces."
+        ),
+    )
+    def issue(
+        ctx: typer.Context,
+        id: Annotated[str, typer.Argument(help="The identifier of the book.")],
+    ) -> None:
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        reply = serve(g, target, manager, lambda port: port.issue_content(id))
+        _present(g, target.diag, "issueContent", reply, lambda value: [], lambda v: {})
+
+    @app.command(
+        "return",
+        rich_help_panel=DOWNLOAD_AND_PLAY,
+        epilog=_EPILOG,
+        help=(
+            "Give a book back: delete the local copy, then returnContent. The "
+            "specification requires the copy to be deleted first; only "
+            "<data>/<environment>/books/<id>/ is ever deleted (DOD_DATA_DIR sets "
+            "<data>), after a confirmation unless --yes. A book whose metadata "
+            "says requiresReturn is false is refused unless --force. "
+            "--keep-local returns without deleting, which breaks the "
+            "specification, and is the only way to return without an "
+            "Environment. A result of false is a deviation; returning twice "
+            "should answer true both times."
+        ),
+    )
+    def return_command(
+        ctx: typer.Context,
+        id: Annotated[str, typer.Argument(help="The identifier of the book.")],
+        yes: Annotated[
+            bool,
+            typer.Option("--yes", help="Delete the local copy without asking."),
+        ] = False,
+        force: Annotated[
+            bool,
+            typer.Option(
+                "--force",
+                help="Call returnContent although requiresReturn is false.",
+            ),
+        ] = False,
+        keep_local: Annotated[
+            bool,
+            typer.Option(
+                "--keep-local",
+                help="Return without deleting the local copy (breaks the "
+                "specification).",
+            ),
+        ] = False,
+    ) -> None:
+        g = _globals(ctx)
+        _no_xml(g, "return")
+        if not id:
+            _fail("the book identifier is empty")
+        if yes and keep_local:
+            _fail("--yes and --keep-local contradict each other")
+        connection = _connection(config_store, g)
+        directory: Path | None = None
+        if not keep_local:
+            if connection.environment is None:
+                _fail(
+                    "there is no Environment to locate the local copy: select "
+                    "one with --env, or pass --keep-local"
+                )
+            if data_dir is None:
+                _fail("there is no data directory: pass --keep-local")
+            directory = book_directory(data_dir, connection.environment.value, id)
+
+        def confirm(path: Path) -> bool:
+            if yes:
+                return True
+            try:
+                return typer.confirm(f"Delete the local copy {path}?", err=True)
+            except typer.Abort:
+                return False
+
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        if keep_local:
+            typer.echo(
+                "warning: --keep-local leaves the local copy in place, which the "
+                "specification forbids when content is returned",
+                err=True,
+            )
+        request = ReturnRequest(
+            content_id=id, directory=directory, keep_local=keep_local, force=force
+        )
+        report = guarded(g, target, lambda: return_content(manager, request, confirm))
+        _render_return(g, target.diag, report, directory)
+
+    @app.command(
+        rich_help_panel=DOWNLOAD_AND_PLAY,
+        epilog=_EPILOG,
+        help=(
             "List the files of an issued book (getContentResources) as the "
             "Service gave them; nothing is downloaded. Quote an id that has "
             "spaces."
@@ -1408,6 +1511,35 @@ def _render_download(
         if isinstance(item.problem, Deviation):
             _diagnose(diag, Step("fetch_resource", item.problem))
     raise typer.Exit(EXIT_OK if report.succeeded else EXIT_SERVICE_FAILED)
+
+
+def _render_return(
+    g: GlobalOptions, diag: Diagnostics, report: ReturnReport, directory: Path | None
+) -> None:
+    """The Service's answers go to stdout; refusals and findings to stderr."""
+    if report.refusal is not None:
+        _fail(_plain(report.refusal))
+    if report.returned is not None:
+        step = Step("returnContent", report.returned)
+    else:
+        assert report.metadata is not None
+        step = Step("getContentMetadata", report.metadata)
+    result = _line(step).split(": ", 1)[1]
+    local = report.local_copy
+    if g.format is OutputFormat.JSON:
+        document: dict[str, Any] = {"result": result}
+        if local is not None:
+            document["local_copy"] = local.value
+            document["directory"] = None if directory is None else str(directory)
+        typer.echo(json.dumps(document, indent=2))
+    else:
+        if local is LocalCopy.DELETED:
+            typer.echo(f"local copy: deleted {directory}")
+        elif local is not None:
+            typer.echo(f"local copy: {local.value}")
+        typer.echo(_line(step))
+    _diagnose(diag, step)
+    raise typer.Exit(EXIT_OK if step.succeeded else EXIT_SERVICE_FAILED)
 
 
 def _render_marks(g: GlobalOptions, diag: Diagnostics, report: MarkReport) -> None:
