@@ -67,3 +67,65 @@ class Announcement:
     lang: str | None = None
     type: str = "INFORMATION"
     priority: int = 3
+
+
+@dataclass(frozen=True)
+class ContentItem:
+    """One entry of a content list (specification 6.4), read leniently.
+
+    The label is whatever the Service sent and must be treated as untrusted
+    wherever it is shown (ADR 0008).
+    """
+
+    id: str
+    label: str
+    lang: str | None = None
+    last_modified: str | None = None
+
+
+@dataclass(frozen=True)
+class ContentList:
+    """A content list or a segment of one (specification 6.4), read leniently.
+
+    `id` is what the Service answered, which should equal the id asked for.
+    `first_item` and `last_item` are what the Service says about the segment.
+    """
+
+    id: str
+    total_items: int
+    items: tuple[ContentItem, ...] = ()
+    label: str | None = None
+    first_item: int | None = None
+    last_item: int | None = None
+
+
+@dataclass(frozen=True)
+class ContentMetadata:
+    """The metadata of one content item (specification 6.5), read leniently.
+
+    Dublin Core terms are kept as the text the Service sent; anything the
+    Service left out is `None` or empty. Elements `dod` does not know are not
+    modelled; they remain in the raw Exchange.
+    """
+
+    title: str | None = None
+    identifier: str | None = None
+    format: str | None = None
+    size: int | None = None
+    requires_return: bool | None = None
+    category: str | None = None
+    sample_id: str | None = None
+    publisher: str | None = None
+    date: str | None = None
+    source: str | None = None
+    types: tuple[str, ...] = ()
+    subjects: tuple[str, ...] = ()
+    rights: tuple[str, ...] = ()
+    relations: tuple[str, ...] = ()
+    languages: tuple[str, ...] = ()
+    descriptions: tuple[str, ...] = ()
+    creators: tuple[str, ...] = ()
+    coverage: tuple[str, ...] = ()
+    contributors: tuple[str, ...] = ()
+    narrators: tuple[str, ...] = ()
+    meta: tuple[tuple[str, str], ...] = ()

@@ -8,6 +8,8 @@ from typing import Protocol
 from dod.domain.service import Password, Reply, SessionState
 from dod.domain.v1._models import (
     Announcement,
+    ContentList,
+    ContentMetadata,
     ReadingSystemAttributes,
     ServiceAttributes,
 )
@@ -50,6 +52,19 @@ class ServicePort(Protocol):
 
     def mark_announcements_as_read(self, ids: Sequence[str]) -> Reply[bool]:
         """Mark announcements as read; `false` means already read (optional)."""
+        ...
+
+    def get_content_list(
+        self, id: str, first_item: int, last_item: int
+    ) -> Reply[ContentList]:
+        """A content list or a segment of it; `last_item` -1 means to the end.
+
+        The id is sent as given, also when it is not an `xs:NMTOKEN`.
+        """
+        ...
+
+    def get_content_metadata(self, content_id: str) -> Reply[ContentMetadata]:
+        """The metadata of any content item, issued or not."""
         ...
 
     def close(self) -> None:

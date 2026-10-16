@@ -1,8 +1,9 @@
 """What the contract tests need from a fake Service, whichever adapter is used."""
 
+from collections.abc import Sequence
 from typing import Protocol
 
-from dod.domain.v1 import Announcement, ServicePort
+from dod.domain.v1 import Announcement, ContentList, ContentMetadata, ServicePort
 
 
 class Harness(Protocol):
@@ -20,6 +21,12 @@ class Harness(Protocol):
 
     def offer_announcements(self, *announcements: Announcement) -> None:
         """Publish announcements, and let the Service declare the operations."""
+        ...
+
+    def offer_catalog(
+        self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
+    ) -> None:
+        """Publish content lists (by id) and book metadata (by identifier)."""
         ...
 
     def open_port(self) -> ServicePort: ...

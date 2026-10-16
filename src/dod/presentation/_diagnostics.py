@@ -27,6 +27,8 @@ from dod.domain.service import (
 )
 from dod.domain.v1 import (
     Announcement,
+    ContentList,
+    ContentMetadata,
     ReadingSystemAttributes,
     ServiceAttributes,
     ServicePort,
@@ -204,6 +206,16 @@ class _RecordingPort:
 
     def mark_announcements_as_read(self, ids: Sequence[str]) -> Reply[bool]:
         return self._call(lambda: self._port.mark_announcements_as_read(ids))
+
+    def get_content_list(
+        self, id: str, first_item: int, last_item: int
+    ) -> Reply[ContentList]:
+        return self._call(
+            lambda: self._port.get_content_list(id, first_item, last_item)
+        )
+
+    def get_content_metadata(self, content_id: str) -> Reply[ContentMetadata]:
+        return self._call(lambda: self._port.get_content_metadata(content_id))
 
     def close(self) -> None:
         self._port.close()

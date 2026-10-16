@@ -1,10 +1,10 @@
 """Shared fixtures: one `adapter` fixture parametrised over every adapter."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 
 import pytest
 
-from dod.domain.v1 import Announcement
+from dod.domain.v1 import Announcement, ContentList, ContentMetadata
 from dod.infrastructure import InMemoryService
 from support import Harness, HttpHarness
 
@@ -24,6 +24,11 @@ class _MemoryHarness:
 
     def offer_announcements(self, *announcements: Announcement) -> None:
         self._service.offer_announcements(*announcements)
+
+    def offer_catalog(
+        self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
+    ) -> None:
+        self._service.offer_catalog(lists, metadata)
 
     def open_port(self):  # type: ignore[no-untyped-def]
         return self._service.open_port()

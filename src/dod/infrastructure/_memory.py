@@ -21,7 +21,13 @@ from dod.domain.service import (
     Reply,
     SessionState,
 )
-from dod.domain.v1 import Announcement, ReadingSystemAttributes, ServiceAttributes
+from dod.domain.v1 import (
+    Announcement,
+    ContentList,
+    ContentMetadata,
+    ReadingSystemAttributes,
+    ServiceAttributes,
+)
 from dod.infrastructure._spec import operation_reference
 
 
@@ -34,6 +40,8 @@ class InMemoryService:
         self._injected: dict[str, Fault | str] = {}
         self._announcements: tuple[Announcement, ...] = ()
         self._read: set[str] = set()
+        self._lists: dict[str, ContentList] = {}
+        self._metadata: dict[str, ContentMetadata] = {}
         self.attributes = attributes or ServiceAttributes(
             service_provider_id="synthetic-provider",
             service_id="synthetic-service",
@@ -66,6 +74,13 @@ class InMemoryService:
         self.attributes = replace(
             self.attributes, supported_optional_operations=tuple(sorted(operations))
         )
+
+    def offer_catalog(
+        self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
+    ) -> None:
+        """Publish content lists by id and book metadata by identifier."""
+        self._lists = {item.id: item for item in lists}
+        self._metadata = {item.identifier or "": item for item in metadata}
 
     def expire_sessions(self) -> None:
         """End every Session on the Service, as if they had all timed out."""
@@ -193,6 +208,60 @@ class InMemoryPort:
         fresh = set(ids) - self._service._read
         self._service._read |= fresh
         return Ok(value=bool(fresh), exchange=_exchange("markAnnouncementsAsRead"))
+
+    def get_content_list(
+        self, id: str, first_item: int, last_item: int
+    ) -> Reply[ContentList]:
+        injected = self._service._take_injected("getContentList")
+        if injected is not None:
+            assert not isinstance(injected, Ok)
+            return injected
+        if not self._active():
+            return _no_active_session("getContentList")
+        exchange = _exchange("getContentList")
+        known = self._service._lists.get(id)
+        if known is None and id == "issued":
+            known = ContentList(id="issued", total_items=0)
+        if known is None:
+            return Fault(
+                kind=FaultKind.INVALID_PARAMETER,
+                reason="unknown list",
+                exchange=exchange,
+            )
+        total = len(known.items)
+        end = total - 1 if last_item == -1 else last_item
+        if first_item < 0 or first_item >= total or end < first_item:
+            return Ok(
+                value=replace(known, items=(), first_item=None, last_item=None),
+                exchange=exchange,
+            )
+        end = min(end, total - 1)
+        return Ok(
+            value=replace(
+                known,
+                items=known.items[first_item : end + 1],
+                first_item=first_item,
+                last_item=end,
+            ),
+            exchange=exchange,
+        )
+
+    def get_content_metadata(self, content_id: str) -> Reply[ContentMetadata]:
+        injected = self._service._take_injected("getContentMetadata")
+        if injected is not None:
+            assert not isinstance(injected, Ok)
+            return injected
+        if not self._active():
+            return _no_active_session("getContentMetadata")
+        exchange = _exchange("getContentMetadata")
+        known = self._service._metadata.get(content_id)
+        if known is None:
+            return Fault(
+                kind=FaultKind.INVALID_PARAMETER,
+                reason="unknown content",
+                exchange=exchange,
+            )
+        return Ok(value=known, exchange=exchange)
 
     def close(self) -> None:
         """Nothing to release."""

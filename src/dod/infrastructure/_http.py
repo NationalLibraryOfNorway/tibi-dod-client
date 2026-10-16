@@ -28,11 +28,19 @@ from dod.domain.service import (
     SessionState,
     TransportError,
 )
-from dod.domain.v1 import Announcement, ReadingSystemAttributes, ServiceAttributes
+from dod.domain.v1 import (
+    Announcement,
+    ContentItem,
+    ContentList,
+    ContentMetadata,
+    ReadingSystemAttributes,
+    ServiceAttributes,
+)
 from dod.infrastructure._schema import SchemaUnavailableError, validate_document
 from dod.infrastructure._spec import FAULTS_REFERENCE, operation_reference
 
 _NS = "http://www.daisy.org/ns/daisy-online/"
+_DC = "http://purl.org/dc/elements/1.1/"
 _SOAP = "http://schemas.xmlsoap.org/soap/envelope/"
 _TIMEOUT_SECONDS = 30.0
 
@@ -145,6 +153,91 @@ def _announcements(element: etree._Element) -> tuple[Announcement, ...]:
     return tuple(found)
 
 
+def _int(text: str | None) -> int | None:
+    try:
+        return int((text or "").strip())
+    except ValueError:
+        return None
+
+
+def _label(element: etree._Element) -> tuple[str, str | None] | None:
+    label = element.find(_dodp("label"))
+    if label is None:
+        return None
+    return (label.findtext(_dodp("text")) or ""), label.get(_XML_LANG)
+
+
+def _content_list(element: etree._Element) -> ContentList:
+    items: list[ContentItem] = []
+    for item in element.findall(_dodp("contentItem")):
+        text, lang = _label(item) or ("", None)
+        items.append(
+            ContentItem(
+                id=item.get("id") or "",
+                label=text,
+                lang=lang,
+                last_modified=item.get("lastModifiedDate"),
+            )
+        )
+    heading = _label(element)
+    return ContentList(
+        id=element.get("id") or "",
+        total_items=_int(element.get("totalItems")) or 0,
+        items=tuple(items),
+        label=heading[0] if heading else None,
+        first_item=_int(element.get("firstItem")),
+        last_item=_int(element.get("lastItem")),
+    )
+
+
+def _content_metadata(element: etree._Element) -> ContentMetadata:
+    metadata = element.find(_dodp("metadata"))
+    if metadata is None:
+        metadata = etree.Element(_dodp("metadata"))
+
+    def dc(name: str) -> tuple[str, ...]:
+        return tuple(
+            (c.text or "").strip() for c in metadata.findall(f"{{{_DC}}}{name}")
+        )
+
+    def first(name: str) -> str | None:
+        found = dc(name)
+        return found[0] if found else None
+
+    sample = element.find(_dodp("sample"))
+    requires = element.get("requiresReturn")
+    return ContentMetadata(
+        title=first("title"),
+        identifier=first("identifier"),
+        format=first("format"),
+        size=_int(metadata.findtext(_dodp("size"))),
+        requires_return=(
+            None if requires is None else requires.strip().lower() in {"true", "1"}
+        ),
+        category=element.get("category"),
+        sample_id=sample.get("id") if sample is not None else None,
+        publisher=first("publisher"),
+        date=first("date"),
+        source=first("source"),
+        types=dc("type"),
+        subjects=dc("subject"),
+        rights=dc("rights"),
+        relations=dc("relation"),
+        languages=dc("language"),
+        descriptions=dc("description"),
+        creators=dc("creator"),
+        coverage=dc("coverage"),
+        contributors=dc("contributor"),
+        narrators=tuple(
+            (n.text or "").strip() for n in metadata.findall(_dodp("narrator"))
+        ),
+        meta=tuple(
+            (m.get("name") or "", m.get("content") or "")
+            for m in metadata.findall(_dodp("meta"))
+        ),
+    )
+
+
 class HttpServicePort:
     """A `ServicePort` that talks SOAP over HTTP to one Service URL.
 
@@ -237,6 +330,38 @@ class HttpServicePort:
         return self._call(
             "markAnnouncementsAsRead", fill, self._result("markAnnouncementsAsRead")
         )
+
+    def get_content_list(
+        self, id: str, first_item: int, last_item: int
+    ) -> Reply[ContentList]:
+        def fill(parent: etree._Element) -> None:
+            _text_element(parent, "id", id)
+            _text_element(parent, "firstItem", str(first_item))
+            _text_element(parent, "lastItem", str(last_item))
+
+        def read(
+            response: etree._Element,
+        ) -> tuple[ContentList, tuple[SchemaViolation, ...]] | Deviation | None:
+            element = response.find(_dodp("contentList"))
+            if element is None:
+                return None
+            return _content_list(element), self._validate(element)
+
+        return self._call("getContentList", fill, read)
+
+    def get_content_metadata(self, content_id: str) -> Reply[ContentMetadata]:
+        def read(
+            response: etree._Element,
+        ) -> tuple[ContentMetadata, tuple[SchemaViolation, ...]] | Deviation | None:
+            element = response.find(_dodp("contentMetadata"))
+            if element is None:
+                return None
+            return _content_metadata(element), self._validate(element)
+
+        def fill(parent: etree._Element) -> None:
+            _text_element(parent, "contentID", content_id)
+
+        return self._call("getContentMetadata", fill, read)
 
     def close(self) -> None:
         self._client.close()
