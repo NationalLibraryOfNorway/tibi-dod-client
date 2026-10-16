@@ -59,6 +59,7 @@ from dod.application import (
     default_reading_system,
     discover,
     download,
+    fetch_missing,
     list_quirks,
     load_config,
     logon_ephemeral,
@@ -1203,7 +1204,8 @@ def create_app(
         epilog=_EPILOG,
         help=(
             "Play a downloaded DAISY 2.02 or EPUB 3 book from the files on disk; "
-            "nothing is fetched or streamed. The order comes from master.smil, "
+            "nothing is streamed, and nothing is fetched unless --fetch-missing "
+            "says so. The order comes from master.smil, "
             "else from the SMIL files ncc.html first links to (DAISY 2.02), or "
             "from the spine and the media overlays of its items (EPUB 3), and "
             "never from file names. It "
@@ -1212,7 +1214,15 @@ def create_app(
             "book without SMIL (audioOnly) or an EPUB without media overlays "
             "(text only) is refused with an explanation. The book is read from "
             "<data>/<environment>/books/<id>/ (DOD_DATA_DIR sets <data>), or from "
-            "--directory. While playing, type a command and Enter: p "
+            "--directory. --fetch-missing fetches the audio files that are not on "
+            "disk, one at a time and before playing starts (the lengths are needed "
+            "to play), with getContentResources and one GET each, under the rules "
+            "of `dod download` (every localURI is checked, other hosts need "
+            "--trust-host, a file is stored as .part and renamed when complete). "
+            "It never issues the book (a book that is not issued gives the "
+            "Service's invalidParameter fault) and fetches only audio files; the "
+            "SMIL, ncc.html and package files must already be on disk (`dod "
+            "download`). While playing, type a command and Enter: p "
             "pause/resume, n next clip, b previous clip, f forward 30 s, r back "
             "30 s, q stop; the display shows the file's place in the book "
             "(`file 3 of 7`) and the elapsed Playlist time."
@@ -1228,6 +1238,14 @@ def create_app(
                 help="The directory the book is in, instead of the default.",
             ),
         ] = None,
+        fetch_missing_files: Annotated[
+            bool,
+            typer.Option(
+                "--fetch-missing",
+                help="Fetch the audio files that are missing from the book "
+                "directory, one at a time, before playing. Never issues the book.",
+            ),
+        ] = False,
     ) -> None:
         g = _globals(ctx)
         if g.format is not OutputFormat.TEXT:
@@ -1253,7 +1271,25 @@ def create_app(
         except PlayerUnavailable as error:
             _fail(str(error))
         try:
-            playback = prepare_playback(book, open_book(book), player)
+            playlist = open_book(book)
+            if fetch_missing_files:
+                target = network_target(ctx, g)
+                fetched = guarded(
+                    g,
+                    target,
+                    lambda: fetch_missing(
+                        service_manager(g, target, declaration(target.connection)),
+                        book,
+                        playlist,
+                        content_id=id,
+                        service_url=target.url,
+                        trust_host=target.connection.trust_host.value,
+                        insecure=target.connection.insecure.value,
+                    ),
+                )
+                if fetched is not None:
+                    _render_fetched(g, diag, fetched, book)
+            playback = prepare_playback(book, playlist, player)
             playback.start()
             run_playback(
                 playback,
@@ -1933,6 +1969,20 @@ def _render_download(
         if isinstance(item.problem, Deviation):
             _diagnose(diag, Step("fetch_resource", item.problem))
     raise typer.Exit(EXIT_OK if report.succeeded else EXIT_SERVICE_FAILED)
+
+
+def _render_fetched(
+    g: GlobalOptions, diag: Diagnostics, report: DownloadReport, directory: Path
+) -> None:
+    """Progress of `play --fetch-missing` goes to stderr, stdout is the player's.
+
+    A fetch that did not succeed ends the command as `download` would.
+    """
+    if not report.succeeded:
+        _render_download(g, diag, report, directory)
+    diag.observe(report.observations)
+    for item in report.files:
+        typer.echo(f"fetched {_plain(item.local_uri)} ({item.size} bytes)", err=True)
 
 
 def _render_return(
