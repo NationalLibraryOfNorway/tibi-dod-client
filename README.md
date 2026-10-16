@@ -248,6 +248,8 @@ uv run pytest                # tests
 
 Tests against a real Service are marked `real_backend` and deselected by default; run them with `uv run pytest -m real_backend`. They never run in CI, and no credentials or addresses belong in the repository.
 
+Before a release the owner of the test backend runs the [acceptance test plan](docs/acceptance/tibi-acceptance-plan.md) by hand against a real Service: every command, the test families, the State-changing steps with their restore, Quirks and Baselines, the TUI, and a section for findings. It uses placeholders only.
+
 ### Releasing
 
 Add the changes to [CHANGELOG.md](CHANGELOG.md) (move `Unreleased` under the new version), then push a final version tag on the commit to release:
