@@ -1,0 +1,64 @@
+src/dod/infrastructure/_spec.py
+  s_614f17f4aee381::t_1f7a2983008323 16,18
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_2ad9d22578c173 673-740,941-945,949-964
+  s_614f17f4aee381::t_de7329cf7e4406 57-63,946-948
+  s_614f17f4aee381::t_f648380c73fffc 965-966
+tests/support/_harness.py
+  s_614f17f4aee381::t_1f7a2983008323 3,6,26-29
+  s_614f17f4aee381::t_f9e3148e1ed324 30-31
+src/dod/domain/v1/__init__.py
+  s_614f17f4aee381::t_9f7c31674c3799 8-10,19-21
+README.md
+  s_614f17f4aee381::t_38f33a6ffe834b 37-43
+tests/port/test_catalog.py
+  s_614f17f4aee381::t_e22c2a7678b04c 2-108,110-123
+  s_614f17f4aee381::t_1f7a2983008323 109
+  s_614f17f4aee381::t_7b7917a66c57a2 1
+src/dod/domain/v1/_models.py
+  s_614f17f4aee381::t_8272ebab9db30a 70-131
+src/dod/presentation/_diagnostics.py
+  s_614f17f4aee381::t_5d913b06755008 30-31,213-215
+  s_614f17f4aee381::t_fb6ccdb809a901 210-212,216-219
+src/dod/domain/v1/_port.py
+  s_614f17f4aee381::t_9f7c31674c3799 11-12,57-68
+  s_614f17f4aee381::t_2cba5fd92f88c0 69
+tests/conftest.py
+  s_614f17f4aee381::t_1f7a2983008323 3,7,28-31
+  s_614f17f4aee381::t_ca09c04d4b9738 32
+src/dod/infrastructure/_http.py
+  s_614f17f4aee381::t_3eb65468586db0 31-38,43,156-240,334-360
+  s_614f17f4aee381::t_ddb01d701e4bcd 361-364
+  s_614f17f4aee381::t_16eb6a6fdd328c 365
+tests/session/test_session_manager.py
+  s_614f17f4aee381::t_d487035d24b318 29-30
+  s_614f17f4aee381::t_ddb01d701e4bcd 83-92
+src/dod/infrastructure/_memory.py
+  s_614f17f4aee381::t_39c794e59e1461 24-30,43-44,78-84,212-264
+  s_614f17f4aee381::t_1cc1ed3fec7adb 265
+tests/cli/test_help.py
+  s_614f17f4aee381::t_b733de3866f2af 62-77
+tests/support/_fake_service.py
+  s_614f17f4aee381::t_286c53afd776ca 24-29,109-110,163-173,373-397,401-467,534-537
+  s_614f17f4aee381::t_7b7917a66c57a2 398-400
+  s_614f17f4aee381::t_3eb65468586db0 15
+  s_614f17f4aee381::t_a899cfd02ff746 538
+tests/cli/test_catalog.py
+  s_614f17f4aee381::t_50de2b866e5116 1-291
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "91e638b49b8552a9c66d6269b9147e67fd645a40",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
