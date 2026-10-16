@@ -54,7 +54,13 @@ from dod.domain.service import (
     Reply,
     TransportError,
 )
-from dod.domain.v1 import Announcement, ReadingSystemAttributes, ServicePort
+from dod.domain.v1 import (
+    Announcement,
+    ContentList,
+    ContentMetadata,
+    ReadingSystemAttributes,
+    ServicePort,
+)
 from dod.presentation._diagnostics import Diagnostics
 from dod.presentation._globals import (
     GlobalOptions,
@@ -664,6 +670,74 @@ def create_app(
             )
         _render_marks(g, target.diag, report)
 
+    @app.command(
+        "list",
+        rich_help_panel=BROWSE_AND_ISSUE,
+        epilog=_EPILOG,
+        help=(
+            "Show a content list (getContentList). Without --id that is the "
+            "shelf, `issued`. Other lists are `new`, `expired`, the dynamic "
+            "lists of a menu and a contentListRef from a menu; quote an id that "
+            "has spaces. --first and --last pick a segment, counted from 0; "
+            "--last -1 means to the end."
+        ),
+    )
+    def list_content(
+        ctx: typer.Context,
+        id: Annotated[
+            str,
+            typer.Option("--id", help="The list to show (default: issued)."),
+        ] = "issued",
+        first: Annotated[
+            int, typer.Option("--first", help="Index of the first item.")
+        ] = 0,
+        last: Annotated[
+            int,
+            typer.Option("--last", help="Index of the last item; -1 is the end."),
+        ] = -1,
+    ) -> None:
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        reply = serve(
+            g, target, manager, lambda port: port.get_content_list(id, first, last)
+        )
+        _present(
+            g,
+            target.diag,
+            "getContentList",
+            reply,
+            _content_list_lines,
+            lambda value: {"list": dataclasses.asdict(value)},
+            header=False,
+        )
+
+    @app.command(
+        rich_help_panel=BROWSE_AND_ISSUE,
+        epilog=_EPILOG,
+        help=(
+            "Show the metadata of any book, issued or not (getContentMetadata). "
+            "Quote an id that has spaces."
+        ),
+    )
+    def metadata(
+        ctx: typer.Context,
+        id: Annotated[str, typer.Argument(help="The identifier of the book.")],
+    ) -> None:
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        reply = serve(g, target, manager, lambda port: port.get_content_metadata(id))
+        _present(
+            g,
+            target.diag,
+            "getContentMetadata",
+            reply,
+            _metadata_lines,
+            lambda value: {"metadata": _metadata_json(value)},
+            header=False,
+        )
+
     return app
 
 
@@ -862,6 +936,32 @@ def _announcement_lines(announcements: tuple[Announcement, ...]) -> list[str]:
 
 def _announcement_json(announcement: Announcement) -> dict[str, Any]:
     return dataclasses.asdict(announcement)
+
+
+def _content_list_lines(shown: ContentList) -> list[str]:
+    name = _plain(shown.id)
+    if not shown.items:
+        return [f"list {name}: no items ({shown.total_items} in total)"]
+    first = shown.first_item if shown.first_item is not None else 0
+    last = (
+        shown.last_item if shown.last_item is not None else first + len(shown.items) - 1
+    )
+    return [
+        f"list {name}: items {first}-{last} of {shown.total_items}",
+        *(f"{_plain(item.id)}: {_plain(item.label)}" for item in shown.items),
+    ]
+
+
+def _metadata_lines(book: ContentMetadata) -> list[str]:
+    lines = _field_lines(dataclasses.replace(book, meta=()))
+    pairs = ", ".join(f"{_plain(n)}={_plain(c)}" for n, c in book.meta)
+    return [*lines, f"meta: {pairs or '-'}"]
+
+
+def _metadata_json(book: ContentMetadata) -> dict[str, Any]:
+    document = dataclasses.asdict(book)
+    document["meta"] = [{"name": n, "content": c} for n, c in book.meta]
+    return document
 
 
 def _render_marks(g: GlobalOptions, diag: Diagnostics, report: MarkReport) -> None:

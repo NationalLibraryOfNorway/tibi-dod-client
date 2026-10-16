@@ -34,6 +34,13 @@ Ordinary commands reach the Service through the session manager: they reuse the 
 - `dod announcements list` shows the unread announcements. `dod announcements mark-read <id>...` or `--all` marks them; because the specification only accepts identifiers from a `getServiceAnnouncements` of the same Session, it fetches first, and `--all` uses the identifiers of that fetch. If the Service answers `invalidParameter` for the set, the identifiers are tried one at a time; `false` from the Service is reported as "already read".
 - A Service that does not support an operation gives its `Fault` or `Deviation` as it is (exit code 1). Text from the Service is shown with control characters replaced by spaces.
 
+### The shelf and the catalogue
+
+- `dod list` shows the shelf (`getContentList` with `issued`). `dod list --id <list>` shows another list: `new`, `expired`, a dynamic list from a menu or a `contentListRef`. Quote an id that has spaces; it is sent as given. `--first` and `--last` pick a segment counted from 0 (`--last -1`, the default, is the end of the list); an invalid range gives an empty list and the total.
+- `dod metadata <id>` shows `getContentMetadata` for any book, issued or not.
+- `--format json` is a stable document (`result` plus `list` or `metadata`) that can go to `jq`; `--format xml` is the raw, masked response. Elements `dod` does not model are left out of text and JSON but stay in the raw response.
+- Reading is tolerant: an identifier that is not an `xs:NMTOKEN` (some menus have spaces in theirs) or any other schema violation is reported on stderr as a schema violation, not as a failure.
+
 ### Finding the endpoint
 
 `dod` never guesses the Service endpoint while logging on (ADR 0002). Name it with `--url` (the SOAP endpoint itself), with `--wsdl` (the Service's WSDL; its `soap:address` is used) or through an Environment that holds one of them. `--url`, `--wsdl` and `--env` cannot be combined.

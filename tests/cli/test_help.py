@@ -59,3 +59,19 @@ def test_mark_read_help_explains_all_and_the_one_by_one_fallback() -> None:
     text = " ".join(result.stdout.split())
     assert "--all" in text
     assert "invalidParameter" in text
+
+
+@pytest.mark.parametrize("command", ["list", "metadata"])
+def test_catalog_commands_are_listed_at_the_top_level(command: str) -> None:
+    result = run_dod("--help")
+
+    assert re.search(rf"^\W*{command}\s", result.stdout, re.M), result.stdout
+
+
+def test_list_help_explains_the_shelf_the_other_lists_and_the_range() -> None:
+    result = run_dod("list", "--help")
+
+    text = " ".join(result.stdout.split())
+    assert result.returncode == 0, result.stderr
+    for word in ("--id", "issued", "expired", "contentListRef", "--first", "--last"):
+        assert word in text

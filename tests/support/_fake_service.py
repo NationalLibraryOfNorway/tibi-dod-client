@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import secrets
 import threading
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -20,7 +21,12 @@ from xml.sax.saxutils import escape
 from lxml import etree
 
 from dod.domain.service import FaultKind
-from dod.domain.v1 import Announcement, ServicePort
+from dod.domain.v1 import (
+    Announcement,
+    ContentList,
+    ContentMetadata,
+    ServicePort,
+)
 from dod.infrastructure import HttpServicePort, validate_document
 
 NS = "http://www.daisy.org/ns/daisy-online/"
@@ -100,6 +106,8 @@ class FakeService:
         self.service_attributes_xml = _SERVICE_ATTRIBUTES
         self.announcements: list[Announcement] = []
         self.read_announcements: set[str] = set()
+        self.lists: dict[str, ContentList] = {}
+        self.metadata: dict[str, ContentMetadata] = {}
         # The attributes of the Session cookie the Service sets on logOn.
         self.cookie_attributes = "Path=/; HttpOnly"
         self._injected: dict[str, tuple[FaultKind, str] | str | _Raw] = {}
@@ -151,6 +159,17 @@ class FakeService:
             "<operation>SERVICE_ANNOUNCEMENTS</operation>"
             "</supportedOptionalOperations>",
         )
+
+    def offer_catalog(
+        self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
+    ) -> None:
+        """Publish content lists by id and book metadata by identifier.
+
+        A list id that is not an `xs:NMTOKEN` (it has whitespace, as some real
+        menus have) is answered as it is, though the schemas reject it.
+        """
+        self.lists = {item.id: item for item in lists}
+        self.metadata = {item.identifier or "": item for item in metadata}
 
     def inject_fault(self, operation: str, kind: FaultKind | str, reason: str) -> None:
         """Answer the next `operation` with the DODP fault `kind` (HTTP 500)."""
@@ -351,6 +370,101 @@ class FakeService:
         self._checked(xml)
         return _Raw(200, _envelope(xml))
 
+    def _op_getContentList(self, payload: Any, headers: dict[str, str]) -> _Raw:
+        if self._session(headers) is None:
+            return self._no_session()
+        # Order matters on the wire: id, firstItem, lastItem.
+        assert [etree.QName(c).localname for c in payload] == [
+            "id",
+            "firstItem",
+            "lastItem",
+        ]
+        wanted = payload.findtext(f"{{{NS}}}id") or ""
+        first = int(payload.findtext(f"{{{NS}}}firstItem") or "0")
+        last = int(payload.findtext(f"{{{NS}}}lastItem") or "-1")
+        known = self.lists.get(wanted)
+        if known is None and wanted == "issued":
+            known = ContentList(id="issued", total_items=0)
+        if known is None:
+            return self._fault(FaultKind.INVALID_PARAMETER, "unknown list")
+        total = len(known.items)
+        end = total - 1 if last == -1 else min(last, total - 1)
+        valid = 0 <= first < total and first <= end
+        shown = known.items[first : end + 1] if valid else ()
+        attributes = f'totalItems="{known.total_items}" id="{escape(known.id)}"'
+        if valid:
+            attributes += f' firstItem="{first}" lastItem="{end}"'
+        label = (
+            f'<label xml:lang="en"><text>{escape(known.label)}</text></label>'
+            if known.label
+            else ""
+        )
+        items = "".join(
+            f'<contentItem id="{escape(i.id)}"'
+            + (f' lastModifiedDate="{i.last_modified}"' if i.last_modified else "")
+            + f'><label xml:lang="{i.lang or "en"}"><text>{escape(i.label)}</text>'
+            "</label></contentItem>"
+            for i in shown
+        )
+        xml = (
+            f'<getContentListResponse xmlns="{NS}">'
+            f"<contentList {attributes}>{label}{items}</contentList>"
+            "</getContentListResponse>"
+        )
+        if len(known.id.split()) == 1:
+            self._checked(xml)
+        return _Raw(200, _envelope(xml))
+
+    def _op_getContentMetadata(self, payload: Any, headers: dict[str, str]) -> _Raw:
+        if self._session(headers) is None:
+            return self._no_session()
+        known = self.metadata.get(payload.findtext(f"{{{NS}}}contentID") or "")
+        if known is None:
+            return self._fault(FaultKind.INVALID_PARAMETER, "unknown content")
+
+        def dc(name: str, values: Sequence[str | None]) -> str:
+            return "".join(
+                f"<dc:{name}>{escape(value)}</dc:{name}>"
+                for value in values
+                if value is not None
+            )
+
+        body = (
+            dc("title", [known.title])
+            + dc("identifier", [known.identifier])
+            + dc("publisher", [known.publisher])
+            + dc("format", [known.format])
+            + dc("date", [known.date])
+            + dc("source", [known.source])
+            + dc("type", known.types)
+            + dc("subject", known.subjects)
+            + dc("rights", known.rights)
+            + dc("relation", known.relations)
+            + dc("language", known.languages)
+            + dc("description", known.descriptions)
+            + dc("creator", known.creators)
+            + dc("coverage", known.coverage)
+            + dc("contributor", known.contributors)
+            + "".join(f"<narrator>{escape(n)}</narrator>" for n in known.narrators)
+            + f"<size>{known.size}</size>"
+            + "".join(
+                f'<meta name="{escape(n)}" content="{escape(c)}"/>'
+                for n, c in known.meta
+            )
+        )
+        sample = f'<sample id="{known.sample_id}"/>' if known.sample_id else ""
+        category = f' category="{known.category}"' if known.category else ""
+        returns = "true" if known.requires_return else "false"
+        xml = (
+            f'<getContentMetadataResponse xmlns="{NS}" '
+            'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+            f'<contentMetadata requiresReturn="{returns}"{category}>'
+            f"{sample}<metadata>{body}</metadata></contentMetadata>"
+            "</getContentMetadataResponse>"
+        )
+        self._checked(xml)
+        return _Raw(200, _envelope(xml))
+
     def _op_markAnnouncementsAsRead(
         self, payload: Any, headers: dict[str, str]
     ) -> _Raw:
@@ -416,6 +530,11 @@ class HttpHarness:
 
     def offer_announcements(self, *announcements: Announcement) -> None:
         self.service.offer_announcements(*announcements)
+
+    def offer_catalog(
+        self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
+    ) -> None:
+        self.service.offer_catalog(lists, metadata)
 
     def open_port(self) -> ServicePort:
         port = HttpServicePort(self.service.url)
