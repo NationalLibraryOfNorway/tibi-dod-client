@@ -1,0 +1,94 @@
+tests/cli/test_announcements.py
+  s_614f17f4aee381::t_88830b8afd2d25 15
+tests/cli/test_config.py
+  s_614f17f4aee381::t_88830b8afd2d25 15
+tests/cli/test_issue_return.py
+  s_614f17f4aee381::t_88830b8afd2d25 17
+tests/cli/test_logon.py
+  s_614f17f4aee381::t_88830b8afd2d25 16
+tests/port/test_announcements.py
+  s_614f17f4aee381::t_88830b8afd2d25 5,7
+tests/conformance/test_content.py
+  s_614f17f4aee381::t_88830b8afd2d25 20
+tests/cli/test_tui.py
+  s_614f17f4aee381::t_88830b8afd2d25 22
+tests/port/test_http_resources.py
+  s_614f17f4aee381::t_88830b8afd2d25 11
+tests/port/test_contract.py
+  s_614f17f4aee381::t_88830b8afd2d25 16
+tests/cli/test_download.py
+  s_614f17f4aee381::t_88830b8afd2d25 17
+tests/cli/test_address.py
+  s_614f17f4aee381::t_88830b8afd2d25 14
+tests/port/test_bookmarks.py
+  s_614f17f4aee381::t_88830b8afd2d25 8,10
+tests/port/test_issue_return.py
+  s_614f17f4aee381::t_88830b8afd2d25 5,7
+tests/cli/test_conformance.py
+  s_614f17f4aee381::t_88830b8afd2d25 15
+tests/cli/test_session.py
+  s_614f17f4aee381::t_88830b8afd2d25 19
+tests/port/test_resources.py
+  s_614f17f4aee381::t_88830b8afd2d25 5,7
+tests/session/test_session_manager.py
+  s_614f17f4aee381::t_88830b8afd2d25 47
+tests/tui/test_resources.py
+  s_614f17f4aee381::t_88830b8afd2d25 28
+tests/cli/test_play.py
+  s_614f17f4aee381::t_88830b8afd2d25 27
+tests/cli/test_diagnostics.py
+  s_614f17f4aee381::t_88830b8afd2d25 19
+tests/cli/test_attributes.py
+  s_614f17f4aee381::t_88830b8afd2d25 16
+tests/port/test_catalog.py
+  s_614f17f4aee381::t_88830b8afd2d25 5,7
+tests/port/test_fault_injection.py
+  s_614f17f4aee381::t_88830b8afd2d25 10,12
+tests/tui/test_catalog.py
+  s_614f17f4aee381::t_88830b8afd2d25 20
+tests/port/test_questions.py
+  s_614f17f4aee381::t_88830b8afd2d25 9,16
+tests/cli/test_bookmarks.py
+  s_614f17f4aee381::t_88830b8afd2d25 17
+tests/support/__init__.py
+  s_614f17f4aee381::t_99c7a6adf51ae7 3
+  s_614f17f4aee381::t_88830b8afd2d25 8-21
+tests/cli/test_catalog.py
+  s_614f17f4aee381::t_88830b8afd2d25 15
+tests/conformance/test_questions.py
+  s_614f17f4aee381::t_88830b8afd2d25 17
+tests/conformance/test_runner.py
+  s_614f17f4aee381::t_88830b8afd2d25 25
+tests/cli/test_quirks.py
+  s_614f17f4aee381::t_88830b8afd2d25 16
+tests/conformance/test_bookmarks.py
+  s_614f17f4aee381::t_88830b8afd2d25 15
+tests/cli/test_questions.py
+  s_614f17f4aee381::t_88830b8afd2d25 17
+tests/cli/test_global_options.py
+  s_614f17f4aee381::t_88830b8afd2d25 5
+tests/conformance/test_negative.py
+  s_614f17f4aee381::t_88830b8afd2d25 15
+tests/port/test_quirks.py
+  s_614f17f4aee381::t_88830b8afd2d25 11,14
+tests/tui/test_player.py
+  s_614f17f4aee381::t_88830b8afd2d25 25
+tests/conformance/test_families.py
+  s_614f17f4aee381::t_88830b8afd2d25 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "342b73dbc52caa3147a09d04a0f443ca4e718e30",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
