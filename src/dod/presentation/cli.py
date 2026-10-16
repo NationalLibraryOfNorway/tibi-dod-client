@@ -23,6 +23,8 @@ from dod.application import (
     Fetcher,
     InitialisationFailed,
     LogonReport,
+    MarkOutcome,
+    MarkReport,
     MemorySessionStore,
     NoCredentialsError,
     OpenPort,
@@ -38,6 +40,7 @@ from dod.application import (
     discover,
     load_config,
     logon_ephemeral,
+    mark_read,
     origin,
     resolve_connection,
     resolve_endpoint,
@@ -51,7 +54,7 @@ from dod.domain.service import (
     Reply,
     TransportError,
 )
-from dod.domain.v1 import ReadingSystemAttributes, ServicePort
+from dod.domain.v1 import Announcement, ReadingSystemAttributes, ServicePort
 from dod.presentation._diagnostics import Diagnostics
 from dod.presentation._globals import (
     GlobalOptions,
@@ -590,6 +593,77 @@ def create_app(
             lambda value: {"declared": dataclasses.asdict(sent)},
         )
 
+    @groups["announcements"].command(
+        "list",
+        epilog=_EPILOG,
+        help=(
+            "Show the announcements the Service has for you that you have not "
+            "read yet (getServiceAnnouncements). Nothing is marked as read."
+        ),
+    )
+    def announcements_list(ctx: typer.Context) -> None:
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        reply = serve(g, target, manager, lambda port: port.get_service_announcements())
+        _present(
+            g,
+            target.diag,
+            "getServiceAnnouncements",
+            reply,
+            _announcement_lines,
+            lambda value: {"announcements": [_announcement_json(a) for a in value]},
+            header=False,
+        )
+
+    @groups["announcements"].command(
+        "mark-read",
+        epilog=_EPILOG,
+        help=(
+            "Mark announcements as read (markAnnouncementsAsRead). Give "
+            "identifiers, or --all for every announcement of the latest fetch. "
+            "The announcements are fetched first, as the specification requires. "
+            "If the Service rejects the set with invalidParameter, they are "
+            "tried one at a time. false from the Service means already read."
+        ),
+    )
+    def announcements_mark_read(
+        ctx: typer.Context,
+        ids: Annotated[
+            list[str] | None,
+            typer.Argument(help="Identifiers of the announcements to mark."),
+        ] = None,
+        all_: Annotated[
+            bool,
+            typer.Option("--all", help="Mark every announcement of the latest fetch."),
+        ] = False,
+    ) -> None:
+        g = _globals(ctx)
+        _no_xml(g, "announcements mark-read")
+        if bool(ids) == all_:
+            _fail("give announcement identifiers, or --all, but not both")
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        try:
+            report = mark_read(manager, None if all_ else ids)
+        except TransportError as error:
+            _fail(_no_answer(error, target.url))
+        except NoCredentialsError as error:
+            _fail(str(error))
+        except InitialisationFailed as error:
+            _render(error.report, g.format, target.diag)
+            raise typer.Exit(EXIT_SERVICE_FAILED) from None
+        if not isinstance(report.fetched, Ok):
+            _present(
+                g,
+                target.diag,
+                "getServiceAnnouncements",
+                report.fetched,
+                lambda value: [],
+                lambda value: {},
+            )
+        _render_marks(g, target.diag, report)
+
     return app
 
 
@@ -776,6 +850,42 @@ def _password(from_stdin: bool, connection: Connection) -> Password:
     return Password(typer.prompt("Password", hide_input=True))
 
 
+def _announcement_lines(announcements: tuple[Announcement, ...]) -> list[str]:
+    if not announcements:
+        return ["no unread announcements"]
+    return [
+        f"announcement {_plain(a.id)} [{_plain(a.type)}, priority {a.priority}]: "
+        f"{_plain(a.text)}"
+        for a in announcements
+    ]
+
+
+def _announcement_json(announcement: Announcement) -> dict[str, Any]:
+    return dataclasses.asdict(announcement)
+
+
+def _render_marks(g: GlobalOptions, diag: Diagnostics, report: MarkReport) -> None:
+    """One line per identifier; the Service's faults are shown as they came."""
+    shown: list[tuple[str, str]] = []
+    for result in report.results:
+        if result.outcome is MarkOutcome.FAILED:
+            failed = Step("markAnnouncementsAsRead", result.reply)
+            text = _line(failed).split(": ", 1)[1]
+        else:
+            text = result.outcome.value
+        shown.append((_plain(result.id), text))
+        _diagnose(diag, Step("markAnnouncementsAsRead", result.reply))
+    if g.format is OutputFormat.JSON:
+        document = [{"id": name, "result": text} for name, text in shown]
+        typer.echo(json.dumps({"results": document}, indent=2))
+    else:
+        for name, text in shown:
+            typer.echo(f"{name}: {text}")
+        if not shown:
+            typer.echo("no unread announcements")
+    raise typer.Exit(EXIT_OK if report.succeeded else EXIT_SERVICE_FAILED)
+
+
 def _credentials(
     g: GlobalOptions, connection: Connection, *, prompt: bool
 ) -> CredentialProvider:
@@ -832,6 +942,8 @@ def _present[T](
     reply: Reply[T],
     lines: Callable[[T], list[str]],
     document: Callable[[T], dict[str, Any]],
+    *,
+    header: bool = True,
 ) -> None:
     """Show one Reply as received and end the command (exit 1 unless it is Ok).
 
@@ -845,7 +957,8 @@ def _present[T](
         body = document(reply.value) if isinstance(reply, Ok) else {}
         typer.echo(json.dumps(result | body, indent=2))
     else:
-        typer.echo(_line(step))
+        if header or not isinstance(reply, Ok):
+            typer.echo(_line(step))
         if isinstance(reply, Ok) and reply.value is not False:
             for line in lines(reply.value):
                 typer.echo(line)
@@ -967,6 +1080,12 @@ def _render(report: LogonReport, output: OutputFormat, diag: Diagnostics) -> Non
     else:
         for step in report.steps:
             typer.echo(_line(step))
+            if (
+                isinstance(step.reply, Ok)
+                and step.operation == "getServiceAnnouncements"
+            ):
+                for line in _announcement_lines(step.reply.value):
+                    typer.echo(line)
     diag.observe(report.observations)
     for step in report.steps:
         _diagnose(diag, step, observe=False)
@@ -993,13 +1112,19 @@ def _diagnose(diag: Diagnostics, step: Step, *, observe: bool = True) -> None:
 
 
 def _logon_json(report: LogonReport) -> dict[str, Any]:
-    return {
+    document: dict[str, Any] = {
         "succeeded": report.succeeded,
         "steps": [
             {"operation": step.operation, "result": _line(step).split(": ", 1)[1]}
             for step in report.steps
         ],
     }
+    for step in report.steps:
+        if isinstance(step.reply, Ok) and step.operation == "getServiceAnnouncements":
+            document["announcements"] = [
+                _announcement_json(a) for a in step.reply.value
+            ]
+    return document
 
 
 def _line(step: Step) -> str:

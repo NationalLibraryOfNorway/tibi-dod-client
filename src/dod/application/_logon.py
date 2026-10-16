@@ -26,9 +26,13 @@ class Step:
 
     operation: str
     reply: Reply[Any]
+    optional: bool = False
+    """An optional step is shown as answered but never fails the sequence."""
 
     @property
     def succeeded(self) -> bool:
+        if self.optional:
+            return True
         # `logOn` and friends answer a boolean; false means the Service said no.
         return isinstance(self.reply, Ok) and self.reply.value is not False
 
@@ -93,7 +97,10 @@ def initialise(
 ) -> list[Step]:
     """Run `logOn`, `getServiceAttributes`, `setReadingSystemAttributes`.
 
-    Stops at the first step that does not succeed. A Session that `logOn`
+    When the Service declares announcements (`SERVICE_ANNOUNCEMENTS` among its
+    optional operations), `getServiceAnnouncements` follows as an optional
+    step; nothing is marked as read. Stops at the first step that does not
+    succeed. A Session that `logOn`
     started is ended again when a later step fails or gets no usable answer, so
     no half-finished Session is left behind; when every step succeeded the
     Session is alive and the caller decides what happens to it.
@@ -114,6 +121,16 @@ def initialise(
             steps.append(Step(operation, call()))
             if not steps[-1].succeeded:
                 break
+        else:
+            declared = steps[1].reply
+            if isinstance(declared, Ok) and declared.value.supports_announcements:
+                steps.append(
+                    Step(
+                        "getServiceAnnouncements",
+                        port.get_service_announcements(),
+                        optional=True,
+                    )
+                )
     except TransportError:
         _log_off_quietly(port)
         raise
