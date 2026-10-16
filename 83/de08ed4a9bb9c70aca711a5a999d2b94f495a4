@@ -1,0 +1,88 @@
+src/dod/presentation/_masking.py
+  s_614f17f4aee381::t_8e8471026546d0 39-41,66-68,70-72,125-129
+  s_614f17f4aee381::t_931eaa32cfff12 130-131
+src/dod/infrastructure/_memory.py
+  s_614f17f4aee381::t_01f4f95043377e 136
+  s_614f17f4aee381::t_5c568047607531 25,27,33
+  s_614f17f4aee381::t_b32eb6a6a6367a 30-31,35,51-52,93-109,137-139,295-348,356-366
+  s_614f17f4aee381::t_460f307ce3760e 367-368
+src/dod/domain/v1/_port.py
+  s_614f17f4aee381::t_dbf909fe932aab 5,13,18-30,84-101
+  s_614f17f4aee381::t_5caa9d8a0bcd64 102
+src/dod/infrastructure/_data_dir.py
+  s_614f17f4aee381::t_612139d91ee1c0 1-13
+src/dod/main.py
+  s_614f17f4aee381::t_612139d91ee1c0 11,41
+tests/cli/test_download.py
+  s_614f17f4aee381::t_094759fbc9012a 1-640
+tests/download/test_untrusted_names.py
+  s_614f17f4aee381::t_391509dd9608c6 131,161,168,222
+  s_614f17f4aee381::t_fe906a75539cc3 1-130,132-160,162-167,169-221,223-231
+src/dod/domain/service/_core.py
+  s_614f17f4aee381::t_dbf909fe932aab 45-46
+src/dod/domain/v1/__init__.py
+  s_614f17f4aee381::t_dbf909fe932aab 11-12,17-23,38,42-43,48,51
+tests/support/_fake_service.py
+  s_614f17f4aee381::t_5c568047607531 19,28,123-127,192-219,277-279,290-312,566-589,661-674
+  s_614f17f4aee381::t_441a3680bb5a21 675
+tests/port/test_resources.py
+  s_614f17f4aee381::t_a7304586214ac5 118,129
+  s_614f17f4aee381::t_8540d1a0a073b5 1-117,119-128,130
+tests/conftest.py
+  s_614f17f4aee381::t_b32eb6a6a6367a 7,33-46
+  s_614f17f4aee381::t_09ec2bd53f3f3c 47
+src/dod/presentation/_diagnostics.py
+  s_614f17f4aee381::t_8e8471026546d0 30,33,36,119-122,135,143-144,237-243
+  s_614f17f4aee381::t_c800e32bca364e 244
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_9628b42e921cfd 1369-1374
+  s_614f17f4aee381::t_11331a443e5992 24-25,29,45,51,76,150,162-163,404-406,408,784-881,1328-1368,1375-1410
+  s_614f17f4aee381::t_2d5d0649355765 1411-1412
+src/dod/infrastructure/_http.py
+  s_614f17f4aee381::t_12abb6e9280d40 18,42-43,47,56-57,265-281,417-450,452-477,479-480,485-495,497-505
+  s_614f17f4aee381::t_ccd5387bee7d3e 257-264,451,478,481-484,496
+  s_614f17f4aee381::t_5c568047607531 38,45
+  s_614f17f4aee381::t_782ebf2c9c70d8 506
+src/dod/infrastructure/__init__.py
+  s_614f17f4aee381::t_612139d91ee1c0 7,29
+tests/port/test_http_resources.py
+  s_614f17f4aee381::t_8b1a6c0926a2a2 1-150
+src/dod/application/__init__.py
+  s_614f17f4aee381::t_f0c6ae6d7981ed 67-79,118-119,124-125,144-145,158,165,173,175,177
+src/dod/application/_download.py
+  s_614f17f4aee381::t_612139d91ee1c0 191,216-217,219-220
+  s_614f17f4aee381::t_bd04c5bde0f5c2 1-190,192-215,218,221-287,291-351,353-372,374-379,381-382,384-388,399-410,414-441
+  s_614f17f4aee381::t_f0c6ae6d7981ed 288-290,352,373,380,383,389-398,411-413
+src/dod/domain/v1/_models.py
+  s_614f17f4aee381::t_dbf909fe932aab 132-157
+tests/session/test_session_manager.py
+  s_614f17f4aee381::t_e4060bd8126e63 8,13,19,32,35-36,38,100-109,417-421,432-483
+  s_614f17f4aee381::t_01f4f95043377e 422-431
+src/dod/presentation/_conformance.py
+  s_614f17f4aee381::t_8e8471026546d0 115,125-127
+tests/support/_harness.py
+  s_614f17f4aee381::t_b32eb6a6a6367a 6-12,38-54
+  s_614f17f4aee381::t_fed23386411c31 55
+tests/masking/test_mask.py
+  s_614f17f4aee381::t_8e8471026546d0 141-154
+src/dod/domain/v1/_spec_refs.py
+  s_614f17f4aee381::t_dbf909fe932aab 59
+README.md
+  s_614f17f4aee381::t_788fcde0fba53e 44-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "83de08ed4a9bb9c70aca711a5a999d2b94f495a4",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
