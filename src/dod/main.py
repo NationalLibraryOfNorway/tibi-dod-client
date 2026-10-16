@@ -18,6 +18,10 @@ def _open_http_port(url: str) -> ServicePort:
     return HttpServicePort(url)
 
 
+def _open_http_quirky(url: str, quirks: frozenset[str]) -> ServicePort:
+    return HttpServicePort(url, quirks=quirks)
+
+
 def _open_http_raw(url: str) -> RawChannel:
     return HttpServicePort(url)
 
@@ -32,4 +36,5 @@ def main() -> None:
         session_store=FileSessionStore.from_environ(os.environ),
         parse_reading_system=parse_reading_system,
         open_raw=_open_http_raw,
+        open_quirky=_open_http_quirky,
     )()

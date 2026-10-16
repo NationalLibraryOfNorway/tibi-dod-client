@@ -19,6 +19,9 @@ from dod.domain.v1 import ReadingSystemAttributes, ReadingSystemConfig, ServiceP
 type OpenPort = Callable[[str], ServicePort]
 """Opens a port towards the Service at a URL; supplied by the composition root."""
 
+type OpenQuirkPort = Callable[[str, frozenset[str]], ServicePort]
+"""Like `OpenPort`, with the names of the Quirks (ADR 0010) the port may use."""
+
 
 @dataclass(frozen=True)
 class Step:

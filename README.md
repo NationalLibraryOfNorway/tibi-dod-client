@@ -48,9 +48,17 @@ Ordinary commands reach the Service through the session manager: they reuse the 
 - Outcomes: **PASS** (the Service answered as the specification requires), **FAIL** (it answered contrary to it), **SKIP** (the test does not apply or was not opted into) and **ERROR** (the test could not be evaluated, for example no answer or not SOAP). A fault is classified on its DODP element in `detail`, never on the HTTP status or `faultstring`; HTTP 500 without a DODP element is a FAIL. An optional operation is SKIP when it is not in `supportedOptionalOperations` and answers `operationNotSupported`, FAIL when it is declared but answers `operationNotSupported`, and PASS with a note when it works without being declared.
 - The run logs on with a Session of its own (never a stored one, ADR 0005) and ends it afterwards. A setup that cannot log on is an ERROR that ends the run at once; the tests of logging on, such as a wrong password, are separate PASS/FAIL tests.
 - `--only <prefix>` and `--skip <prefix>` (repeatable) choose tests by id prefix on whole dotted segments. State-changing tests are SKIP unless `--state-changing` is given, and against an Environment with `protected = true` that also needs `--confirm-env <name>`.
-- The text report is one line per test, a summary and an `Observations` section; a FAIL names the section of the specification with a link to the published HTML version (clickable on a terminal that supports it). `--format json` is a versioned report (`schema_version`) with Exchange ids and the masked Exchanges of FAIL and ERROR tests; `--report-exchanges all|failures|none` changes which are included.
+- The text report is one line per test, a summary and an `Observations` section; a FAIL names the section of the specification with a link to the published HTML version (clickable on a terminal that supports it). `--format json` is a versioned report (`schema_version`, now 4) with a `quirks` list, Exchange ids and the masked Exchanges of FAIL and ERROR tests; `--report-exchanges all|failures|none` changes which are included.
 - The negative tests (`negative.*`) send deliberately invalid requests through a `RawChannel`: no Session (`noActiveSession`), an operation before the Initialisation sequence is complete (`invalidOperation`), an unknown operation, and invalid parameters (`invalidParameter`). Each works in an Ephemeral-mode Session of its own, so a stored Session is never touched. They are explicit: an ordinary run leaves them out and `dod test run --only negative` runs them (`dod test list` shows them). A `logOff` that fails afterwards is an ERROR on a record of its own, `<test id>.cleanup`, and the test keeps its PASS or FAIL.
 - Exit code 0 without FAIL or ERROR, 1 with FAIL and no ERROR, 2 with any ERROR. There are no requirement levels and no `--strict`.
+
+#### Quirks for a Service's known deviations
+
+Where an answer cannot be read at all (such as an HTTP 500 with no DODP fault element where the specification requires a fault), a **Quirk** is a named, generic workaround in the HTTP adapter (ADR 0010). Quirks are off by default and are switched on per Environment with `quirks = ["<name>"]`; names are validated strictly every time the file is loaded (`dod config check` too). Each use adds an `interoperability` Observation, so a deviation is never hidden.
+
+- `dod quirks list` shows every known Quirk with its description, Spec reference and the Environments that enable it; `--env <name>` shows only those enabled for that Environment; `--format json` gives the same as JSON. Nothing is sent to a Service.
+- Conformance runs ignore Quirks, so a tolerated deviation stays a FAIL. `dod test run --with-quirks` applies the Environment's Quirks; the text report then has a `Quirks on:` line and the JSON report a `quirks` list (empty without the flag).
+- Known Quirk: `http-500-without-fault-as-invalid-operation` reads an HTTP 500 whose SOAP fault has no DODP fault element as `invalidOperation` for operations that need the initialisation sequence.
 
 #### Baseline for a Service's known deviations
 
@@ -64,7 +72,7 @@ reason = "DODP 5.3 Faults: answers HTTP 500 without a fault element"
 
 - `dod test run --baseline baseline.toml` compares the run with the file. A FAIL that is not in it is **new** (`NEW <id>`, exit code 1). An entry that now passes is **resolved** (`RESOLVED <id>`); that exits 1 only with `--fail-on-resolved`. An ERROR always exits 2 (ADR 0010). An entry whose test did not run (`--only`, SKIP) or ended in ERROR is neither new nor resolved; an entry that names no known test id gives a warning on stderr.
 - `dod test run --write-baseline baseline.toml` writes a Baseline from the run's FAILs: the test id and a short reason (the section of the specification the FAIL cites, or the reason an `--baseline` file already gave). Edit the reasons freely and review the file before committing it. Nothing is written when the setup failed.
-- Outcomes do not change: a baselined FAIL is still FAIL in the text and JSON report, and only the exit code takes the Baseline into account. The JSON report (`schema_version` 3) has a `baseline` section, `null` without `--baseline`, with the sorted lists `new`, `resolved` and `known`; `exit_code` is the one the run ends with.
+- Outcomes do not change: a baselined FAIL is still FAIL in the text and JSON report, and only the exit code takes the Baseline into account. The JSON report (`schema_version` 4) has a `baseline` section, `null` without `--baseline`, with the sorted lists `new`, `resolved` and `known`; `exit_code` is the one the run ends with.
 
 A CI step (GitHub Actions) that fails on new deviations and on a stale Baseline:
 
@@ -111,7 +119,8 @@ default_environment = "test"
 url = "https://dod.example.org/service"   # exactly one of url and wsdl
 username = "alice"
 password = "..."        # plaintext, see docs/adr/0006
-# insecure = false, trust_host = false, protected = false, quirks = []
+# insecure = false, trust_host = false, protected = false
+# quirks = []             # names from `dod quirks list`, see Quirks below
 # reading_system = "reading-system.xml"   # replaces the default declaration
 
 [environments.local]
@@ -163,6 +172,17 @@ uv run pytest                # tests
 ```
 
 Tests against a real Service are marked `real_backend` and deselected by default; run them with `uv run pytest -m real_backend`. They never run in CI, and no credentials or addresses belong in the repository.
+
+### Adding a Quirk
+
+A Quirk may be added by an agent working unattended only when all of this holds (ADR 0010); record each point in the issue that led to it:
+
+1. The deviation was reproduced at least twice against the Service, and its Exchange saved masked (`--save-exchanges`).
+2. It was checked a second time against the local specification copy in `docs/spec/` and shown not to be a defect in `dod` (namespace, parameter order, soapAction, element order). Where tolerant reading already copes, it is not a Quirk.
+3. It is reproduced as fault injection in the fake Service, with a test in `tests/port/test_quirks.py` that shows the answer without the Quirk and with it, and the `interoperability` Observation.
+4. It has a Spec reference from `SPEC_REFS`, a name that describes the behaviour (never a backend), a description, and is off by default.
+
+Then add it to `QUIRKS` in `src/dod/domain/v1/_quirks.py` and implement it in `HttpServicePort`. A test checks that every registered Quirk is accepted by the adapter.
 
 ### The fake Service
 

@@ -31,6 +31,7 @@ from dod.application import (
     MemorySessionStore,
     NoCredentialsError,
     OpenPort,
+    OpenQuirkPort,
     OpenRawChannel,
     ReadingSystemError,
     ReadingSystemParser,
@@ -43,6 +44,7 @@ from dod.application import (
     compare,
     default_reading_system,
     discover,
+    list_quirks,
     load_config,
     logon_ephemeral,
     mark_read,
@@ -83,6 +85,7 @@ from dod.presentation._globals import (
     Terminal,
 )
 from dod.presentation._masking import MaskPolicy, mask, mask_url
+from dod.presentation._quirks import quirk_lines, quirks_json
 
 # Exit codes: 0 ok, 1 the Service answered with a Fault or contrary to the
 # specification, 2 no usable answer or the command could not be run.
@@ -137,6 +140,7 @@ def create_app(
     session_store: SessionStore | None = None,
     parse_reading_system: ReadingSystemParser | None = None,
     open_raw: OpenRawChannel | None = None,
+    open_quirky: OpenQuirkPort | None = None,
 ) -> typer.Typer:
     """Build the `dod` command line application.
 
@@ -147,7 +151,8 @@ def create_app(
     and stdin are terminals (the real ones by default), and `session_store` is
     where Session files live (in memory, so lost at exit, by default).
     `parse_reading_system` reads a Reading System declaration file, and
-    `open_raw` opens the raw channel the negative tests send through.
+    `open_raw` opens the raw channel the negative tests send through, and
+    `open_quirky` opens a port that may use the named Quirks (ADR 0010).
     """
     terminal = terminal or _SystemTerminal()
     store = session_store or MemorySessionStore()
@@ -296,6 +301,17 @@ def create_app(
         groups[name] = typer.Typer(no_args_is_help=True)
         app.add_typer(groups[name], name=name, help=help_text, rich_help_panel=panel)
     _add_config_commands(groups["config"], config_store)
+    _add_quirks_commands(groups["quirks"], config_store)
+
+    def ports(connection: Connection, *, quirks: bool = True) -> OpenPort:
+        """Ports for the Environment, with its Quirks unless `quirks` is false."""
+        names = frozenset(connection.quirks.value) if quirks else frozenset()
+        if not names:
+            return open_port
+        if open_quirky is None:
+            _fail("Quirks are not available here")
+        opener = open_quirky
+        return lambda url: opener(url, names)
 
     def diagnostics(ctx: typer.Context) -> Diagnostics:
         return _start_diagnostics(ctx, _globals(ctx), terminal)
@@ -323,7 +339,7 @@ def create_app(
         credentials: CredentialProvider | None = None,
     ) -> SessionManager:
         return SessionManager(
-            target.diag.wrap(open_port),
+            target.diag.wrap(ports(target.connection)),
             store,
             target.url,
             target.username,
@@ -358,7 +374,7 @@ def create_app(
     ) -> SessionManager:
         """The manager an ordinary command calls the Service through (ADR 0005)."""
         credentials = _credentials(g, target.connection, prompt=g.no_session)
-        wrapped = target.diag.wrap(open_port)
+        wrapped = target.diag.wrap(ports(target.connection))
         if g.no_session:
             return SessionManager.ephemeral(
                 wrapped,
@@ -404,7 +420,7 @@ def create_app(
         try:
             if g.no_session:
                 report = logon_ephemeral(
-                    target.diag.wrap(open_port),
+                    target.diag.wrap(ports(target.connection)),
                     target.url,
                     target.username,
                     password,
@@ -500,7 +516,7 @@ def create_app(
                 check_endpoint(url, insecure=connection.insecure.value)
             except EndpointError as error:
                 _fail(str(error))
-        manager = _local_manager(diag.wrap(open_port), store, connection, url)
+        manager = _local_manager(diag.wrap(ports(connection)), store, connection, url)
         stored = manager is not None and manager.stored()
         values = {"session": "stored" if stored else "none"}
         expired = False
@@ -847,6 +863,15 @@ def create_app(
                 "short reason, no addresses or credentials.",
             ),
         ] = None,
+        with_quirks: Annotated[
+            bool,
+            typer.Option(
+                "--with-quirks",
+                help="Let the Environment's Quirks apply during the run. Without "
+                "it they are ignored, so a tolerated deviation stays a FAIL; the "
+                "report says which Quirks were on (ADR 0010).",
+            ),
+        ] = False,
     ) -> None:
         g = _globals(ctx)
         _no_xml(g, "test run")
@@ -869,7 +894,7 @@ def create_app(
         password = _password(g.password_stdin, target.connection)
         try:
             report = run_conformance(
-                target.diag.wrap(open_port),
+                target.diag.wrap(ports(target.connection, quirks=with_quirks)),
                 target.url,
                 target.username,
                 password,
@@ -882,6 +907,7 @@ def create_app(
             )
         except EndpointError as error:
             _fail(str(error))
+        quirks_on = target.connection.quirks.value if with_quirks else ()
         comparison = None if baseline is None else compare(report, baseline)
         code = (
             report.exit_code
@@ -904,11 +930,15 @@ def create_app(
                 exchanges=report_exchanges,
                 baseline=comparison,
                 exit_code=code,
+                quirks=quirks_on,
             )
             typer.echo(json.dumps(document, indent=2))
         else:
             for line in text_report(
-                report, hyperlinks=sys.stdout.isatty(), baseline=comparison
+                report,
+                hyperlinks=sys.stdout.isatty(),
+                baseline=comparison,
+                quirks=quirks_on,
             ):
                 typer.echo(line)
         if write_baseline_path is not None and report.setup_error is None:
@@ -1359,6 +1389,31 @@ def _add_config_commands(group: typer.Typer, store: ConfigStore) -> None:
         typer.echo(f"config file = {loaded.path} ({state})")
         for line in _show_lines(connection):
             typer.echo(line)
+
+
+def _add_quirks_commands(group: typer.Typer, store: ConfigStore) -> None:
+    @group.command(
+        "list",
+        epilog=_EPILOG,
+        help=(
+            "List every known Quirk: its name, what it tolerates, the Spec "
+            "reference and the Environments that enable it. --env shows only "
+            "the Quirks that Environment enables. Quirks are off by default "
+            "(ADR 0010). Local: nothing is sent to a Service."
+        ),
+    )
+    def quirks_list(ctx: typer.Context) -> None:
+        g = _globals(ctx)
+        _no_xml(g, "quirks list")
+        try:
+            uses = list_quirks(load_config(store, g.config), g.env)
+        except ConfigError as error:
+            _fail(str(error))
+        if g.format is OutputFormat.JSON:
+            typer.echo(json.dumps(quirks_json(uses), indent=2))
+        else:
+            for line in quirk_lines(uses):
+                typer.echo(line)
 
 
 def _show_lines(connection: Connection) -> list[str]:

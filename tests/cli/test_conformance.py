@@ -86,7 +86,7 @@ def test_list_as_json_gives_ids_and_whether_they_change_state() -> None:
 
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == {
-        "schema_version": 3,
+        "schema_version": 4,
         "tests": [
             {"id": "catalog.metadata.get", "state_changing": False, "explicit": False},
             {
@@ -220,7 +220,7 @@ def test_the_json_report_has_a_schema_version_and_exchange_ids(
 
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
-    assert report["schema_version"] == 3
+    assert report["schema_version"] == 4
     assert report["exit_code"] == 0
     assert report["summary"] == {"PASS": 2, "FAIL": 0, "SKIP": 0, "ERROR": 0}
     assert report["setup"] is None
@@ -682,7 +682,7 @@ def test_the_json_report_has_a_baseline_section_and_keeps_the_outcomes(
     )
 
     report = json.loads(result.stdout)
-    assert report["schema_version"] == 3
+    assert report["schema_version"] == 4
     assert report["exit_code"] == result.returncode
     outcomes = {r["id"]: r["outcome"] for r in report["results"]}
     assert outcomes[FAILING] == "FAIL"

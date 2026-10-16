@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 
 from dod.domain.config import Config, ConfigError, Environment, parse_config
 from dod.domain.service import Password
+from dod.domain.v1 import QUIRKS, Quirk
 
 _EMPTY = Config()
 
@@ -227,6 +228,7 @@ def _flag(
 
 
 def _check_semantics(path: str, environment: Environment) -> None:
+    _check_quirks(path, environment)
     for field in ("url", "wsdl"):
         value: str | None = getattr(environment, field)
         if value is None:
@@ -276,3 +278,48 @@ def check_config(loaded: LoadedConfig) -> ConfigCheck:
                 "commands need insecure = true (or --insecure) to use it"
             )
     return ConfigCheck(tuple(config.environments), tuple(warnings))
+
+
+def _check_quirks(path: str, environment: Environment) -> None:
+    unknown = [name for name in environment.quirks if name not in QUIRKS]
+    if unknown:
+        raise ConfigError(
+            f"unknown Quirk {', '.join(repr(name) for name in unknown)}; "
+            f"known: {', '.join(QUIRKS)}",
+            path=path,
+            key=f"environments.{environment.name}.quirks",
+        )
+
+
+@dataclass(frozen=True)
+class QuirkUse:
+    """A known Quirk and the Environments that switch it on."""
+
+    quirk: Quirk
+    environments: tuple[str, ...]
+
+
+def list_quirks(loaded: LoadedConfig, env: str | None = None) -> tuple[QuirkUse, ...]:
+    """Every known Quirk with the Environments that enable it.
+
+    With `env` only the Quirks that Environment enables are listed. Raises
+    `ConfigError` for an unknown Environment or a Quirk name nobody knows.
+    """
+    environments = loaded.config.environments
+    if env is not None and env not in environments:
+        known = ", ".join(environments) or "none"
+        raise ConfigError(
+            f"unknown Environment {env!r}; defined: {known}",
+            path=loaded.path if loaded.found else None,
+        )
+    for environment in environments.values():
+        _check_quirks(loaded.path, environment)
+    chosen = environments.values() if env is None else [environments[env]]
+    uses = tuple(
+        QuirkUse(
+            quirk,
+            tuple(e.name for e in chosen if quirk.name in e.quirks),
+        )
+        for quirk in QUIRKS.values()
+    )
+    return uses if env is None else tuple(use for use in uses if use.environments)

@@ -9,7 +9,7 @@ leniently into the models and always validated against the local schemas.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Sequence
 from urllib.parse import urlsplit
 
 import httpx
@@ -29,6 +29,9 @@ from dod.domain.service import (
     TransportError,
 )
 from dod.domain.v1 import (
+    BARE_500_AS_INVALID_OPERATION,
+    OBSERVATION_ID,
+    QUIRKS,
     SPEC_REFS,
     Announcement,
     ContentItem,
@@ -44,6 +47,10 @@ _NS = "http://www.daisy.org/ns/daisy-online/"
 _DC = "http://purl.org/dc/elements/1.1/"
 _SOAP = "http://schemas.xmlsoap.org/soap/envelope/"
 _TIMEOUT_SECONDS = 30.0
+_BEFORE_INITIALISATION = frozenset(
+    {"logOn", "logOff", "getServiceAttributes", "setReadingSystemAttributes"}
+)
+"""Operations that are valid before the initialisation sequence is complete."""
 
 
 def _dodp(name: str) -> str:
@@ -246,7 +253,17 @@ class HttpServicePort:
     answer, which also keeps credentials and cookies on the host the user named.
     """
 
-    def __init__(self, url: str, *, client: httpx.Client | None = None) -> None:
+    def __init__(
+        self,
+        url: str,
+        *,
+        client: httpx.Client | None = None,
+        quirks: Collection[str] = (),
+    ) -> None:
+        unknown = sorted(set(quirks) - QUIRKS.keys())
+        if unknown:
+            raise ValueError(f"unknown Quirk: {', '.join(unknown)}")
+        self._quirks = frozenset(quirks)
         self._url = url
         self._client = client or httpx.Client(
             timeout=_TIMEOUT_SECONDS, follow_redirects=False
@@ -469,7 +486,9 @@ class HttpServicePort:
                 observations=observations,
             )
         if payload.tag == f"{{{_SOAP}}}Fault":
-            return self._fault(payload, exchange=exchange, observations=observations)
+            return self._fault(
+                operation, payload, exchange=exchange, observations=observations
+            )
         if expect_response and payload.tag != _dodp(f"{operation}Response"):
             return Deviation(
                 description=(
@@ -539,8 +558,9 @@ class HttpServicePort:
             )
         return body
 
-    @staticmethod
     def _fault(
+        self,
+        operation: str,
         payload: etree._Element,
         *,
         exchange: Exchange,
@@ -563,6 +583,27 @@ class HttpServicePort:
                     exchange=exchange,
                     observations=observations,
                 )
+        if (
+            BARE_500_AS_INVALID_OPERATION in self._quirks
+            and exchange.status == 500
+            and operation not in _BEFORE_INITIALISATION
+        ):
+            return Fault(
+                kind=FaultKind.INVALID_OPERATION,
+                reason=None,
+                exchange=exchange,
+                observations=(
+                    *observations,
+                    Observation(
+                        id=OBSERVATION_ID,
+                        message=(
+                            f"Quirk {BARE_500_AS_INVALID_OPERATION}: an HTTP 500 "
+                            "without a DODP fault element was read as an "
+                            "invalidOperation fault"
+                        ),
+                    ),
+                ),
+            )
         return Deviation(
             description="a SOAP fault without a recognisable DODP fault element",
             spec_reference=SPEC_REFS["faults"],
