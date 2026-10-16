@@ -14,6 +14,11 @@ layer = "domain"
 depends_on = []
 
 [[modules]]
+path = "dod.domain.book"
+layer = "domain"
+depends_on = []
+
+[[modules]]
 path = "dod.domain.config"
 layer = "domain"
 depends_on = ["dod.domain.service"]
@@ -26,7 +31,12 @@ depends_on = ["dod.domain.service"]
 [[modules]]
 path = "dod.application"
 layer = "application"
-depends_on = ["dod.domain.config", "dod.domain.service", "dod.domain.v1"]
+depends_on = [
+    "dod.domain.book",
+    "dod.domain.config",
+    "dod.domain.service",
+    "dod.domain.v1",
+]
 
 [[modules]]
 path = "dod.infrastructure"
@@ -60,6 +70,7 @@ depends_on = [
 [[interfaces]]
 expose = ["[A-Za-z][A-Za-z0-9_]*"]
 from = [
+    "dod.domain.book",
     "dod.domain.service",
     "dod.domain.config",
     "dod.domain.v1",

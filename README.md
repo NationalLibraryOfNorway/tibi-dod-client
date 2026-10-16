@@ -72,6 +72,16 @@ Ordinary commands reach the Service through the session manager: they reuse the 
 - Any status but 2xx is a Spec deviation and never causes a new login. An Exchange keeps the headers and the first 4 KiB of a resource body, marked as cut.
 - `--format json` is a stable document; `download` has no xml output.
 
+### Play
+
+`dod play <id>` plays a downloaded DAISY 2.02 book from the files on disk (ADR 0009). It never streams and never fetches: run `dod issue` and `dod download` first. Audio needs the optional `miniaudio` (MIT): `pip install 'dod-client[play]'`. It decodes WAV, FLAC, MP3 and Ogg Vorbis, not AAC. Where it has no wheels (for example Linux arm64, Windows arm64, Python 3.15) `dod play` exits with 2 and says what is missing.
+
+- The order is derived from the book's own SMIL: `master.smil` if there is one, otherwise the SMIL files `ncc.html` first links to, each once; every `audio` element of them (nested `seq` included) is one Clip. Headings, page numbers and text are ignored. There is no fallback to file-name order or to the `resources` order: a book without SMIL (`audioOnly`) is refused with an explanation. A `clip-begin` or `clip-end` that is missing means from the start of the file or to its end.
+- SMIL and `ncc.html` are untrusted: they are parsed without entities, DTDs or network access (a document that declares entities is refused), and every path in them is validated like a `localURI` (relative, no `..`, no links out of the book directory).
+- The book is read from `<data>/<environment>/books/<id>/` (see above), or from `--directory <dir>`. Every audio file must be on disk and decodable before the first sound; a missing file is refused, and a format `miniaudio` cannot decode is an error with the Observation `audio-format`.
+- While playing, type a command and press Enter: `p` pause or resume, `n` next Clip, `b` previous Clip, `f` forward 30 seconds, `r` back 30 seconds, `q` stop, and an empty line shows the status. The status line shows the audio file's path in the book, its place among the distinct files (`file 3 of 7`) and the elapsed and total Playlist time. Pause, resume and jumps stop the device and restart it from a frame offset; the position is the count of frames handed to the device and runs slightly ahead of what is heard. From a pipe the lines are applied in order and the book then plays to its end.
+- `play` has text output only. Tests never open an audio device: they use a fake Player and miniaudio's `Backend.NULL`.
+
 ### Conformance tests
 
 `dod test run` runs Conformance tests against a Service and reports one Outcome per test; `dod test list` shows the stable, hierarchical test ids (`session.logon.wrong-password`). The families are `session`, `attributes`, `catalog` and `content` (State-changing, see below), and `negative` (explicit, see below).

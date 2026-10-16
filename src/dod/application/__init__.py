@@ -99,6 +99,18 @@ from dod.application._logon import (
     default_reading_system,
     logon_ephemeral,
 )
+from dod.application._play import (
+    AudioError,
+    OpenPlayer,
+    Playback,
+    PlaybackState,
+    PlaybackStatus,
+    Player,
+    PlayerUnavailable,
+    PlayRefused,
+    open_book,
+    prepare_playback,
+)
 from dod.application._session import (
     CredentialProvider,
     InitialisationFailed,
@@ -111,15 +123,19 @@ from dod.application._session import (
     SessionSlot,
     SessionStore,
 )
+from dod.domain.book import BookError, BookErrorKind
 from dod.domain.config import ConfigError
 
 __all__ = [
     "CONFORMANCE_TESTS",
     "MAX_WSDL_BYTES",
     "Attempt",
+    "AudioError",
     "Baseline",
     "BaselineComparison",
     "BaselineError",
+    "BookError",
+    "BookErrorKind",
     "ConfigCheck",
     "ConfigError",
     "ConfigFile",
@@ -149,10 +165,17 @@ __all__ = [
     "MarkResult",
     "MemorySessionStore",
     "NoCredentialsError",
+    "OpenPlayer",
     "OpenPort",
     "OpenQuirkPort",
     "OpenRawChannel",
     "Outcome",
+    "PlayRefused",
+    "Playback",
+    "PlaybackState",
+    "PlaybackStatus",
+    "Player",
+    "PlayerUnavailable",
     "QuirkUse",
     "ReadingSystemError",
     "ReadingSystemParser",
@@ -187,7 +210,9 @@ __all__ = [
     "load_config",
     "logon_ephemeral",
     "mark_read",
+    "open_book",
     "origin",
+    "prepare_playback",
     "resolve_connection",
     "resolve_endpoint",
     "resolve_resource_uri",
