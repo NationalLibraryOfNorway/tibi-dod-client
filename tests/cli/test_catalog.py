@@ -12,11 +12,10 @@ from pathlib import Path
 import pytest
 
 from dod.domain.v1 import ContentItem, ContentList, ContentMetadata
-from support import FakeService, run_dod
+from support import PASSWORD, FakeService, run_dod
 from support._fake_service import NS, SOAP
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 ITEMS = tuple(
     ContentItem(id=f"book{n}", label=f"Book {n}", lang="en") for n in range(3)
 )

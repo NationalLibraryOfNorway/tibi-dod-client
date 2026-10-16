@@ -10,14 +10,13 @@ from collections.abc import Iterator
 import pytest
 
 from dod.application import CONFORMANCE_TESTS, Outcome, RunReport, run_conformance
-from dod.domain.service import Password
 from dod.domain.v1 import SPEC_REFS, ContentItem, ContentList, ContentMetadata
 from dod.infrastructure import HttpServicePort
+from support import SECRET as PASSWORD
 from support import FakeService
 from support.samples import KEY_EXCHANGE, bookmark_set
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 BOOK = ContentMetadata(title="Book 0", identifier="book0", format="Daisy 2.02", size=1)
 LASTMARK = (
     "<lastmark><ncxRef>hix00023</ncxRef><URI>s023.smil#main</URI>"

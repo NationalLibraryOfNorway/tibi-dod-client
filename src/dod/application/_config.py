@@ -299,19 +299,21 @@ class QuirkUse:
     environments: tuple[str, ...]
 
 
-def list_quirks(loaded: LoadedConfig, env: str | None = None) -> tuple[QuirkUse, ...]:
+def list_quirks(
+    loaded: LoadedConfig,
+    env: str | None = None,
+    environ: Mapping[str, str] | None = None,
+) -> tuple[QuirkUse, ...]:
     """Every known Quirk with the Environments that enable it.
 
-    With `env` only the Quirks that Environment enables are listed. Raises
+    The Environment is selected as for every other command: `env` (`--env`),
+    then `DOD_ENV` in `environ`, then `default_environment`. With one selected
+    only the Quirks it enables are listed; with none, all of them. Raises
     `ConfigError` for an unknown Environment or a Quirk name nobody knows.
     """
     environments = loaded.config.environments
-    if env is not None and env not in environments:
-        known = ", ".join(environments) or "none"
-        raise ConfigError(
-            f"unknown Environment {env!r}; defined: {known}",
-            path=loaded.path if loaded.found else None,
-        )
+    selected = _select(loaded, env, environ or {})
+    env = selected[0] if selected else None
     for environment in environments.values():
         _check_quirks(loaded.path, environment)
     chosen = environments.values() if env is None else [environments[env]]

@@ -2,12 +2,12 @@
 
 import pytest
 
-from dod.domain.service import Deviation, Fault, FaultKind, Ok, Password
+from dod.domain.service import Deviation, Fault, FaultKind, Ok
 from dod.domain.v1 import ContentResource, ServicePort
+from support import SECRET as PASSWORD
 from support import Harness
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 CHAPTER = ContentResource(
     uri="files/chapter1.mp3",
     mime_type="audio/mpeg",

@@ -116,7 +116,9 @@ from dod.presentation._quirks import quirk_lines, quirks_json
 from dod.presentation._text import field_lines as _field_lines
 from dod.presentation._text import metadata_lines as _metadata_lines
 from dod.presentation._text import plain as _plain
-from dod.presentation._text import step_line as _line
+from dod.presentation._text import plain_lines as _plain_lines
+from dod.presentation._text import step_line as _step_line
+from dod.presentation._text import step_result as _step_result
 
 if TYPE_CHECKING:
     from textual.app import App
@@ -1712,8 +1714,8 @@ def _host_boundary(endpoint: Endpoint) -> tuple[Observation, ...]:
         Observation(
             id="host-boundary",
             message=(
-                f"the WSDL at {mask_url(endpoint.wsdl)} names the endpoint "
-                f"{mask_url(endpoint.url)}, which has another host, port or scheme; "
+                f"the WSDL at {_shown_url(endpoint.wsdl)} names the endpoint "
+                f"{_shown_url(endpoint.url)}, which has another host, port or scheme; "
                 "accepted because of --trust-host"
             ),
         ),
@@ -1724,7 +1726,7 @@ def _banner(connection: Connection, url: str, quiet: bool) -> None:
     if quiet:
         return
     name = connection.environment.value if connection.environment else "-"
-    typer.echo(f"[{name}] {mask_url(url)}", err=True)
+    typer.echo(f"[{_plain(name)}] {_shown_url(url)}", err=True)
 
 
 _NO_ADDRESS = (
@@ -1786,38 +1788,50 @@ def _show(g: GlobalOptions, values: dict[str, str]) -> None:
             typer.echo(f"{name}: {value}")
 
 
+def _shown_url(url: str) -> str:
+    """An address as it may be shown: masked (ADR 0007), without control
+    characters (ADR 0008). For every address a Service or its WSDL named."""
+    return _plain(mask_url(url))
+
+
 def _no_answer(error: TransportError, url: str) -> str:
     return (
-        f"{error}\nIf {mask_url(url)} is not the SOAP endpoint, try: "
-        f"dod discover {mask_url(url)}"
+        f"{_plain(str(error))}\nIf {_shown_url(url)} is not the SOAP endpoint, "
+        f"try: dod discover {_shown_url(url)}"
     )
 
 
 def _render_discovery(discovery: Discovery, address: str) -> None:
     for attempt in discovery.attempts:
-        typer.echo(f"tried {attempt.url}: {attempt.outcome}", err=True)
+        typer.echo(
+            f"tried {_shown_url(attempt.url)}: {_plain(attempt.outcome)}", err=True
+        )
     found = discovery.found
     if found is None or found.port is None:
         _fail(
-            f"no DODP endpoint found at {mask_url(address)}.\n"
+            f"no DODP endpoint found at {_shown_url(address)}.\n"
             "Next steps: pass the SOAP endpoint with --url, give the address of "
             "the WSDL with --wsdl, or ask the Service's owner for the endpoint."
         )
-    endpoint = found.port.address
+    endpoint = _shown_url(found.port.address)
+    wsdl = _shown_url(found.url)
     typer.echo(f"endpoint: {endpoint}")
-    typer.echo(f"wsdl: {found.url}")
-    if origin(found.url) != origin(endpoint):
+    typer.echo(f"wsdl: {wsdl}")
+    if origin(found.url) != origin(found.port.address):
         typer.echo(
             "note: the WSDL names another host, port or scheme than it came from; "
             f"using it needs --trust-host (or: --url {endpoint})",
             err=True,
         )
     else:
-        typer.echo(f"use it with: --wsdl {found.url}  or  --url {endpoint}", err=True)
+        typer.echo(f"use it with: --wsdl {wsdl}  or  --url {endpoint}", err=True)
 
 
 def _fail(message: str) -> NoReturn:
-    typer.echo(f"error: {message}", err=True)
+    """Print the error and end the command. The one place that strips control
+    characters from every error, whatever the Service had to do with it; the
+    line breaks of a deliberately multi-line message stay (ADR 0008)."""
+    typer.echo(f"error: {_plain_lines(message)}", err=True)
     raise typer.Exit(EXIT_UNUSABLE)
 
 
@@ -1995,10 +2009,8 @@ def _questions_json(shown: Questions, supported: frozenset[str]) -> dict[str, An
 
 def _problem_text(problem: Reply[int] | str) -> str:
     if isinstance(problem, str):
-        return problem
-    if isinstance(problem, Deviation):
-        return problem.description
-    return _line(Step("fetch", problem)).split(": ", 1)[1]
+        return _plain(problem)
+    return _step_result(Step("fetch", problem))
 
 
 def _render_download(
@@ -2016,7 +2028,7 @@ def _render_download(
     elif report.files:
         result = "failed"
     else:
-        result = _line(step).split(": ", 1)[1]
+        result = _step_result(step)
     if g.format is OutputFormat.JSON:
         document: dict[str, Any] = {
             "result": result,
@@ -2037,7 +2049,7 @@ def _render_download(
         typer.echo(json.dumps(document, indent=2))
     else:
         if not isinstance(report.resources, Ok) or report.deviation is not None:
-            typer.echo(_line(step))
+            typer.echo(_step_line(step))
         for item in report.files:
             name = _plain(item.local_uri)
             if item.outcome is FileOutcome.DOWNLOADED:
@@ -2080,7 +2092,7 @@ def _render_return(
     else:
         assert report.metadata is not None
         step = Step("getContentMetadata", report.metadata)
-    result = _line(step).split(": ", 1)[1]
+    result = _step_result(step)
     local = report.local_copy
     if g.format is OutputFormat.JSON:
         document: dict[str, Any] = {"result": result}
@@ -2093,7 +2105,7 @@ def _render_return(
             typer.echo(f"local copy: deleted {directory}")
         elif local is not None:
             typer.echo(f"local copy: {local.value}")
-        typer.echo(_line(step))
+        typer.echo(_step_line(step))
     _diagnose(diag, step)
     raise typer.Exit(EXIT_OK if step.succeeded else EXIT_SERVICE_FAILED)
 
@@ -2104,7 +2116,7 @@ def _render_marks(g: GlobalOptions, diag: Diagnostics, report: MarkReport) -> No
     for result in report.results:
         if result.outcome is MarkOutcome.FAILED:
             failed = Step("markAnnouncementsAsRead", result.reply)
-            text = _line(failed).split(": ", 1)[1]
+            text = _step_result(failed)
         else:
             text = result.outcome.value
         shown.append((_plain(result.id), text))
@@ -2160,12 +2172,12 @@ def _present[T](
     if g.format is OutputFormat.XML:
         typer.echo(mask(reply.exchange).response_body)
     elif g.format is OutputFormat.JSON:
-        result = {"result": _line(step).split(": ", 1)[1]}
+        result = {"result": _step_result(step)}
         body = document(reply.value) if isinstance(reply, Ok) else {}
         typer.echo(json.dumps(result | body, indent=2))
     else:
         if header or not isinstance(reply, Ok):
-            typer.echo(_line(step))
+            typer.echo(_step_line(step))
         if isinstance(reply, Ok) and reply.value is not False:
             for line in lines(reply.value):
                 typer.echo(line)
@@ -2261,7 +2273,7 @@ def _add_quirks_commands(group: typer.Typer, store: ConfigStore) -> None:
         g = _globals(ctx)
         _no_xml(g, "quirks list")
         try:
-            uses = list_quirks(load_config(store, g.config), g.env)
+            uses = list_quirks(load_config(store, g.config), g.env, os.environ)
         except ConfigError as error:
             _fail(str(error))
         if g.format is OutputFormat.JSON:
@@ -2311,7 +2323,7 @@ def _render(report: LogonReport, output: OutputFormat, diag: Diagnostics) -> Non
             typer.echo(exchange.response_body)
     else:
         for step in report.steps:
-            typer.echo(_line(step))
+            typer.echo(_step_line(step))
             if (
                 isinstance(step.reply, Ok)
                 and step.operation == "getServiceAnnouncements"
@@ -2330,8 +2342,8 @@ def _diagnose(diag: Diagnostics, step: Step, *, observe: bool = True) -> None:
         diag.observe(reply.observations)
     for violation in reply.schema_violations:
         typer.echo(
-            f"schema violation in {step.operation} (line {violation.line}): "
-            f"{violation.message}",
+            f"schema violation in {_plain(step.operation)} (line {violation.line}): "
+            f"{_plain(violation.message)}",
             err=True,
         )
     if isinstance(reply, Deviation):
@@ -2347,7 +2359,7 @@ def _logon_json(report: LogonReport) -> dict[str, Any]:
     document: dict[str, Any] = {
         "succeeded": report.succeeded,
         "steps": [
-            {"operation": step.operation, "result": _line(step).split(": ", 1)[1]}
+            {"operation": step.operation, "result": _step_result(step)}
             for step in report.steps
         ],
     }

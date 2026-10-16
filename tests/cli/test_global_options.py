@@ -2,10 +2,9 @@
 
 import pytest
 
-from support import FakeService, run_dod
+from support import PASSWORD, FakeService, run_dod
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 
 
 @pytest.fixture

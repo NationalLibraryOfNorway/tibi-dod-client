@@ -19,12 +19,11 @@ from dod.application import ConfigFile, book_directory
 from dod.domain.v1 import ContentItem, ContentList
 from dod.infrastructure import HttpFetcher, InMemoryService, parse_wsdl
 from dod.presentation import create_app
-from support import run_dod
+from support import PASSWORD, run_dod
 from support._fake_player import FakePlayer
 
 URL = "https://dod.example.org/service"
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 
 
 class NoConfig:

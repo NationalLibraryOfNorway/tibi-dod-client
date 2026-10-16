@@ -7,7 +7,6 @@ characters before it reaches a terminal (ADR 0008).
 
 from __future__ import annotations
 
-import re
 from enum import StrEnum
 from typing import Any
 
@@ -20,11 +19,10 @@ from dod.application import (
 )
 from dod.domain.service import Exchange, SpecReference
 from dod.presentation._masking import mask, mask_url
+from dod.presentation._text import plain
 
 SCHEMA_VERSION = 4
 """Raised whenever the shape of the JSON report changes (ADR 0010)."""
-
-_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 
 class ReportExchanges(StrEnum):
@@ -35,11 +33,6 @@ class ReportExchanges(StrEnum):
     NONE = "none"
 
 
-def plain(text: str) -> str:
-    """The text without control characters."""
-    return _CONTROL.sub(" ", text)
-
-
 def _link(ref: SpecReference, hyperlinks: bool) -> str:
     label = f"DODP {ref.section} {ref.title}"
     if hyperlinks:
@@ -47,7 +40,7 @@ def _link(ref: SpecReference, hyperlinks: bool) -> str:
     return f"{label}: {ref.url}"
 
 
-def _line(record: Record, hyperlinks: bool) -> str:
+def _record_line(record: Record, hyperlinks: bool) -> str:
     detail = plain(record.message)
     if record.outcome is Outcome.PASS:
         return f"PASS {record.id}" + (
@@ -70,7 +63,7 @@ def text_report(
     lines: list[str] = []
     if report.setup_error is not None:
         lines.append(f"ERROR setup: {plain(report.setup_error)}")
-    lines += [_line(record, hyperlinks) for record in report.records]
+    lines += [_record_line(record, hyperlinks) for record in report.records]
     counts = _summary(report)
     total = sum(counts.values())
     lines.append(

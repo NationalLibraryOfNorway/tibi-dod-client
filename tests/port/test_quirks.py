@@ -8,13 +8,13 @@ from collections.abc import Iterator
 
 import pytest
 
-from dod.domain.service import Deviation, Fault, FaultKind, Ok, Password
+from dod.domain.service import Deviation, Fault, FaultKind, Ok
 from dod.domain.v1 import QUIRKS
 from dod.infrastructure import HttpServicePort
+from support import SECRET as PASSWORD
 from support import FakeService
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 BARE_500 = "http-500-without-fault-as-invalid-operation"
 
 

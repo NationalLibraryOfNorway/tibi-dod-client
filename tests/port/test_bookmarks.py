@@ -5,13 +5,13 @@ Users, books, passwords and keys are synthetic.
 
 import pytest
 
-from dod.domain.service import Fault, FaultKind, Ok, Password
+from dod.domain.service import Fault, FaultKind, Ok
 from dod.domain.v1 import ContentMetadata, ServicePort
+from support import SECRET as PASSWORD
 from support import Harness
 from support.samples import KEY_EXCHANGE, bookmark_set
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 BOOK = ContentMetadata(title="Book", identifier="book0", format="Daisy 2.02", size=1)
 LASTMARK = (
     "<lastmark><ncxRef>hix00023</ncxRef><URI>s023.smil#main</URI>"

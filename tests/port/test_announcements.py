@@ -2,12 +2,12 @@
 
 import pytest
 
-from dod.domain.service import Deviation, Fault, FaultKind, Ok, Password
+from dod.domain.service import Deviation, Fault, FaultKind, Ok
 from dod.domain.v1 import Announcement, ServicePort
+from support import SECRET as PASSWORD
 from support import Harness
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 ANNOUNCEMENTS = (
     Announcement(id="a1", text="Maintenance tonight", lang="en"),
     Announcement(id="a2", text="Vedlikehold", lang="nb", type="WARNING", priority=1),

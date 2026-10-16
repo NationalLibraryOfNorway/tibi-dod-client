@@ -19,10 +19,10 @@ from dod.application import (
 from dod.domain.service import Password
 from dod.domain.v1 import SPEC_REFS, ContentItem, ContentList, ContentMetadata
 from dod.infrastructure import HttpServicePort, InMemoryService
+from support import SECRET as PASSWORD
 from support import FakeService
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 ITEMS = tuple(ContentItem(id=f"book{n}", label=f"Book {n}") for n in range(3))
 ISSUED = ContentList(id="issued", total_items=3, items=ITEMS)
 BOOK = ContentMetadata(

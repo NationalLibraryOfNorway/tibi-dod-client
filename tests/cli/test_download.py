@@ -14,10 +14,9 @@ from pathlib import Path
 import pytest
 
 from dod.domain.v1 import ContentResource
-from support import FakeService, run_dod
+from support import PASSWORD, FakeService, run_dod
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 CHAPTER = ContentResource(
     uri="files/chapter1.mp3",
     mime_type="audio/mpeg",

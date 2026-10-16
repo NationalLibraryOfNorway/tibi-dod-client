@@ -17,10 +17,10 @@ from dod.domain.service import Password, TransportError
 from dod.domain.v1 import ContentItem, ContentList, ContentMetadata, ServicePort
 from dod.infrastructure import InMemoryService
 from dod.presentation import create_tui
+from support import PASSWORD
 
 URL = "https://dod.example.org/service"
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 ITEMS = tuple(
     ContentItem(id=f"book{n}", label=f"Book {n}", lang="en") for n in range(3)
 )

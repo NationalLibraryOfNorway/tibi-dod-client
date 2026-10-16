@@ -13,10 +13,10 @@ from dod.domain.v1 import (
     ReadingSystemConfig,
     ServicePort,
 )
+from support import SECRET as PASSWORD
 from support import Harness
 
 USER = "synthetic-user"
-PASSWORD = Password("synthetic-secret")
 READING_SYSTEM = ReadingSystemAttributes(
     manufacturer="Synthetic Maker",
     model="dod",

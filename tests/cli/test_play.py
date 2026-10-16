@@ -24,11 +24,10 @@ from dod.infrastructure import (
     parse_wsdl,
 )
 from dod.presentation import create_app
-from support import FakeService
+from support import PASSWORD, FakeService
 from support._fake_player import FakePlayer
 
 USER = "synthetic-user"
-PASSWORD = "synthetic-secret"
 MASTER = (
     b'<smil><head/><body><seq><ref src="b.smil"/><ref src="a.smil"/></seq>'
     b"</body></smil>"
