@@ -2,6 +2,7 @@
 
 `mask` is the only function that decides what is secret; stderr diagnostics,
 `--save-exchanges` files and later the conformance reports all go through it.
+`mask_keys` applies its rule for key material to text that is shown on stdout.
 A masked value is replaced by `***[ab12cd]`, a short fingerprint of the value,
 so that two Exchanges can be seen to share a Session without revealing it.
 """
@@ -36,6 +37,11 @@ _PASSWORD_ELEMENT = re.compile(
     r"(<(?:[\w.-]+:)?password(?:\s[^>]*)?>)([^<]*)(</(?:[\w.-]+:)?password\s*>)",
     re.IGNORECASE,
 )
+_KEY_ELEMENT = re.compile(
+    r"(<(?:[\w.-]+:)?(?:UAK|CipherValue)(?:\s[^>]*)?>)([^<]*)"
+    r"(</(?:[\w.-]+:)?(?:UAK|CipherValue)\s*>)"
+)
+"""Key material of a PDTB2 Key Exchange Object: a UAK and encrypted key values."""
 _URL_USERINFO = re.compile(
     r"(\b[A-Za-z][A-Za-z0-9+.-]*://)([^/\s@\"'<>]+)@",
 )
@@ -67,10 +73,18 @@ def mask(exchange: Exchange, policy: MaskPolicy | None = None) -> Exchange:
             _mask_password(exchange.request_body, policy.unmask_password), reveal
         ),
         response_headers=_headers(exchange.response_headers, reveal),
-        response_body=_mask_userinfo(
-            _mask_password(exchange.response_body, policy.unmask_password), reveal
+        response_body=_mask_keys(
+            _mask_userinfo(
+                _mask_password(exchange.response_body, policy.unmask_password), reveal
+            ),
+            reveal,
         ),
     )
+
+
+def mask_keys(text: str) -> str:
+    """Hide the key material in text that is shown (never unmasked: ADR 0007)."""
+    return _mask_keys(text, _revealer(False))
 
 
 def mask_url(url: str, *, reveal: Callable[[str, str], str] | None = None) -> str:
@@ -126,6 +140,15 @@ def _mask_userinfo(body: str, reveal: Callable[[str, str], str]) -> str:
     """Userinfo of an address inside a body, such as a resource `uri` attribute."""
     return _URL_USERINFO.sub(
         lambda match: f"{match.group(1)}{reveal(match.group(2), 'salted')}@", body
+    )
+
+
+def _mask_keys(body: str, reveal: Callable[[str, str], str]) -> str:
+    return _KEY_ELEMENT.sub(
+        lambda match: (
+            f"{match.group(1)}{reveal(match.group(2), 'salted')}{match.group(3)}"
+        ),
+        body,
     )
 
 

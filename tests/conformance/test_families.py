@@ -51,6 +51,14 @@ CONTENT_IDS = [
     "content.resource.range",
     "content.resources.not-issued",
 ]
+# The optional operations of a Service that declares none: it answers all of them
+# but the round trip, which needs --state-changing and a content id.
+OPTIONAL_OUTCOMES = {
+    "bookmarks.get.known": Outcome.PASS,
+    "bookmarks.get.unknown-id": Outcome.PASS,
+    "bookmarks.set.round-trip": Outcome.SKIP,
+    "key-exchange.unknown-key": Outcome.PASS,
+}
 
 
 @pytest.fixture
@@ -82,10 +90,12 @@ def test_the_default_registry_lists_the_first_families_by_stable_id() -> None:
     assert [t.id for t in CONFORMANCE_TESTS.tests if not t.explicit] == [
         *ALL_IDS,
         *CONTENT_IDS,
+        *OPTIONAL_OUTCOMES,
     ]
-    assert {t.id for t in CONFORMANCE_TESTS.tests if t.state_changing} == set(
-        CONTENT_IDS
-    )
+    assert {t.id for t in CONFORMANCE_TESTS.tests if t.state_changing} == {
+        *CONTENT_IDS,
+        "bookmarks.set.round-trip",
+    }
 
 
 def test_every_test_passes_against_a_conforming_service(service: FakeService) -> None:
@@ -94,9 +104,10 @@ def test_every_test_passes_against_a_conforming_service(service: FakeService) ->
     assert {r.id: r.outcome for r in report.records} == {
         **dict.fromkeys(ALL_IDS, Outcome.PASS),
         **dict.fromkeys(CONTENT_IDS, Outcome.SKIP),
+        **OPTIONAL_OUTCOMES,
     }
     assert report.exit_code == 0
-    assert all(r.note is None for r in report.records)
+    assert all(r.note is None for r in report.records if r.id in ALL_IDS)
 
 
 def test_every_test_passes_against_the_in_memory_service() -> None:
@@ -114,6 +125,7 @@ def test_every_test_passes_against_the_in_memory_service() -> None:
     assert {r.id: r.outcome for r in report.records} == {
         **dict.fromkeys(ALL_IDS, Outcome.PASS),
         **dict.fromkeys(CONTENT_IDS, Outcome.SKIP),
+        **OPTIONAL_OUTCOMES,
     }
 
 

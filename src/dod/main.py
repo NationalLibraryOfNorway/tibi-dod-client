@@ -11,6 +11,7 @@ from dod.infrastructure import (
     data_directory,
     parse_reading_system,
     parse_wsdl,
+    validate_bookmark_set,
 )
 from dod.presentation import create_app
 
@@ -39,4 +40,5 @@ def main() -> None:
         open_raw=_open_http_raw,
         open_quirky=_open_http_quirky,
         data_dir=data_directory(os.environ),
+        validate_bookmarks=validate_bookmark_set,
     )()

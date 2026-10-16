@@ -152,3 +152,33 @@ def test_userinfo_of_an_address_inside_a_body_is_masked() -> None:
     assert "dg-user" not in masked.response_body
     assert "@cdn.example.net/a.mp3" in masked.response_body
     assert 'uri="files/b.mp3"' in masked.response_body
+
+
+KEY = "c3ludGhldGlja2V5"
+KEY_EXCHANGE_BODY = (
+    '<KeyExchange xmlns="http://www.daisy.org/DRM/2005/KeyExchange" '
+    'xmlns:xenc="http://www.w3.org/2001/04/xmlenc#">'
+    '<Issuer uid="DAISY.synthetic">Synthetic issuer</Issuer>'
+    f'<Keys><UAK issuerID="i" collectionID="c">{KEY}</UAK>'
+    f"<xenc:EncryptedKey><xenc:CipherData><xenc:CipherValue>{KEY}"
+    "</xenc:CipherValue></xenc:CipherData></xenc:EncryptedKey></Keys></KeyExchange>"
+)
+
+
+def test_key_material_is_masked_but_the_rest_of_the_object_is_kept() -> None:
+    masked = mask(exchange(response_body=KEY_EXCHANGE_BODY))
+
+    assert KEY not in masked.response_body
+    assert len(FINGERPRINT.findall(masked.response_body)) == 2
+    assert '<Issuer uid="DAISY.synthetic">Synthetic issuer</Issuer>' in (
+        masked.response_body
+    )
+    assert '<UAK issuerID="i" collectionID="c">***[' in masked.response_body
+
+
+def test_key_material_is_shown_only_when_unmasking() -> None:
+    shown = mask(
+        exchange(response_body=KEY_EXCHANGE_BODY), MaskPolicy(unmask=True)
+    ).response_body
+
+    assert KEY in shown

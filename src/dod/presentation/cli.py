@@ -21,6 +21,7 @@ from dod.application import (
     Connection,
     CredentialProvider,
     Discovery,
+    DocumentValidator,
     DownloadReport,
     DownloadRequest,
     Endpoint,
@@ -75,9 +76,11 @@ from dod.domain.service import (
 )
 from dod.domain.v1 import (
     Announcement,
+    BookmarkSet,
     ContentList,
     ContentMetadata,
     ContentResources,
+    KeyExchangeObject,
     ReadingSystemAttributes,
     ServicePort,
 )
@@ -94,7 +97,7 @@ from dod.presentation._globals import (
     OutputFormat,
     Terminal,
 )
-from dod.presentation._masking import MaskPolicy, mask, mask_url
+from dod.presentation._masking import MaskPolicy, mask, mask_keys, mask_url
 from dod.presentation._quirks import quirk_lines, quirks_json
 
 # Exit codes: 0 ok, 1 the Service answered with a Fault or contrary to the
@@ -152,6 +155,7 @@ def create_app(
     open_raw: OpenRawChannel | None = None,
     open_quirky: OpenQuirkPort | None = None,
     data_dir: Path | None = None,
+    validate_bookmarks: DocumentValidator | None = None,
 ) -> typer.Typer:
     """Build the `dod` command line application.
 
@@ -164,7 +168,8 @@ def create_app(
     `parse_reading_system` reads a Reading System declaration file, and
     `open_raw` opens the raw channel the negative tests send through, and
     `open_quirky` opens a port that may use the named Quirks (ADR 0010), and
-    `data_dir` is where downloaded books go (`--output` needs no data directory).
+    `data_dir` is where downloaded books go (`--output` needs no data directory),
+    and `validate_bookmarks` checks a bookmark set file against the local schema.
     """
     terminal = terminal or _SystemTerminal()
     store = session_store or MemorySessionStore()
@@ -785,6 +790,104 @@ def create_app(
             header=False,
         )
 
+    @groups["bookmarks"].command(
+        "get",
+        epilog=_EPILOG,
+        help=(
+            "Show the bookmark set of a book (getBookmarks) as the Service "
+            "sent it: the bookmarkSet element, with the title, uid, lastmark, "
+            "bookmarks and highlights. The command can always be called; "
+            "whether the Service supports it is in `dod attributes service` "
+            "(GET_BOOKMARKS). Quote an id that has spaces."
+        ),
+    )
+    def bookmarks_get(
+        ctx: typer.Context,
+        id: Annotated[str, typer.Argument(help="The identifier of the book.")],
+    ) -> None:
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        reply = serve(g, target, manager, lambda port: port.get_bookmarks(id))
+        _present(
+            g,
+            target.diag,
+            "getBookmarks",
+            reply,
+            _bookmark_set_lines,
+            lambda value: {"bookmark_set": dataclasses.asdict(value)},
+            header=False,
+        )
+
+    @groups["bookmarks"].command(
+        "set",
+        epilog=_EPILOG,
+        help=(
+            "Store a bookmark set (setBookmarks) read from --file, a bookmarkSet "
+            "XML document. The file is checked against the local bookmark "
+            "schema first and refused, with nothing sent, if it does not "
+            "conform; otherwise it is sent as it is. WARNING: setBookmarks "
+            "replaces the whole set (title, lastmark, bookmarks and "
+            "highlights), so read the current set first with `dod bookmarks "
+            "get`, change that and send it back. The uid should be the "
+            "identifier of the book, or some Services refuse the set. The "
+            "command can always be called; whether the Service supports it is "
+            "in `dod attributes service` (SET_BOOKMARKS)."
+        ),
+    )
+    def bookmarks_set(
+        ctx: typer.Context,
+        id: Annotated[str, typer.Argument(help="The identifier of the book.")],
+        file: Annotated[
+            str,
+            typer.Option("--file", help="A bookmarkSet XML document (at most 1 MiB)."),
+        ],
+    ) -> None:
+        g = _globals(ctx)
+        if validate_bookmarks is None:
+            _fail("checking a bookmark set file is not available here")
+        document = _read_bookmark_file(file, validate_bookmarks)
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        reply = serve(g, target, manager, lambda port: port.set_bookmarks(id, document))
+        _present(g, target.diag, "setBookmarks", reply, lambda v: [], lambda v: {})
+
+    @app.command(
+        "key-exchange",
+        rich_help_panel=DOWNLOAD_AND_PLAY,
+        epilog=_EPILOG,
+        help=(
+            "Call getKeyExchangeObject for the key NAME, which asks the Service "
+            "for a PDTB2 Key Exchange Object. It is rarely used: only Services "
+            "that deliver PDTB2-protected content (PDTB2_KEY_PROVISION) answer "
+            "it. dod does not interpret the key and does not support DRM; the "
+            "answer is shown as it came, except that key material is masked "
+            "(ADR 0007). Without support the Service answers with a fault, "
+            "which is shown as it came."
+        ),
+    )
+    def key_exchange(
+        ctx: typer.Context,
+        name: Annotated[
+            str, typer.Argument(help="The name of the key to ask for (NAME).")
+        ],
+    ) -> None:
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        reply = serve(
+            g, target, manager, lambda port: port.get_key_exchange_object(name)
+        )
+        _present(
+            g,
+            target.diag,
+            "getKeyExchangeObject",
+            reply,
+            _key_exchange_lines,
+            lambda value: {"key_exchange": {"xml": mask_keys(value.xml)}},
+            header=False,
+        )
+
     @app.command(
         rich_help_panel=DOWNLOAD_AND_PLAY,
         epilog=_EPILOG,
@@ -1022,7 +1125,11 @@ def create_app(
             "Outcomes in the report do not change. The content tests "
             "(issue, resources, fetch, Range) are State-changing and run only "
             "with --state-changing and an explicit --content-id; they return "
-            "what they issued and read at most 64 KiB of a resource."
+            "what they issued and read at most 64 KiB of a resource. The optional "
+            "operations (bookmarks, key exchange) are tested only as far as "
+            "`supportedOptionalOperations` says the Service has them; the "
+            "bookmark round trip is State-changing too, and writes back the "
+            "set it read."
         ),
     )
     def test_run(
@@ -1049,8 +1156,9 @@ def create_app(
             str | None,
             typer.Option(
                 "--content-id",
-                help="The content item the content tests may issue and return "
-                "(never chosen automatically). Without it they are SKIP.",
+                help="The content item the content tests may issue and return, and "
+                "the bookmark round trip may read and write back (never chosen "
+                "automatically). Without it they are SKIP.",
             ),
         ] = None,
         unissued_content_id: Annotated[
@@ -1472,6 +1580,40 @@ def _resources_json(shown: ContentResources) -> dict[str, Any]:
     for item in document["resources"]:
         item["uri"] = mask_url(item["uri"])
     return document
+
+
+_MAX_BOOKMARK_FILE = 1024 * 1024
+
+
+def _read_bookmark_file(path: str, validate: DocumentValidator) -> str:
+    """The text of a bookmark set file that conforms; otherwise the command
+    ends with exit code 2 and nothing is sent."""
+    try:
+        with open(path, "rb") as handle:
+            data = handle.read(_MAX_BOOKMARK_FILE + 1)
+    except OSError as error:
+        _fail(f"{path}: cannot be read: {error.strerror or error}")
+    if len(data) > _MAX_BOOKMARK_FILE:
+        _fail(f"{path}: is larger than 1 MiB")
+    findings = validate(data)
+    if findings:
+        shown = "\n".join(
+            f"{path}: line {f.line}: {_plain(f.message)}" for f in findings[:10]
+        )
+        _fail(f"the file does not conform to the bookmark schema:\n{shown}")
+    return data.decode("utf-8")
+
+
+def _xml_lines(xml: str) -> list[str]:
+    return [_plain(line) for line in xml.splitlines()]
+
+
+def _bookmark_set_lines(shown: BookmarkSet) -> list[str]:
+    return _xml_lines(shown.xml)
+
+
+def _key_exchange_lines(shown: KeyExchangeObject) -> list[str]:
+    return _xml_lines(mask_keys(shown.xml))
 
 
 def _problem_text(problem: Reply[int] | str) -> str:

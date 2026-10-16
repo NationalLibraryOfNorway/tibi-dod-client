@@ -45,6 +45,12 @@ CONTENT_IDS = [
     "content.resource.range",
     "content.resources.not-issued",
 ]
+OPTIONAL_IDS = [
+    "bookmarks.get.known",
+    "bookmarks.get.unknown-id",
+    "bookmarks.set.round-trip",
+    "key-exchange.unknown-key",
+]
 NEGATIVE_IDS = [
     "negative.session.no-session",
     "negative.init.operation-before-init",
@@ -85,7 +91,10 @@ def test_list_shows_every_test_id_one_per_line() -> None:
     result = run_dod("test", "list")
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.splitlines() == ALL_IDS + CONTENT_IDS + NEGATIVE_IDS
+    assert (
+        result.stdout.splitlines()
+        == ALL_IDS + CONTENT_IDS + NEGATIVE_IDS + OPTIONAL_IDS
+    )
 
 
 def test_list_as_json_gives_ids_and_whether_they_change_state() -> None:
@@ -122,7 +131,7 @@ def test_run_prints_one_line_per_test_and_exits_0_when_all_pass(
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
     assert lines[: len(ALL_IDS)] == [f"PASS {name}" for name in ALL_IDS]
-    assert "17 tests: 12 PASS, 0 FAIL, 5 SKIP, 0 ERROR" in lines
+    assert "21 tests: 15 PASS, 0 FAIL, 6 SKIP, 0 ERROR" in lines
     assert [line.split(":")[0] for line in lines[len(ALL_IDS) :][:5]] == [
         f"SKIP {name}" for name in CONTENT_IDS
     ]

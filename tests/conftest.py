@@ -28,6 +28,17 @@ class _MemoryHarness:
     def offer_announcements(self, *announcements: Announcement) -> None:
         self._service.offer_announcements(*announcements)
 
+    def declare_operations(self, *tokens: str) -> None:
+        self._service.declare_operations(*tokens)
+
+    def offer_bookmarks(
+        self, content_id: str, bookmark_set: str, *, schema_valid: bool = True
+    ) -> None:
+        self._service.offer_bookmarks(content_id, bookmark_set)
+
+    def offer_key_exchange(self, key_name: str, key_exchange: str) -> None:
+        self._service.offer_key_exchange(key_name, key_exchange)
+
     def offer_catalog(
         self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
     ) -> None:

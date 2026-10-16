@@ -7,6 +7,7 @@ from dod.application import (  # noqa: F401  (registers the tests)
     _conformance_tests,
     _content_tests,
     _negative_tests,
+    _optional_tests,
 )
 from dod.application._address import (
     MAX_WSDL_BYTES,
@@ -30,7 +31,12 @@ from dod.application._announcements import (
     MarkResult,
     mark_read,
 )
-from dod.application._attributes import ReadingSystemError, ReadingSystemParser
+from dod.application._attributes import (
+    DocumentValidator,
+    Finding,
+    ReadingSystemError,
+    ReadingSystemParser,
+)
 from dod.application._baseline import (
     Baseline,
     BaselineComparison,
@@ -123,6 +129,7 @@ __all__ = [
     "Context",
     "CredentialProvider",
     "Discovery",
+    "DocumentValidator",
     "DownloadReport",
     "DownloadRequest",
     "Endpoint",
@@ -131,6 +138,7 @@ __all__ = [
     "Fetcher",
     "FileOutcome",
     "FileResult",
+    "Finding",
     "InitialisationFailed",
     "LoadedConfig",
     "LocalCopy",

@@ -53,6 +53,7 @@ _FAULTS = (
 )
 _TYPES = (
     ("announcements", "6.1"),
+    ("bookmarkSet", "6.2"),
     ("contentList", "6.3"),
     ("contentMetadata", "6.4"),
     ("readingSystemAttributes", "6.9"),

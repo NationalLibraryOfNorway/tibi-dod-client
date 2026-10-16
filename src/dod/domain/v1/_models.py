@@ -155,3 +155,49 @@ class ContentResources:
     resources: tuple[ContentResource, ...] = ()
     return_by: str | None = None
     last_modified: str | None = None
+
+
+@dataclass(frozen=True)
+class Lastmark:
+    """Where the reader left off, as written in a `bookmarkSet` (specification 6.2).
+
+    Read leniently: Services store anything, so every part may be missing
+    (`None`), a part with `xsi:nil` is `None`, and the offsets are kept as the
+    text the Service sent (a SMIL clock value, or a number).
+    """
+
+    ncx_ref: str | None = None
+    uri: str | None = None
+    time_offset: str | None = None
+    char_offset: str | None = None
+
+
+@dataclass(frozen=True)
+class BookmarkSet:
+    """The bookmarks of one book (specification 6.2), read leniently.
+
+    `xml` is the `bookmarkSet` element exactly as the Service sent it. It is the
+    whole set: `setBookmarks` replaces everything, so a change must start from it
+    (read, modify, write), or bookmarks and highlights of other Reading Systems
+    are lost. The other fields are a summary for display. All of it is
+    untrusted text (ADR 0008).
+    """
+
+    xml: str
+    title: str | None = None
+    uid: str | None = None
+    lastmark: Lastmark | None = None
+    bookmarks: int = 0
+    hilites: int = 0
+
+
+@dataclass(frozen=True)
+class KeyExchangeObject:
+    """The answer to `getKeyExchangeObject`: a PDTB2 Key Exchange Object.
+
+    `dod` does not interpret it and supports no DRM. `xml` is the `KeyExchange`
+    element exactly as the Service sent it and holds key material, so it is
+    never shown or written without masking (ADR 0007).
+    """
+
+    xml: str

@@ -27,10 +27,12 @@ from dod.domain.service import (
 )
 from dod.domain.v1 import (
     Announcement,
+    BookmarkSet,
     ByteRange,
     ContentList,
     ContentMetadata,
     ContentResources,
+    KeyExchangeObject,
     RawChannel,
     ReadingSystemAttributes,
     ResourceSink,
@@ -229,6 +231,19 @@ class _RecordingPort:
 
     def return_content(self, content_id: str) -> Reply[bool]:
         return self._call(lambda: self._port.return_content(content_id))
+
+    def get_bookmarks(self, content_id: str) -> Reply[BookmarkSet]:
+        return self._call(lambda: self._port.get_bookmarks(content_id))
+
+    def set_bookmarks(self, content_id: str, bookmark_set: str) -> Reply[bool]:
+        return self._call(lambda: self._port.set_bookmarks(content_id, bookmark_set))
+
+    def get_key_exchange_object(
+        self, requested_key_name: str
+    ) -> Reply[KeyExchangeObject]:
+        return self._call(
+            lambda: self._port.get_key_exchange_object(requested_key_name)
+        )
 
     def get_content_list(
         self, id: str, first_item: int, last_item: int

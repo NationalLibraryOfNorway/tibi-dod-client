@@ -8,9 +8,11 @@ from typing import Protocol
 from dod.domain.service import Password, Reply, SessionState
 from dod.domain.v1._models import (
     Announcement,
+    BookmarkSet,
     ContentList,
     ContentMetadata,
     ContentResources,
+    KeyExchangeObject,
     ReadingSystemAttributes,
     ServiceAttributes,
 )
@@ -76,6 +78,27 @@ class ServicePort(Protocol):
         """Give content back. The specification allows only `true` or a fault, so
         a `false` answer is a `Deviation`; returning twice answers `true` again.
         """
+        ...
+
+    def get_bookmarks(self, content_id: str) -> Reply[BookmarkSet]:
+        """The bookmark set of a book (optional operation `GET_BOOKMARKS`)."""
+        ...
+
+    def set_bookmarks(self, content_id: str, bookmark_set: str) -> Reply[bool]:
+        """Store `bookmark_set`, the text of a `bookmarkSet` element, as it is
+        (optional operation `SET_BOOKMARKS`).
+
+        The Service replaces the whole stored set, so start from `get_bookmarks`.
+        Raises `ValueError` when the text is not well-formed XML with a
+        `bookmarkSet` root; nothing is sent then.
+        """
+        ...
+
+    def get_key_exchange_object(
+        self, requested_key_name: str
+    ) -> Reply[KeyExchangeObject]:
+        """Ask for a PDTB2 Key Exchange Object (optional operation
+        `PDTB2_KEY_PROVISION`). The answer is returned as it came, uninterpreted."""
         ...
 
     def get_content_list(
