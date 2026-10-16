@@ -1,0 +1,25 @@
+docs/acceptance/tibi-acceptance-plan.md
+  s_614f17f4aee381::t_8ec84a06abeb54 154
+src/dod/application/_address.py
+  s_614f17f4aee381::t_8ec84a06abeb54 27
+tests/cli/test_address.py
+  s_614f17f4aee381::t_8544d0f5bdbcda 263-274
+README.md
+  s_614f17f4aee381::t_8ec84a06abeb54 178
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d273cab00018b1c4b4e499a8e0e03294096b310e",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
