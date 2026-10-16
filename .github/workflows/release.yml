@@ -1,0 +1,75 @@
+name: Release
+
+# A release is cut by pushing a final version tag (for example `v0.1.0`); nothing else
+# publishes. GitHub releases are the only channel: PyPI and Trusted Publishing are
+# deferred (issue 17). `workflow_dispatch` is a dry run that builds and checks the
+# files and uploads them as a workflow artifact, and never creates a release.
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # hatch-vcs derives the version from git tags.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.3.0
+      - name: Build wheel and sdist
+        run: uv build --out-dir dist
+      - name: Check the version against the tag
+        if: github.ref_type == 'tag'
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          ls dist
+          test -f "dist/dod_client-${version}-py3-none-any.whl"
+          test -f "dist/dod_client-${version}.tar.gz"
+      - name: Install the wheel with pipx
+        run: pipx install --suffix=-wheel dist/*.whl && dod-wheel --help
+      - name: Install the sdist with pipx
+        run: pipx install --suffix=-sdist dist/*.tar.gz && dod-sdist --help
+      - name: Write checksums
+        working-directory: dist
+        run: sha256sum -- *.whl *.tar.gz | tee SHA256SUMS
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    # Only a pushed tag publishes; a manual run stops after the build.
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: dist
+          path: dist
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" dist/* \
+            --verify-tag --title "$TAG" --generate-notes

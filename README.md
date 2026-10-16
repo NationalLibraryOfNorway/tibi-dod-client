@@ -2,6 +2,24 @@
 
 `dod` is a cross-platform test client for DODP v1 (DAISY Online Delivery Protocol) backends. See [GLOSSARY.md](GLOSSARY.md) for the terms used and [docs/adr/](docs/adr/) for design decisions.
 
+## Install
+
+Releases are published on [GitHub](https://github.com/NationalLibraryOfNorway/tibi-dod-client/releases); there is no PyPI package yet. Each release has a wheel, an sdist and a `SHA256SUMS` file. Download the files, check them, and install the wheel (extras go in brackets, for example `[tui]` and `[play]`):
+
+```sh
+sha256sum --check --ignore-missing SHA256SUMS
+pipx install ./dod_client-X.Y.Z-py3-none-any.whl
+pipx install './dod_client-X.Y.Z-py3-none-any.whl[tui,play]'
+```
+
+Or install straight from a tag (needs git; the version is taken from the tag):
+
+```sh
+pipx install 'git+https://github.com/NationalLibraryOfNorway/tibi-dod-client@vX.Y.Z'
+```
+
+Versions follow [SemVer](https://semver.org/) and are `0.x` for now, so minor versions may break; see [CHANGELOG.md](CHANGELOG.md). The sdist contains the specification copy and the schemas, the wheel does not.
+
 ## Usage
 
 `dod logon` runs the Initialisation sequence (`logOn`, `getServiceAttributes`, `setReadingSystemAttributes`) against a Service and stores the Session for later commands (see Sessions below). With `--no-session` it is ephemeral: it ends with `logOff` and keeps nothing.
@@ -229,6 +247,16 @@ uv run pytest                # tests
 ```
 
 Tests against a real Service are marked `real_backend` and deselected by default; run them with `uv run pytest -m real_backend`. They never run in CI, and no credentials or addresses belong in the repository.
+
+### Releasing
+
+Add the changes to [CHANGELOG.md](CHANGELOG.md) (move `Unreleased` under the new version), then push a final version tag on the commit to release:
+
+```sh
+git tag -s vX.Y.Z && git push origin vX.Y.Z
+```
+
+[.github/workflows/release.yml](.github/workflows/release.yml) runs only on such a tag. It builds the wheel and sdist, checks that their version equals the tag, smoke-tests `pipx install` of both, and creates the GitHub release with the files and `SHA256SUMS`. Running the workflow by hand (`workflow_dispatch`) does the build and checks only and uploads the files as a workflow artifact; it creates no release. Publishing to PyPI is deferred (issue 17).
 
 ### Adding a Quirk
 
