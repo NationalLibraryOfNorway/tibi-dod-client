@@ -8,6 +8,7 @@ from dod.infrastructure import (
     FileSessionStore,
     HttpFetcher,
     HttpServicePort,
+    parse_reading_system,
     parse_wsdl,
 )
 from dod.presentation import create_app
@@ -25,4 +26,5 @@ def main() -> None:
         HttpFetcher(),
         parse_wsdl,
         session_store=FileSessionStore.from_environ(os.environ),
+        parse_reading_system=parse_reading_system,
     )()

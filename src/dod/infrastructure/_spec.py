@@ -14,6 +14,8 @@ def operation_reference(operation: str) -> SpecReference:
         "logOff": "5.1.2",
         "setReadingSystemAttributes": "5.1.3",
         "getServiceAttributes": "5.1.7",
+        "getServiceAnnouncements": "5.2.1",
+        "markAnnouncementsAsRead": "5.2.2",
     }
     return SpecReference(
         section=sections[operation],

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import typer
@@ -25,7 +25,12 @@ from dod.domain.service import (
     SessionState,
     TransportError,
 )
-from dod.domain.v1 import ReadingSystemAttributes, ServiceAttributes, ServicePort
+from dod.domain.v1 import (
+    Announcement,
+    ReadingSystemAttributes,
+    ServiceAttributes,
+    ServicePort,
+)
 from dod.presentation._masking import (
     HIGHLIGHT_END,
     HIGHLIGHT_START,
@@ -193,6 +198,12 @@ class _RecordingPort:
         self, attributes: ReadingSystemAttributes
     ) -> Reply[bool]:
         return self._call(lambda: self._port.set_reading_system_attributes(attributes))
+
+    def get_service_announcements(self) -> Reply[tuple[Announcement, ...]]:
+        return self._call(self._port.get_service_announcements)
+
+    def mark_announcements_as_read(self, ids: Sequence[str]) -> Reply[bool]:
+        return self._call(lambda: self._port.mark_announcements_as_read(ids))
 
     def close(self) -> None:
         self._port.close()

@@ -22,6 +22,7 @@ _ENVIRONMENT_KEYS = {
     "trust_host",
     "protected",
     "quirks",
+    "reading_system",
 }
 _LINE = re.compile(r"line (\d+)")
 
@@ -117,6 +118,7 @@ class _Parser:
             trust_host=self._flag(key, body, "trust_host"),
             protected=self._flag(key, body, "protected"),
             quirks=self._quirks(key, body),
+            reading_system=self._string(key, body, "reading_system"),
         )
 
     def _string(self, key: str, body: dict[str, Any], field: str) -> str | None:

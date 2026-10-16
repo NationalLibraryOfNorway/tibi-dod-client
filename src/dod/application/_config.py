@@ -7,6 +7,7 @@ Use cases do not print and do not exit; they raise `ConfigError`.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Protocol
@@ -103,6 +104,7 @@ class Connection:
     trust_host: Sourced[bool]
     protected: Sourced[bool]
     quirks: Sourced[tuple[str, ...]]
+    reading_system: Sourced[str] | None = None
 
 
 def resolve_connection(
@@ -158,7 +160,20 @@ def resolve_connection(
             if environment and environment.quirks
             else Sourced((), "default")
         ),
+        reading_system=_declaration(loaded.path, environment, prefix),
     )
+
+
+def _declaration(
+    config_path: str, environment: Environment | None, prefix: str
+) -> Sourced[str] | None:
+    """The `reading_system` file; a relative path is relative to the config file."""
+    if environment is None or environment.reading_system is None:
+        return None
+    path = environment.reading_system
+    if not os.path.isabs(path):
+        path = os.path.join(os.path.dirname(config_path), path)
+    return Sourced(path, prefix + "reading_system")
 
 
 def _select(

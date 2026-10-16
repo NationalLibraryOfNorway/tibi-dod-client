@@ -1,9 +1,13 @@
 """The `dod` command line: command groups arranged in help panels."""
 
+import dataclasses
 import json
 import os
+import re
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
 import typer
@@ -12,19 +16,25 @@ from dod.application import (
     ConfigError,
     ConfigStore,
     Connection,
+    CredentialProvider,
     Discovery,
     Endpoint,
     EndpointError,
     Fetcher,
+    InitialisationFailed,
     LogonReport,
     MemorySessionStore,
+    NoCredentialsError,
     OpenPort,
+    ReadingSystemError,
+    ReadingSystemParser,
     SessionManager,
     SessionStore,
     Step,
     WsdlParser,
     check_config,
     check_endpoint,
+    default_reading_system,
     discover,
     load_config,
     logon_ephemeral,
@@ -38,8 +48,10 @@ from dod.domain.service import (
     Observation,
     Ok,
     Password,
+    Reply,
     TransportError,
 )
+from dod.domain.v1 import ReadingSystemAttributes, ServicePort
 from dod.presentation._diagnostics import Diagnostics
 from dod.presentation._globals import (
     GlobalOptions,
@@ -47,7 +59,7 @@ from dod.presentation._globals import (
     OutputFormat,
     Terminal,
 )
-from dod.presentation._masking import MaskPolicy, mask_url
+from dod.presentation._masking import MaskPolicy, mask, mask_url
 
 # Exit codes: 0 ok, 1 the Service answered with a Fault or contrary to the
 # specification, 2 no usable answer or the command could not be run.
@@ -100,6 +112,7 @@ def create_app(
     parse_wsdl: WsdlParser,
     terminal: Terminal | None = None,
     session_store: SessionStore | None = None,
+    parse_reading_system: ReadingSystemParser | None = None,
 ) -> typer.Typer:
     """Build the `dod` command line application.
 
@@ -109,6 +122,7 @@ def create_app(
     never imports the infrastructure layer. `terminal` answers whether stderr
     and stdin are terminals (the real ones by default), and `session_store` is
     where Session files live (in memory, so lost at exit, by default).
+    `parse_reading_system` reads a Reading System declaration file.
     """
     terminal = terminal or _SystemTerminal()
     store = session_store or MemorySessionStore()
@@ -278,10 +292,75 @@ def create_app(
             _fail(str(error))
         return _Target(diag, connection, endpoint.url, _username(connection))
 
-    def manager_for(target: _Target) -> SessionManager:
+    def manager_for(
+        target: _Target,
+        reading_system: ReadingSystemAttributes | None = None,
+        credentials: CredentialProvider | None = None,
+    ) -> SessionManager:
         return SessionManager(
-            target.diag.wrap(open_port), store, target.url, target.username, None
+            target.diag.wrap(open_port),
+            store,
+            target.url,
+            target.username,
+            credentials,
+            reading_system=reading_system,
         )
+
+    def declaration(
+        connection: Connection, file: str | None = None
+    ) -> ReadingSystemAttributes | None:
+        """The declared Reading System: `--file`, then the Environment's key."""
+        path = file or (
+            connection.reading_system.value if connection.reading_system else None
+        )
+        if path is None:
+            return None
+        if parse_reading_system is None:
+            _fail("reading a Reading System declaration is not available here")
+        try:
+            content = Path(path).read_bytes()
+        except OSError as error:
+            _fail(f"{path}: cannot be read: {error.strerror or error}")
+        try:
+            return parse_reading_system(content)
+        except ReadingSystemError as error:
+            _fail(f"{path}: {error}")
+
+    def service_manager(
+        g: GlobalOptions,
+        target: _Target,
+        reading_system: ReadingSystemAttributes | None,
+    ) -> SessionManager:
+        """The manager an ordinary command calls the Service through (ADR 0005)."""
+        credentials = _credentials(g, target.connection, prompt=g.no_session)
+        wrapped = target.diag.wrap(open_port)
+        if g.no_session:
+            return SessionManager.ephemeral(
+                wrapped,
+                target.url,
+                target.username,
+                credentials,
+                reading_system=reading_system,
+            )
+        return manager_for(target, reading_system, credentials)
+
+    def serve[T](
+        g: GlobalOptions,
+        target: _Target,
+        manager: SessionManager,
+        operation: Callable[[ServicePort], Reply[T]],
+    ) -> Reply[T]:
+        """Run one Service call through the manager; a failure to get a Session
+        or no answer at all ends the command."""
+        try:
+            return manager.call(operation)
+        except TransportError as error:
+            _fail(_no_answer(error, target.url))
+        except NoCredentialsError as error:
+            _fail(str(error))
+        except InitialisationFailed as error:
+            _render(error.report, g.format, target.diag)
+            raise typer.Exit(EXIT_SERVICE_FAILED) from None
 
     @app.command(
         rich_help_panel=SESSION_AND_SETUP,
@@ -295,6 +374,7 @@ def create_app(
     def logon(ctx: typer.Context) -> None:
         g = _globals(ctx)
         target = network_target(ctx, g)
+        reading_system = declaration(target.connection)
         password = _password(g.password_stdin, target.connection)
         try:
             if g.no_session:
@@ -304,9 +384,10 @@ def create_app(
                     target.username,
                     password,
                     insecure=target.connection.insecure.value,
+                    reading_system=reading_system,
                 )
             else:
-                report = manager_for(target).logon(password)
+                report = manager_for(target, reading_system).logon(password)
         except EndpointError as error:
             _fail(str(error))
         except TransportError as error:
@@ -449,6 +530,65 @@ def create_app(
         except EndpointError as error:
             _fail(str(error))
         _render_discovery(discovery, address)
+
+    @groups["attributes"].command(
+        "service",
+        epilog=_EPILOG,
+        help=(
+            "Show what the Service supports (getServiceAttributes), as the "
+            "Service answered."
+        ),
+    )
+    def attributes_service(ctx: typer.Context) -> None:
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        manager = service_manager(g, target, declaration(target.connection))
+        reply = serve(g, target, manager, lambda port: port.get_service_attributes())
+        _present(
+            g,
+            target.diag,
+            "getServiceAttributes",
+            reply,
+            lambda value: _field_lines(value),
+            lambda value: dataclasses.asdict(value),
+        )
+
+    @groups["attributes"].command(
+        "reading-system",
+        epilog=_EPILOG,
+        help=(
+            "Declare the Reading System (setReadingSystemAttributes) and show "
+            "the answer. Declares DAISY 2.02 and EPUB 3, audio/mpeg and "
+            "audio/wav and text and numeric input unless --file or the "
+            "Environment's reading_system gives another XML document."
+        ),
+    )
+    def attributes_reading_system(
+        ctx: typer.Context,
+        file: Annotated[
+            str | None,
+            typer.Option(
+                "--file",
+                help="A readingSystemAttributes XML document to send instead of "
+                "the default declaration.",
+            ),
+        ] = None,
+    ) -> None:
+        g = _globals(ctx)
+        target = network_target(ctx, g)
+        sent = declaration(target.connection, file) or default_reading_system()
+        manager = service_manager(g, target, sent)
+        reply = serve(
+            g, target, manager, lambda port: port.set_reading_system_attributes(sent)
+        )
+        _present(
+            g,
+            target.diag,
+            "setReadingSystemAttributes",
+            reply,
+            lambda value: _field_lines(sent),
+            lambda value: {"declared": dataclasses.asdict(sent)},
+        )
 
     return app
 
@@ -636,6 +776,83 @@ def _password(from_stdin: bool, connection: Connection) -> Password:
     return Password(typer.prompt("Password", hide_input=True))
 
 
+def _credentials(
+    g: GlobalOptions, connection: Connection, *, prompt: bool
+) -> CredentialProvider:
+    """Where a login gets its password: stdin, the Environment, else a prompt.
+
+    The prompt is only for ephemeral mode; a stored Session that has expired
+    and has no credentials asks for `dod logon` instead. The password is read
+    once per run.
+    """
+    given: list[Password | None] = []
+
+    def provide() -> Password | None:
+        if not given:
+            if g.password_stdin or connection.password is not None or prompt:
+                given.append(_password(g.password_stdin, connection))
+            else:
+                given.append(None)
+        return given[0]
+
+    return provide
+
+
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+def _plain(text: str) -> str:
+    """Text from a Service is untrusted: control characters never reach the
+    terminal (ADR 0008)."""
+    return _CONTROL.sub(" ", text)
+
+
+def _field_lines(value: Any, prefix: str = "") -> list[str]:
+    """`name: value` for every field of a model, nested ones with a prefix."""
+    lines: list[str] = []
+    for field in dataclasses.fields(value):
+        item = getattr(value, field.name)
+        if dataclasses.is_dataclass(item):
+            lines += _field_lines(item, f"{prefix}{field.name}.")
+            continue
+        if isinstance(item, bool):
+            shown = str(item).lower()
+        elif isinstance(item, tuple):
+            shown = ", ".join(_plain(str(part)) for part in item) or "-"
+        else:
+            shown = "-" if item is None else _plain(str(item))
+        lines.append(f"{prefix}{field.name}: {shown}")
+    return lines
+
+
+def _present[T](
+    g: GlobalOptions,
+    diag: Diagnostics,
+    operation: str,
+    reply: Reply[T],
+    lines: Callable[[T], list[str]],
+    document: Callable[[T], dict[str, Any]],
+) -> None:
+    """Show one Reply as received and end the command (exit 1 unless it is Ok).
+
+    Results go to stdout; Observations and findings go to stderr.
+    """
+    step = Step(operation, reply)
+    if g.format is OutputFormat.XML:
+        typer.echo(mask(reply.exchange).response_body)
+    elif g.format is OutputFormat.JSON:
+        result = {"result": _line(step).split(": ", 1)[1]}
+        body = document(reply.value) if isinstance(reply, Ok) else {}
+        typer.echo(json.dumps(result | body, indent=2))
+    else:
+        typer.echo(_line(step))
+        if isinstance(reply, Ok) and reply.value is not False:
+            for line in lines(reply.value):
+                typer.echo(line)
+    _diagnose(diag, step)
+    raise typer.Exit(EXIT_OK if step.succeeded else EXIT_SERVICE_FAILED)
+
+
 def _connection(store: ConfigStore, g: GlobalOptions) -> Connection:
     try:
         return resolve_connection(
@@ -732,6 +949,9 @@ def _show_lines(connection: Connection) -> list[str]:
         ("protected", connection.protected),
     ):
         add(name, str(flag.value).lower(), flag.source)
+    if connection.reading_system:
+        reading = connection.reading_system
+        add("reading_system", reading.value, reading.source)
     quirks = ", ".join(f'"{quirk}"' for quirk in connection.quirks.value)
     add("quirks", f"[{quirks}]", connection.quirks.source)
     return lines
@@ -749,20 +969,27 @@ def _render(report: LogonReport, output: OutputFormat, diag: Diagnostics) -> Non
             typer.echo(_line(step))
     diag.observe(report.observations)
     for step in report.steps:
-        reply = step.reply
-        for violation in reply.schema_violations:
-            typer.echo(
-                f"schema violation in {step.operation} (line {violation.line}): "
-                f"{violation.message}",
-                err=True,
-            )
-        if isinstance(reply, Deviation):
-            ref = reply.spec_reference
-            typer.echo(
-                f"{step.operation} contradicts DODP v1 section {ref.section}, "
-                f"{ref.title} ({ref.url})",
-                err=True,
-            )
+        _diagnose(diag, step, observe=False)
+
+
+def _diagnose(diag: Diagnostics, step: Step, *, observe: bool = True) -> None:
+    """Schema violations and Spec deviations of one answer, on stderr."""
+    reply = step.reply
+    if observe:
+        diag.observe(reply.observations)
+    for violation in reply.schema_violations:
+        typer.echo(
+            f"schema violation in {step.operation} (line {violation.line}): "
+            f"{violation.message}",
+            err=True,
+        )
+    if isinstance(reply, Deviation):
+        ref = reply.spec_reference
+        typer.echo(
+            f"{step.operation} contradicts DODP v1 section {ref.section}, "
+            f"{ref.title} ({ref.url})",
+            err=True,
+        )
 
 
 def _logon_json(report: LogonReport) -> dict[str, Any]:

@@ -15,11 +15,12 @@ import threading
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
+from xml.sax.saxutils import escape
 
 from lxml import etree
 
 from dod.domain.service import FaultKind
-from dod.domain.v1 import ServicePort
+from dod.domain.v1 import Announcement, ServicePort
 from dod.infrastructure import HttpServicePort, validate_document
 
 NS = "http://www.daisy.org/ns/daisy-online/"
@@ -97,6 +98,8 @@ class FakeService:
         self.invalid_documents: list[str] = []
         self.invalid_responses: list[str] = []
         self.service_attributes_xml = _SERVICE_ATTRIBUTES
+        self.announcements: list[Announcement] = []
+        self.read_announcements: set[str] = set()
         # The attributes of the Session cookie the Service sets on logOn.
         self.cookie_attributes = "Path=/; HttpOnly"
         self._injected: dict[str, tuple[FaultKind, str] | str | _Raw] = {}
@@ -137,6 +140,17 @@ class FakeService:
 
     def add_user(self, username: str, password: str) -> None:
         self.users[username] = password
+
+    def offer_announcements(self, *announcements: Announcement) -> None:
+        """Publish announcements and declare the two optional operations."""
+        self.announcements = list(announcements)
+        self.read_announcements = set()
+        self.service_attributes_xml = self.service_attributes_xml.replace(
+            "<supportedOptionalOperations/>",
+            "<supportedOptionalOperations>"
+            "<operation>SERVICE_ANNOUNCEMENTS</operation>"
+            "</supportedOptionalOperations>",
+        )
 
     def inject_fault(self, operation: str, kind: FaultKind | str, reason: str) -> None:
         """Answer the next `operation` with the DODP fault `kind` (HTTP 500)."""
@@ -220,7 +234,7 @@ class FakeService:
             self.requests.append(RecordedRequest(path, headers, body, None))
             return _Raw(400, b"bad request")
         self.requests.append(RecordedRequest(path, headers, body, operation))
-        if operation == "setReadingSystemAttributes":
+        if operation in {"setReadingSystemAttributes", "markAnnouncementsAsRead"}:
             child = etree.tostring(payload[0]).decode()
             if validate_document(child):
                 self.invalid_documents.append(child)
@@ -315,6 +329,42 @@ class FakeService:
             return self._no_session()
         return self._result("setReadingSystemAttributes", True)
 
+    def _op_getServiceAnnouncements(
+        self, payload: Any, headers: dict[str, str]
+    ) -> _Raw:
+        if self._session(headers) is None:
+            return self._no_session()
+        if not self.announcements:
+            return self._fault(FaultKind.OPERATION_NOT_SUPPORTED, "not supported")
+        items = "".join(
+            f'<announcement id="{a.id}" type="{a.type}" priority="{a.priority}">'
+            f'<label xml:lang="{a.lang or "en"}"><text>{escape(a.text)}</text></label>'
+            "</announcement>"
+            for a in self.announcements
+            if a.id not in self.read_announcements
+        )
+        xml = (
+            f'<getServiceAnnouncementsResponse xmlns="{NS}">'
+            f"<announcements>{items}</announcements>"
+            "</getServiceAnnouncementsResponse>"
+        )
+        self._checked(xml)
+        return _Raw(200, _envelope(xml))
+
+    def _op_markAnnouncementsAsRead(
+        self, payload: Any, headers: dict[str, str]
+    ) -> _Raw:
+        if self._session(headers) is None:
+            return self._no_session()
+        if not self.announcements:
+            return self._fault(FaultKind.OPERATION_NOT_SUPPORTED, "not supported")
+        ids = [(item.text or "") for item in payload.iter(f"{{{NS}}}item")]
+        if not set(ids) <= {a.id for a in self.announcements}:
+            return self._fault(FaultKind.INVALID_PARAMETER, "unknown announcement")
+        fresh = set(ids) - self.read_announcements
+        self.read_announcements |= fresh
+        return self._result("markAnnouncementsAsRead", bool(fresh))
+
 
 def _make_handler(service: FakeService) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
@@ -363,6 +413,9 @@ class HttpHarness:
 
     def inject_deviation(self, operation: str) -> None:
         self.service.inject_deviation(operation)
+
+    def offer_announcements(self, *announcements: Announcement) -> None:
+        self.service.offer_announcements(*announcements)
 
     def open_port(self) -> ServicePort:
         port = HttpServicePort(self.service.url)

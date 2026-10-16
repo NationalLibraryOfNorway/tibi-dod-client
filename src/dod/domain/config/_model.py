@@ -47,6 +47,7 @@ class Environment:
     trust_host: bool = False
     protected: bool = False
     quirks: tuple[str, ...] = ()
+    reading_system: str | None = None
 
 
 @dataclass(frozen=True)

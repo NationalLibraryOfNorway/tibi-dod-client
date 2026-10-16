@@ -7,6 +7,7 @@ from dod.infrastructure._config_file import FileConfigStore
 from dod.infrastructure._fetch import HttpFetcher
 from dod.infrastructure._http import HttpServicePort
 from dod.infrastructure._memory import InMemoryPort, InMemoryService
+from dod.infrastructure._reading_system import parse_reading_system
 from dod.infrastructure._schema import (
     SchemaFinding,
     SchemaUnavailableError,
@@ -24,6 +25,7 @@ __all__ = [
     "InMemoryService",
     "SchemaFinding",
     "SchemaUnavailableError",
+    "parse_reading_system",
     "parse_wsdl",
     "validate_document",
 ]
