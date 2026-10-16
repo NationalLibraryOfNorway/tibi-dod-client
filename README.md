@@ -52,6 +52,39 @@ Ordinary commands reach the Service through the session manager: they reuse the 
 - The negative tests (`negative.*`) send deliberately invalid requests through a `RawChannel`: no Session (`noActiveSession`), an operation before the Initialisation sequence is complete (`invalidOperation`), an unknown operation, and invalid parameters (`invalidParameter`). Each works in an Ephemeral-mode Session of its own, so a stored Session is never touched. They are explicit: an ordinary run leaves them out and `dod test run --only negative` runs them (`dod test list` shows them). A `logOff` that fails afterwards is an ERROR on a record of its own, `<test id>.cleanup`, and the test keeps its PASS or FAIL.
 - Exit code 0 without FAIL or ERROR, 1 with FAIL and no ERROR, 2 with any ERROR. There are no requirement levels and no `--strict`.
 
+#### Baseline for a Service's known deviations
+
+A Service that deviates from DODP v1 can still be checked in CI. Keep a **Baseline** in the Service's own repository (never in this one): a TOML file with one `[[known]]` table per test id that is known to FAIL, and a short reason. It holds no addresses or credentials.
+
+```toml
+[[known]]
+id = "catalog.list.invalid-range"
+reason = "DODP 5.3 Faults: answers HTTP 500 without a fault element"
+```
+
+- `dod test run --baseline baseline.toml` compares the run with the file. A FAIL that is not in it is **new** (`NEW <id>`, exit code 1). An entry that now passes is **resolved** (`RESOLVED <id>`); that exits 1 only with `--fail-on-resolved`. An ERROR always exits 2 (ADR 0010). An entry whose test did not run (`--only`, SKIP) or ended in ERROR is neither new nor resolved; an entry that names no known test id gives a warning on stderr.
+- `dod test run --write-baseline baseline.toml` writes a Baseline from the run's FAILs: the test id and a short reason (the section of the specification the FAIL cites, or the reason an `--baseline` file already gave). Edit the reasons freely and review the file before committing it. Nothing is written when the setup failed.
+- Outcomes do not change: a baselined FAIL is still FAIL in the text and JSON report, and only the exit code takes the Baseline into account. The JSON report (`schema_version` 3) has a `baseline` section, `null` without `--baseline`, with the sorted lists `new`, `resolved` and `known`; `exit_code` is the one the run ends with.
+
+A CI step (GitHub Actions) that fails on new deviations and on a stale Baseline:
+
+```yaml
+- name: DODP conformance
+  run: |
+    dod test run --env ci --password-stdin \
+      --baseline conformance/baseline.toml --fail-on-resolved \
+      --format json --report-exchanges failures > conformance-report.json <<< "$DOD_PASSWORD"
+  env:
+    DOD_PASSWORD: ${{ secrets.DOD_PASSWORD }}
+- uses: actions/upload-artifact@v4
+  if: always()
+  with:
+    name: conformance-report
+    path: conformance-report.json
+```
+
+Start with `dod test run --write-baseline conformance/baseline.toml`, review it, and commit it. Fix the deviations over time and delete resolved entries; `--fail-on-resolved` reminds you to.
+
 ### Finding the endpoint
 
 `dod` never guesses the Service endpoint while logging on (ADR 0002). Name it with `--url` (the SOAP endpoint itself), with `--wsdl` (the Service's WSDL; its `soap:address` is used) or through an Environment that holds one of them. `--url`, `--wsdl` and `--env` cannot be combined.

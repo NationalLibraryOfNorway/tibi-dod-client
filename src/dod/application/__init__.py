@@ -30,6 +30,13 @@ from dod.application._announcements import (
     mark_read,
 )
 from dod.application._attributes import ReadingSystemError, ReadingSystemParser
+from dod.application._baseline import (
+    Baseline,
+    BaselineComparison,
+    BaselineError,
+    compare,
+    write_baseline,
+)
 from dod.application._config import (
     ConfigCheck,
     ConfigFile,
@@ -80,6 +87,9 @@ __all__ = [
     "CONFORMANCE_TESTS",
     "MAX_WSDL_BYTES",
     "Attempt",
+    "Baseline",
+    "BaselineComparison",
+    "BaselineError",
     "ConfigCheck",
     "ConfigError",
     "ConfigFile",
@@ -123,6 +133,7 @@ __all__ = [
     "WsdlPort",
     "check_config",
     "check_endpoint",
+    "compare",
     "conformance_test",
     "default_reading_system",
     "discover",
@@ -134,4 +145,5 @@ __all__ = [
     "resolve_endpoint",
     "run_conformance",
     "select",
+    "write_baseline",
 ]

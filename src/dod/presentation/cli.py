@@ -14,6 +14,8 @@ import typer
 
 from dod.application import (
     CONFORMANCE_TESTS,
+    Baseline,
+    BaselineError,
     ConfigError,
     ConfigStore,
     Connection,
@@ -38,6 +40,7 @@ from dod.application import (
     WsdlParser,
     check_config,
     check_endpoint,
+    compare,
     default_reading_system,
     discover,
     load_config,
@@ -48,6 +51,7 @@ from dod.application import (
     resolve_endpoint,
     run_conformance,
     select,
+    write_baseline,
 )
 from dod.domain.service import (
     Deviation,
@@ -784,7 +788,10 @@ def create_app(
             "without FAIL or ERROR, 1 with FAIL only, 2 with any ERROR. "
             "--format json gives a versioned report with masked Exchanges. "
             "The negative tests (deliberately invalid requests, each in a "
-            "Session of its own) run only when chosen: --only negative."
+            "Session of its own) run only when chosen: --only negative. "
+            "--baseline compares the run with a file of known FAILs (new FAIL "
+            "exits 1, ERROR still exits 2) and --write-baseline writes one; "
+            "Outcomes in the report do not change."
         ),
     )
     def test_run(
@@ -815,10 +822,38 @@ def create_app(
                 "failures (FAIL and ERROR tests) or none.",
             ),
         ] = ReportExchanges.FAILURES,
+        baseline_path: Annotated[
+            Path | None,
+            typer.Option(
+                "--baseline",
+                help="A Baseline file of known FAILs (kept in the Service's own "
+                "repository). A FAIL not in it is new and exits 1; an entry that "
+                "now passes is reported as resolved. ERROR still exits 2.",
+            ),
+        ] = None,
+        fail_on_resolved: Annotated[
+            bool,
+            typer.Option(
+                "--fail-on-resolved",
+                help="With --baseline: exit 1 when a baseline entry now passes, "
+                "so the file is kept up to date.",
+            ),
+        ] = False,
+        write_baseline_path: Annotated[
+            Path | None,
+            typer.Option(
+                "--write-baseline",
+                help="Write a Baseline from this run's FAILs: test ids and a "
+                "short reason, no addresses or credentials.",
+            ),
+        ] = None,
     ) -> None:
         g = _globals(ctx)
         _no_xml(g, "test run")
         _selected(only, skip)
+        baseline = _read_baseline(baseline_path)
+        if fail_on_resolved and baseline is None:
+            _fail("--fail-on-resolved needs --baseline")
         target = network_target(ctx, g)
         name = target.connection.environment
         if (
@@ -847,18 +882,43 @@ def create_app(
             )
         except EndpointError as error:
             _fail(str(error))
+        comparison = None if baseline is None else compare(report, baseline)
+        code = (
+            report.exit_code
+            if comparison is None
+            else comparison.exit_code(report, fail_on_resolved=fail_on_resolved)
+        )
+        if baseline is not None:
+            stale = baseline.unknown_ids({t.id for t in CONFORMANCE_TESTS.tests})
+            for identifier in stale:
+                typer.echo(
+                    f"warning: the baseline names {identifier}, which is not a "
+                    "known test id",
+                    err=True,
+                )
         if g.format is OutputFormat.JSON:
             document = json_report(
                 report,
                 url=target.url,
                 environment=name.value if name else None,
                 exchanges=report_exchanges,
+                baseline=comparison,
+                exit_code=code,
             )
             typer.echo(json.dumps(document, indent=2))
         else:
-            for line in text_report(report, hyperlinks=sys.stdout.isatty()):
+            for line in text_report(
+                report, hyperlinks=sys.stdout.isatty(), baseline=comparison
+            ):
                 typer.echo(line)
-        raise typer.Exit(report.exit_code)
+        if write_baseline_path is not None and report.setup_error is None:
+            try:
+                write_baseline_path.write_text(
+                    write_baseline(report, baseline), encoding="utf-8"
+                )
+            except OSError as error:
+                _fail(f"{write_baseline_path}: cannot be written: {error.strerror}")
+        raise typer.Exit(code)
 
     return app
 
@@ -879,6 +939,17 @@ _SKIP = Annotated[
         help="Leave out tests whose id starts with this prefix. Can be repeated.",
     ),
 ]
+
+
+def _read_baseline(path: Path | None) -> Baseline | None:
+    if path is None:
+        return None
+    try:
+        return Baseline.parse(path.read_text(encoding="utf-8"))
+    except OSError as error:
+        _fail(f"{path}: cannot be read: {error.strerror or error}")
+    except (UnicodeDecodeError, BaselineError) as error:
+        _fail(f"{path}: not a valid baseline: {error}")
 
 
 def _selected(
