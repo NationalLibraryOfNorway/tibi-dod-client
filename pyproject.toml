@@ -23,7 +23,10 @@ classifiers = [
     "Programming Language :: Python :: 3.15",
     "Topic :: Software Development :: Testing",
 ]
-dependencies = ["typer>=0.15"]
+dependencies = [
+    "lxml>=6.1.3",
+    "typer>=0.15",
+]
 
 [project.scripts]
 dod = "dod.main:main"
@@ -32,7 +35,13 @@ dod = "dod.main:main"
 Repository = "https://github.com/NationalLibraryOfNorway/tibi-dod-client"
 
 [dependency-groups]
-dev = ["mypy>=1.15", "pytest>=8.3", "ruff>=0.11", "tach>=0.29"]
+dev = [
+    "lxml-stubs>=0.5.1",
+    "mypy>=1.15",
+    "pytest>=8.3",
+    "ruff>=0.11",
+    "tach>=0.29",
+]
 
 [tool.uv]
 # The version comes from git, so rebuild the project when the commit or tags change.

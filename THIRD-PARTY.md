@@ -15,6 +15,7 @@ Installed with `dod-client`, directly or transitively.
 | [Pygments](https://pypi.org/project/Pygments/) | BSD-2-Clause | Via Rich. |
 | [shellingham](https://pypi.org/project/shellingham/) | ISC | Via Typer. |
 | [annotated-doc](https://pypi.org/project/annotated-doc/) | MIT | Via Typer. |
+| [lxml](https://pypi.org/project/lxml/) | BSD-3-Clause | XML and schema validation. The binary wheels bundle libiconv, which is LGPL-2.1. |
 
 ## Planned runtime dependencies
 
@@ -24,7 +25,6 @@ Decided in the specification and added by the tickets that need them.
 | --- | --- | --- |
 | [HTTPX](https://pypi.org/project/httpx/) | BSD-3-Clause | HTTP transport. |
 | [certifi](https://pypi.org/project/certifi/) | MPL-2.0 | Via HTTPX; CA bundle. |
-| [lxml](https://pypi.org/project/lxml/) | BSD-3-Clause | XML and schema validation. The binary wheels bundle libiconv, which is LGPL-2.1. |
 | [platformdirs](https://pypi.org/project/platformdirs/) | MIT | Configuration, state and data directories. |
 | [filelock](https://pypi.org/project/filelock/) | Unlicense | Session file locking. |
 | [Textual](https://pypi.org/project/textual/) | MIT | Optional, `dod-client[tui]`. |
@@ -52,3 +52,4 @@ Used for development and CI only; not distributed. Their own transitive dependen
 | [Ruff](https://pypi.org/project/ruff/) | MIT | Lint and format. |
 | [mypy](https://pypi.org/project/mypy/) | MIT | Static type checking (strict). |
 | [tach](https://pypi.org/project/tach/) | MIT | Module boundary checks. The Rust libraries compiled into its wheels have not been licence-reviewed. |
+| [lxml-stubs](https://pypi.org/project/lxml-stubs/) | Apache-2.0 | Type stubs for lxml, for mypy. |
