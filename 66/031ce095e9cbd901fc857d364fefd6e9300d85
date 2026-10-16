@@ -1,0 +1,27 @@
+docs/agents/issue-tracker.md
+  s_614f17f4aee381::t_e38efc4ec049dd 17-30
+tests/support/_cli.py
+  s_614f17f4aee381::t_9207375609d491 24-26,48-50
+.pre-commit-config.yaml
+  s_614f17f4aee381::t_9a04ee6540f271 1-30
+AGENTS.md
+  s_614f17f4aee381::t_9a04ee6540f271 10-17
+CODING_STANDARDS.md
+  s_614f17f4aee381::t_9a04ee6540f271 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "66031ce095e9cbd901fc857d364fefd6e9300d85",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
