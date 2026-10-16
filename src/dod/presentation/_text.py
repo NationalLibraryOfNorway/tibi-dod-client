@@ -8,7 +8,7 @@ import dataclasses
 import re
 from typing import Any
 
-from dod.application import Step
+from dod.application import CANCELLED, DownloadReport, FileOutcome, Step
 from dod.domain.service import Fault, Ok
 from dod.domain.v1 import ContentMetadata
 
@@ -53,3 +53,30 @@ def step_line(step: Step) -> str:
         reason = f": {reply.reason}" if reply.reason else ""
         return f"{step.operation}: fault {reply.kind}{reason}"
     return f"{step.operation}: deviation: {reply.description}"
+
+
+def download_summary(report: DownloadReport, directory: str) -> str:
+    """One line on how a download went, for the status line."""
+    if report.refusal is not None:
+        return plain(report.refusal)
+    if report.deviation is not None:
+        return plain(step_line(Step("getContentResources", report.deviation)))
+    if not isinstance(report.resources, Ok):
+        return plain(step_line(Step("getContentResources", report.resources)))
+    for item in report.files:
+        if item.outcome is FileOutcome.DOWNLOADED:
+            continue
+        name = plain(item.local_uri)
+        if item.problem == CANCELLED:
+            return f"cancelled; nothing was kept of {name}"
+        problem = item.problem
+        reason = (
+            plain(problem)
+            if isinstance(problem, str)
+            else plain(step_line(Step("fetch_resource", problem)))
+            if problem is not None
+            else "unknown"
+        )
+        return f"failed {name}: {reason}"
+    count = len(report.files)
+    return f"{count} file{'s' if count != 1 else ''} in {plain(directory)}"

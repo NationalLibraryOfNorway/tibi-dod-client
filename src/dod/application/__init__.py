@@ -73,9 +73,11 @@ from dod.application._conformance import (
     select,
 )
 from dod.application._download import (
+    CANCELLED,
     DownloadReport,
     DownloadRequest,
     FileOutcome,
+    FileProgress,
     FileResult,
     ResolvedResource,
     ResourceRefused,
@@ -129,6 +131,7 @@ from dod.domain.book import BookError, BookErrorKind
 from dod.domain.config import ConfigError
 
 __all__ = [
+    "CANCELLED",
     "CONFORMANCE_TESTS",
     "MAX_WSDL_BYTES",
     "Attempt",
@@ -155,6 +158,7 @@ __all__ = [
     "FetchResponse",
     "Fetcher",
     "FileOutcome",
+    "FileProgress",
     "FileResult",
     "Finding",
     "InitialisationFailed",

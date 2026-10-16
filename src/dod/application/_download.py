@@ -14,7 +14,7 @@ import hashlib
 import os
 import re
 import unicodedata
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -38,6 +38,8 @@ _SAFE_SEGMENT_CHARACTERS = frozenset(
 )
 _LONG_SEGMENT = 100
 _PART = ".part"
+CANCELLED = "cancelled"
+"""The `problem` of a file whose download `DownloadRequest.cancelled` stopped."""
 
 
 class ResourceRefused(Exception):
@@ -209,6 +211,15 @@ class FileResult:
 
 
 @dataclass(frozen=True)
+class FileProgress:
+    """A file's bytes received so far, as `DownloadRequest.progress` hears it."""
+
+    local_uri: str
+    received: int
+    size: int
+
+
+@dataclass(frozen=True)
 class DownloadRequest:
     content_id: str
     directory: Path
@@ -218,6 +229,12 @@ class DownloadRequest:
     force: bool = False
     trust_host: bool = False
     insecure: bool = False
+    progress: Callable[[FileProgress], None] | None = None
+    """Told when a file starts and after every chunk; runs on the calling thread."""
+    cancelled: Callable[[], bool] | None = None
+    """Asked before each file and each chunk; true stops the run, the file in
+    flight is discarded with the problem `CANCELLED` and later files are not
+    fetched."""
 
 
 @dataclass(frozen=True)
@@ -315,6 +332,8 @@ def _fetch_all(
             )
     results: list[FileResult] = []
     for item, url, path in plan:
+        if request.cancelled is not None and request.cancelled():
+            break
         result = _fetch_one(port, item, url, path, request)
         results.append(result)
         if result.outcome is FileOutcome.FAILED:
@@ -354,19 +373,29 @@ def _fetch_one(
     part = target.with_name(target.name + _PART)
     expected = item.size
     received = 0
+    stopped = False
     try:
         _prepare(request.directory, target)
         part.unlink(missing_ok=True)  # also a link someone left in its place
         with part.open("xb") as handle:
 
             def sink(chunk: bytes) -> None:
-                nonlocal received
+                nonlocal received, stopped
+                if request.cancelled is not None and request.cancelled():
+                    stopped = True
+                    raise SinkRefused("stopped on request")
                 received += len(chunk)
                 if received > expected:
                     raise SinkRefused(f"more than the {expected} bytes announced")
                 handle.write(chunk)
+                if request.progress is not None:
+                    request.progress(FileProgress(item.local_uri, received, expected))
 
+            if request.progress is not None:
+                request.progress(FileProgress(item.local_uri, 0, expected))
             reply = port.fetch_resource(url, sink)
+        if stopped:
+            return _discard(part, item, target, received, CANCELLED)
         if not isinstance(reply, Ok):
             return _discard(part, item, target, received, reply)
         if received != expected:

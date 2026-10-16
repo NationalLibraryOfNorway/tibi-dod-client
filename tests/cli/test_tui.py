@@ -123,3 +123,44 @@ def test_the_tui_command_hands_the_stored_session_to_an_app_that_browses() -> No
 
     shown = asyncio.run(browse())
     assert [[str(cell) for cell in row] for row in shown] == [["book0", "Book 0"]]
+
+
+def test_the_tui_command_downloads_nowhere_without_an_environment(
+    tmp_path: Any,
+) -> None:
+    memory = InMemoryService()
+    memory.add_user(USER, PASSWORD)
+    memory.offer_catalog(
+        [
+            ContentList(
+                id="issued",
+                total_items=1,
+                items=(ContentItem(id="book0", label="Book 0"),),
+            )
+        ],
+        [],
+    )
+    started: list[App[None]] = []
+    app = create_app(
+        lambda url: memory.open_port(),
+        NoConfig(),
+        HttpFetcher(),
+        parse_wsdl,
+        data_dir=tmp_path / "data",
+        run_tui=started.append,
+    )
+    runner = CliRunner(env={"NO_COLOR": "1"})
+    common = ["--url", URL, "--username", USER]
+    runner.invoke(app, ["logon", *common, "--password-stdin"], input=PASSWORD)
+    assert runner.invoke(app, ["tui", *common]).exit_code == 0
+
+    async def press() -> str:
+        async with started[0].run_test() as pilot:
+            await pilot.app.workers.wait_for_complete()
+            await pilot.press("f", "d")
+            await pilot.app.workers.wait_for_complete()
+            await pilot.pause()
+            return str(pilot.app.screen.query_one("#status").render())
+
+    assert "no directory to download to" in asyncio.run(press())
+    assert not (tmp_path / "data").exists()

@@ -109,7 +109,7 @@ from dod.presentation._globals import (
     OutputFormat,
     Terminal,
 )
-from dod.presentation._launch import create_tui
+from dod.presentation._launch import DownloadSettings, create_tui
 from dod.presentation._masking import MaskPolicy, mask, mask_keys, mask_url
 from dod.presentation._play import piped_commands, run_playback, terminal_commands
 from dod.presentation._quirks import quirk_lines, quirks_json
@@ -843,11 +843,18 @@ def create_app(
         rich_help_panel=BROWSE_AND_ISSUE,
         epilog=_EPILOG,
         help=(
-            "Browse the shelf and see the metadata of a book in an interactive "
-            "terminal: the same operations as `dod list` and `dod metadata`, "
-            "called without blocking the screen. Keys: Enter opens the metadata "
-            "of the selected book, Escape goes back, l chooses another list, n "
-            "and p page, r reloads, q quits. It needs the optional Textual "
+            "Browse the shelf, see the metadata of a book and download its files "
+            "in an interactive terminal: the same operations as `dod list`, "
+            "`dod metadata`, `dod resources` and `dod download`, called without "
+            "blocking the screen. Keys: Enter opens the metadata of the selected "
+            "book, f lists its files, Escape goes back, l chooses another list, "
+            "n and p page, r reloads, q quits. On the file list d downloads "
+            "every file one after the other with progress, to the same "
+            "directory as `dod download` (needs an Environment and "
+            "DOD_DATA_DIR), and c cancels. It never issues a book and never "
+            "overwrites a file (use `dod download --force`); the address rules "
+            "of `dod download` apply, other hosts only with --trust-host. It needs "
+            "the optional Textual "
             "(`pip install 'dod-client\\[tui]'`) and exits 2 without it; it needs "
             "no audio player. It uses the stored Session (run `dod logon` "
             "first, or keep a password in the Environment) and is always "
@@ -878,7 +885,18 @@ def create_app(
             _fail("the TUI needs the optional Textual: pip install 'dod-client[tui]'")
         target = network_target(ctx, g)
         manager = service_manager(g, target, declaration(target.connection))
-        screen = create_tui(manager)
+        environment = target.connection.environment
+        downloads = DownloadSettings(
+            service_url=target.url,
+            directory_for=lambda content_id: (
+                book_directory(data_dir, environment.value, content_id)
+                if data_dir is not None and environment is not None
+                else None
+            ),
+            trust_host=target.connection.trust_host.value,
+            insecure=target.connection.insecure.value,
+        )
+        screen = create_tui(manager, downloads)
         with contextlib.suppress(KeyboardInterrupt):
             (run_tui or _run_app)(screen)
 
