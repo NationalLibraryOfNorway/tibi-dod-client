@@ -1,0 +1,31 @@
+tests/cli/test_session.py
+  s_614f17f4aee381::t_bc12698752899f 353-356
+  s_614f17f4aee381::t_88ed753cbd349a 1-352,357-361
+tests/support/_cli.py
+  s_614f17f4aee381::t_382a6334e071ca 8,21-23,40-45
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_bc12698752899f 6,20,22-23,27,102,110-111,114,264,272-273,276-309,313-314,317-426,526,530-596
+README.md
+  s_614f17f4aee381::t_5150746b418657 7,10,17-25
+  s_614f17f4aee381::t_33c381e56087d9 26
+THIRD-PARTY.md
+  s_614f17f4aee381::t_5150746b418657 25
+src/dod/main.py
+  s_614f17f4aee381::t_0f77f0dce4467d 3-4,6-12,22-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ef3f712d8b9706d3e9462384f12af56062458e01",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
