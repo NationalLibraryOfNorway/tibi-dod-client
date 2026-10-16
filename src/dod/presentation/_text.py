@@ -9,7 +9,7 @@ import re
 from typing import Any
 
 from dod.application import CANCELLED, DownloadReport, FileOutcome, Step
-from dod.domain.service import Fault, Ok
+from dod.domain.service import Exchange, Fault, Observation, Ok
 from dod.domain.v1 import ContentMetadata
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
@@ -80,3 +80,36 @@ def download_summary(report: DownloadReport, directory: str) -> str:
         return f"failed {name}: {reason}"
     count = len(report.files)
     return f"{count} file{'s' if count != 1 else ''} in {plain(directory)}"
+
+
+BODY_LIMIT = 2000
+
+
+def _body_lines(body: str) -> list[str]:
+    shown = body[:BODY_LIMIT]
+    lines = [plain(line) for line in shown.splitlines()] or [""]
+    if len(body) > BODY_LIMIT:
+        lines.append(f"[{len(body) - BODY_LIMIT} more characters not shown]")
+    return lines
+
+
+def log_lines(entries: tuple[Exchange | Observation, ...]) -> list[str]:
+    """The log panel's text: what was sent and received, and what was noticed.
+
+    The Exchanges are the masked copies the log holds; every character of them
+    comes from the network, so control characters are replaced (ADR 0008).
+    """
+    lines: list[str] = []
+    for entry in entries:
+        if isinstance(entry, Observation):
+            lines.append(f"observation {plain(entry.id)}: {plain(entry.message)}")
+            continue
+        lines.append(
+            f"exchange: {plain(entry.method)} {plain(entry.url)} -> {entry.status} "
+            f"in {round(entry.duration_seconds * 1000)} ms"
+        )
+        lines += [f"  > {plain(n)}: {plain(v)}" for n, v in entry.request_headers]
+        lines += [f"  > {line}" for line in _body_lines(entry.request_body)]
+        lines += [f"  < {plain(n)}: {plain(v)}" for n, v in entry.response_headers]
+        lines += [f"  < {line}" for line in _body_lines(entry.response_body)]
+    return lines

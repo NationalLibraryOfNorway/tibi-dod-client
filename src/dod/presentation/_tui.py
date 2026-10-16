@@ -23,8 +23,9 @@ from typing import Any, ClassVar
 
 from rich.text import Text
 from textual import on, work
-from textual.app import App, ComposeResult
+from textual.app import App, ComposeResult, ScreenStackError
 from textual.binding import Binding
+from textual.containers import VerticalScroll
 from textual.coordinate import Coordinate
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Input, Static
@@ -36,6 +37,8 @@ from dod.application import (
     FileOutcome,
     FileProgress,
     InitialisationFailed,
+    OpenPlayer,
+    Playback,
     SessionError,
     SessionManager,
     Step,
@@ -43,8 +46,16 @@ from dod.application import (
 )
 from dod.domain.service import Ok, TransportError
 from dod.domain.v1 import ContentList, ContentMetadata, ContentResources, ServicePort
+from dod.presentation._diagnostics import ActivityLog
 from dod.presentation._launch import DownloadSettings
-from dod.presentation._text import download_summary, metadata_lines, plain, step_line
+from dod.presentation._player_control import PlayerControl
+from dod.presentation._text import (
+    download_summary,
+    log_lines,
+    metadata_lines,
+    plain,
+    step_line,
+)
 
 _Bindings = list[Binding | tuple[str, str] | tuple[str, str, str]]
 PAGE_SIZE = 25
@@ -88,6 +99,18 @@ class Gateway:
                 return None, plain(str(error))
 
 
+class PlayerBar(Static):
+    """The player bar: what plays and how far, on every screen."""
+
+    def __init__(self) -> None:
+        super().__init__("", id="player", markup=False)
+
+    def on_mount(self) -> None:
+        app = self.app
+        if isinstance(app, DodTui):
+            self.update(app.player_line())
+
+
 class CatalogScreen(Screen[None]):
     """The shelf and the other content lists (`dod list`)."""
 
@@ -115,6 +138,7 @@ class CatalogScreen(Screen[None]):
         yield Static("", id="summary", markup=False)
         yield DataTable(id="items", cursor_type="row")
         yield Static("", id="status", markup=False)
+        yield PlayerBar()
         yield Footer()
 
     def on_mount(self) -> None:
@@ -174,6 +198,10 @@ class CatalogScreen(Screen[None]):
                 MetadataScreen(self._gateway, self._ids[event.cursor_row])
             )
 
+    def book_id(self) -> str | None:
+        row = self.query_one(DataTable).cursor_row
+        return self._ids[row] if 0 <= row < len(self._ids) else None
+
     def action_files(self) -> None:
         row = self.query_one(DataTable).cursor_row
         if 0 <= row < len(self._ids):
@@ -212,6 +240,7 @@ class MetadataScreen(Screen[None]):
         yield Header()
         yield Static(f"metadata {plain(self._content_id)}", id="heading", markup=False)
         yield Static("Loading...", id="details", markup=False)
+        yield PlayerBar()
         yield Footer()
 
     def on_mount(self) -> None:
@@ -227,6 +256,9 @@ class MetadataScreen(Screen[None]):
     def _show(self, shown: ContentMetadata | None, problem: str | None) -> None:
         text = "\n".join(metadata_lines(shown)) if shown is not None else problem
         self.query_one("#details", Static).update(text or "")
+
+    def book_id(self) -> str | None:
+        return self._content_id
 
     def action_back(self) -> None:
         self.app.pop_screen()
@@ -259,6 +291,7 @@ class ResourcesScreen(Screen[None]):
         yield Static(f"files of {plain(self._content_id)}", id="heading", markup=False)
         yield DataTable(id="files", cursor_type="row")
         yield Static("", id="status", markup=False)
+        yield PlayerBar()
         yield Footer()
 
     def on_mount(self) -> None:
@@ -369,6 +402,9 @@ class ResourcesScreen(Screen[None]):
         )
         status.update("cancelled" if stopped else download_summary(report, directory))
 
+    def book_id(self) -> str | None:
+        return self._content_id
+
     def action_cancel(self) -> None:
         if self._busy:
             self._cancel.set()
@@ -378,18 +414,140 @@ class ResourcesScreen(Screen[None]):
         self.app.pop_screen()
 
 
+class LogScreen(Screen[None]):
+    """The log panel: the Exchanges and Observations of this run, masked."""
+
+    BINDINGS: ClassVar[_Bindings] = [Binding("escape", "back", "Back")]
+
+    def __init__(self, log: ActivityLog) -> None:
+        super().__init__()
+        self._log = log
+        self._shown = -1
+
+    def compose(self) -> ComposeResult:
+        yield Header()
+        with VerticalScroll():
+            yield Static("", id="log", markup=False)
+        yield PlayerBar()
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self._refresh()
+        self.set_interval(0.5, self._refresh)
+
+    def _refresh(self) -> None:
+        entries = self._log.entries()
+        if len(entries) == self._shown:
+            return
+        self._shown = len(entries)
+        self.query_one("#log", Static).update(
+            "\n".join(log_lines(entries)) or "nothing exchanged yet"
+        )
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+
+
 class DodTui(App[None]):
-    """`dod tui`: browse the shelf, see a book's metadata, download its files."""
+    """`dod tui`: browse the shelf, see a book's metadata, download its files,
+    play a downloaded book and read the masked log."""
 
     TITLE = "dod"
-    BINDINGS: ClassVar[_Bindings] = [Binding("q", "quit", "Quit")]
+    BINDINGS: ClassVar[_Bindings] = [
+        Binding("q", "quit", "Quit"),
+        Binding("P", "play", "Play"),
+        Binding("space", "pause", "Pause/resume"),
+        Binding("x", "stop", "Stop"),
+        Binding("right_square_bracket", "next_clip", "Next"),
+        Binding("left_square_bracket", "previous_clip", "Previous"),
+        Binding("full_stop", "skip_forward", "+30 s"),
+        Binding("comma", "skip_back", "-30 s"),
+        Binding("L", "log", "Log"),
+    ]
+    TICK = 0.25
 
     def __init__(
-        self, manager: SessionManager, downloads: DownloadSettings | None = None
+        self,
+        manager: SessionManager,
+        downloads: DownloadSettings | None = None,
+        open_player: OpenPlayer | None = None,
+        log: ActivityLog | None = None,
     ) -> None:
         super().__init__()
         self._gateway = Gateway(manager)
         self._downloads = downloads
+        self._activity = log if log is not None else ActivityLog()
+        self._player = PlayerControl(
+            open_player,
+            downloads.directory_for if downloads is not None else None,
+            self._activity,
+        )
 
     def on_mount(self) -> None:
         self.push_screen(CatalogScreen(self._gateway, self._downloads))
+        self.set_interval(self.TICK, self._tick)
+
+    def on_unmount(self) -> None:
+        self._player.close()
+
+    def player_line(self) -> str:
+        return self._player.line()
+
+    def _show_player(self) -> None:
+        line = self._player.line()
+        try:
+            bars = self.screen.query(PlayerBar)
+        except ScreenStackError:
+            return  # the timer fired while the app was shutting down
+        for bar in bars:
+            bar.update(line)
+
+    def _tick(self) -> None:
+        self._player.tick()
+        self._show_player()
+
+    def action_play(self) -> None:
+        book = getattr(self.screen, "book_id", lambda: None)()
+        if book is not None:
+            self._player.note("preparing " + plain(book) + "...")
+            self._show_player()
+            self._prepare(book)
+
+    @work(thread=True, group="play", exclusive=True)
+    def _prepare(self, content_id: str) -> None:
+        prepared = self._player.prepare(content_id)
+        with contextlib.suppress(RuntimeError):
+            self.call_from_thread(self._prepared, prepared)
+
+    def _prepared(self, prepared: Playback | str) -> None:
+        if isinstance(prepared, str):
+            self._player.note(prepared)
+        else:
+            self._player.adopt(prepared)
+        self._show_player()
+
+    def _control(self, act: Callable[[], None]) -> None:
+        act()
+        self._show_player()
+
+    def action_pause(self) -> None:
+        self._control(self._player.toggle)
+
+    def action_stop(self) -> None:
+        self._control(self._player.stop)
+
+    def action_next_clip(self) -> None:
+        self._control(self._player.next)
+
+    def action_previous_clip(self) -> None:
+        self._control(self._player.previous)
+
+    def action_skip_forward(self) -> None:
+        self._control(self._player.forward)
+
+    def action_skip_back(self) -> None:
+        self._control(self._player.back)
+
+    def action_log(self) -> None:
+        if not isinstance(self.screen, LogScreen):
+            self.push_screen(LogScreen(self._activity))
