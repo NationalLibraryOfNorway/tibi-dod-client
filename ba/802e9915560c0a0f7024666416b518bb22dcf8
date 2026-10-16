@@ -1,0 +1,40 @@
+src/dod/application/__init__.py
+  s_614f17f4aee381::t_51a935c7d0d1fa 148
+  s_614f17f4aee381::t_0c2bc1c7df7e26 33-39,90-92
+  s_614f17f4aee381::t_f1f58ad5510d9f 136
+src/dod/presentation/_conformance.py
+  s_614f17f4aee381::t_51a935c7d0d1fa 14-20,24,61-67,77-83,129-130,132-136,159,162-170
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_902f2e52e5ba62 791-794
+  s_614f17f4aee381::t_0c2bc1c7df7e26 17-18,43,54,885
+  s_614f17f4aee381::t_51a935c7d0d1fa 825-849,854-856,886-898,905-906,910-912,914-921,944-952
+  s_614f17f4aee381::t_f81d6148f8f72d 953-954
+tests/cli/test_conformance.py
+  s_614f17f4aee381::t_0c2bc1c7df7e26 649-656
+  s_614f17f4aee381::t_794d7bd2bfdc3f 89,542,579,666-667
+  s_614f17f4aee381::t_34a742bc089bfb 677,690,692
+  s_614f17f4aee381::t_d0c879f668fe7d 223,540-541,543-578,580-648,657-665,668-676,678-689,691,693-743
+  s_614f17f4aee381::t_2d9305f8a1aff8 744-766
+src/dod/application/_baseline.py
+  s_614f17f4aee381::t_55f459afc50b34 1-112,119-123,125-127
+  s_614f17f4aee381::t_f1f58ad5510d9f 124,128
+  s_614f17f4aee381::t_0c2bc1c7df7e26 113-118
+README.md
+  s_614f17f4aee381::t_2d9305f8a1aff8 55-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ba802e9915560c0a0f7024666416b518bb22dcf8",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
