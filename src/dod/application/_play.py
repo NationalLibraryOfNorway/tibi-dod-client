@@ -19,6 +19,7 @@ from dod.domain.book import (
     BookErrorKind,
     Playlist,
     daisy202_playlist,
+    epub3_playlist,
 )
 from dod.domain.service import Observation
 
@@ -75,7 +76,7 @@ class PlayRefused(Exception):
 
 
 def open_book(directory: Path) -> Playlist:
-    """The Playlist of the DAISY 2.02 book in `directory`.
+    """The Playlist of the DAISY 2.02 or EPUB 3 book in `directory`.
 
     Raises `PlayRefused` if there is no such directory and `BookError` if the
     book has no usable structure. Files are read from inside the directory only.
@@ -98,6 +99,12 @@ def open_book(directory: Path) -> Playlist:
             )
         return file.read_bytes()
 
+    if (
+        read("master.smil") is None
+        and read("ncc.html") is None
+        and read("META-INF/container.xml") is not None
+    ):
+        return epub3_playlist(read)
     return daisy202_playlist(read)
 
 

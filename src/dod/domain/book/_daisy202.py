@@ -17,7 +17,7 @@ from collections.abc import Callable
 from lxml import etree
 
 from dod.domain.book._model import BookError, BookErrorKind, Clip, Playlist
-from dod.domain.book._paths import local_uri_segments
+from dod.domain.book._paths import local_uri_segments, resolve_reference
 
 Reader = Callable[[str], bytes | None]
 """Gives the bytes of a file of the book by its path, or None if it is missing."""
@@ -33,18 +33,26 @@ _UNIT_SECONDS = {"h": 3600.0, "min": 60.0, "s": 1.0, "ms": 0.001, None: 1.0}
 
 def daisy202_playlist(read: Reader) -> Playlist:
     """The Playlist of a book, or `BookError` saying why it has none."""
-    smils = _content_smils(read)
+    return Playlist(smil_clips(read, _content_smils(read), parents=False))
+
+
+def smil_clips(read: Reader, smils: list[str], *, parents: bool) -> tuple[Clip, ...]:
+    """Every `audio` element of the SMIL files, in order, as Clips.
+
+    `parents`: an audio path may use `..` to leave the SMIL file's directory (but
+    never the book), as in EPUB; DAISY 2.02 refuses `..`.
+    """
     clips: list[Clip] = []
     for path in smils:
         for element in _parse(path, _require(read, path), strict=True).iter():
             if _name(element) == "audio":
-                clips.append(_clip(path, element))
+                clips.append(_clip(path, element, parents=parents))
     if not clips:
         raise BookError(
             BookErrorKind.NO_SMIL,
             "the SMIL files of the book have no audio to play",
         )
-    return Playlist(tuple(clips))
+    return tuple(clips)
 
 
 def _content_smils(read: Reader) -> list[str]:
@@ -78,7 +86,7 @@ def _content_smils(read: Reader) -> list[str]:
         origin, base = NCC, ""
     paths: dict[str, None] = {}
     for reference in found:
-        paths[_join(base, reference.split("#", 1)[0], origin)] = None
+        paths[join_path(base, reference.split("#", 1)[0], origin)] = None
     if not paths:
         raise BookError(
             BookErrorKind.NO_SMIL,
@@ -87,9 +95,10 @@ def _content_smils(read: Reader) -> list[str]:
     return list(paths)
 
 
-def _clip(smil: str, element: etree._Element) -> Clip:
+def _clip(smil: str, element: etree._Element, *, parents: bool) -> Clip:
     base = smil.rpartition("/")[0]
-    file = _join(base, element.get("src", ""), smil)
+    src = element.get("src", "")
+    file = join_path(base, src, smil, parents=parents)
     begin = _time(smil, element, ("clip-begin", "clipBegin"))
     end = _time(smil, element, ("clip-end", "clipEnd"))
     if end is not None and end < (begin or 0.0):
@@ -131,9 +140,16 @@ def _seconds(value: str) -> float | None:
     return total if math.isfinite(total) else None
 
 
-def _join(base: str, reference: str, origin: str) -> str:
+def join_path(base: str, reference: str, origin: str, *, parents: bool = False) -> str:
     """A path inside the book named by `reference` in `origin`, or `BookError`."""
-    segments, problem = local_uri_segments(reference)
+    if parents:
+        segments, problem = resolve_reference(
+            tuple(filter(None, base.split("/"))), reference
+        )
+        if problem is None and segments is not None:
+            return "/".join(segments)
+    else:
+        segments, problem = local_uri_segments(reference)
     if problem is not None or segments is None:
         raise BookError(
             BookErrorKind.UNSAFE_PATH,

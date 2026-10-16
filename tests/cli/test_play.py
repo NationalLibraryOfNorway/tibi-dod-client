@@ -285,3 +285,67 @@ def test_without_an_environment_a_directory_is_required(
 
     assert result.exit_code == 2
     assert "--directory" in result.stderr
+
+
+def test_a_text_only_epub_is_refused_with_an_explanation(
+    service: FakeService, tmp_path: Path
+) -> None:
+    container = (
+        b'<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">'
+        b'<rootfiles><rootfile full-path="book.opf"/></rootfiles></container>'
+    )
+    package = (
+        b'<package xmlns="http://www.idpf.org/2007/opf"><manifest>'
+        b'<item id="c" href="c.xhtml"/></manifest>'
+        b'<spine><itemref idref="c"/></spine></package>'
+    )
+    book = {
+        "META-INF/container.xml": container,
+        "book.opf": package,
+        "c.xhtml": b"<html/>",
+    }
+    service.offer_resources("text", [resource(n, b) for n, b in book.items()])
+    for name, body in book.items():
+        service.offer_file(f"files/{name}", body)
+    run = Run(service, tmp_path)
+    assert run("logon").exit_code == 0
+    assert run("download", "text").exit_code == 0
+
+    result = run("play", "text")
+
+    assert result.exit_code == 2
+    assert "media overlay" in result.stderr
+    assert run.player.started == []
+
+
+def test_an_epub_3_book_with_media_overlays_plays_in_spine_order(
+    service: FakeService, tmp_path: Path
+) -> None:
+    book = {
+        "META-INF/container.xml": (
+            b'<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">'
+            b'<rootfiles><rootfile full-path="OEBPS/book.opf"/></rootfiles>'
+            b"</container>"
+        ),
+        "OEBPS/book.opf": (
+            b'<package xmlns="http://www.idpf.org/2007/opf"><manifest>'
+            b'<item id="c" href="c.xhtml" media-overlay="o"/>'
+            b'<item id="o" href="o.smil"/></manifest>'
+            b'<spine><itemref idref="c"/></spine></package>'
+        ),
+        "OEBPS/o.smil": (
+            b'<smil><body><seq><par><audio src="../a.wav"/></par></seq></body></smil>'
+        ),
+        "a.wav": b"synthetic-a",
+    }
+    service.offer_resources("epub", [resource(n, b) for n, b in book.items()])
+    for name, body in book.items():
+        service.offer_file(f"files/{name}", body)
+    run = Run(service, tmp_path)
+    assert run("logon").exit_code == 0
+    assert run("download", "epub").exit_code == 0
+
+    result = run("play", "epub")
+
+    assert result.exit_code == 0, result.stderr
+    assert [name for name, _ in run.player.started] == ["a.wav"]

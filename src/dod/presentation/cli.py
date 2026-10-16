@@ -1202,12 +1202,15 @@ def create_app(
         rich_help_panel=DOWNLOAD_AND_PLAY,
         epilog=_EPILOG,
         help=(
-            "Play a downloaded DAISY 2.02 book from the files on disk; nothing is "
-            "fetched or streamed. The order comes from master.smil, else from the "
-            "SMIL files ncc.html first links to, and never from file names. It "
+            "Play a downloaded DAISY 2.02 or EPUB 3 book from the files on disk; "
+            "nothing is fetched or streamed. The order comes from master.smil, "
+            "else from the SMIL files ncc.html first links to (DAISY 2.02), or "
+            "from the spine and the media overlays of its items (EPUB 3), and "
+            "never from file names. It "
             "needs the optional `miniaudio` (`pip install 'dod-client[play]'`; "
             "WAV, FLAC, MP3 and Ogg Vorbis, not AAC) and exits 2 without it. A "
-            "book without SMIL (audioOnly) is refused. The book is read from "
+            "book without SMIL (audioOnly) or an EPUB without media overlays "
+            "(text only) is refused with an explanation. The book is read from "
             "<data>/<environment>/books/<id>/ (DOD_DATA_DIR sets <data>), or from "
             "--directory. While playing, type a command and Enter: p "
             "pause/resume, n next clip, b previous clip, f forward 30 s, r back "
