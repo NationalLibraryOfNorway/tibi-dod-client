@@ -1,0 +1,53 @@
+README.md
+  s_614f17f4aee381::t_bc3fb8c4249982 87-95
+tests/cli/test_help.py
+  s_614f17f4aee381::t_bc3fb8c4249982 65
+src/dod/presentation/_launch.py
+  s_614f17f4aee381::t_3c2f42ee4840c1 1-22
+src/dod/presentation/__init__.py
+  s_614f17f4aee381::t_9815b88cd95ac6 1,11-18
+  s_614f17f4aee381::t_3c2f42ee4840c1 7
+pyproject.toml
+  s_614f17f4aee381::t_9aeefc94004449 38-39,56-57
+src/dod/presentation/_tui.py
+  s_614f17f4aee381::t_78f4e68fe2a0f2 37,73,174,209
+  s_614f17f4aee381::t_9815b88cd95ac6 1-17,19-36,38-72,74-173,175-208,210-216
+  s_614f17f4aee381::t_372ae0b17f8a04 18
+tests/tui/test_catalog.py
+  s_614f17f4aee381::t_78f4e68fe2a0f2 237,272
+  s_614f17f4aee381::t_db2e85215761eb 1-7,9,11-12,14-15,18-26,35-41,44-48,50-52,54-66,71-81,165,185-186,201,234,252
+  s_614f17f4aee381::t_aa93a81a2670fa 8,10,13,16-17,27-34,42-43,49,53,67-70,82-164,166-184,187-200,202-233,235-236,238-251,253-271,273-289
+tests/cli/test_tui.py
+  s_614f17f4aee381::t_3c2f42ee4840c1 62
+  s_614f17f4aee381::t_afdabbb8156276 1-61,63-125
+src/dod/presentation/_text.py
+  s_614f17f4aee381::t_db2e85215761eb 1-55
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_d29a0ff9b36b74 116-119
+  s_614f17f4aee381::t_78f4e68fe2a0f2 851
+  s_614f17f4aee381::t_372ae0b17f8a04 3,197,882,1616
+  s_614f17f4aee381::t_27d9836b20f701 12,121-122,213-214,841-850,852-877,879-881,883,1617
+  s_614f17f4aee381::t_3c2f42ee4840c1 112,878
+  s_614f17f4aee381::t_86295a34efa93a 120,884,1618-1619
+THIRD-PARTY.md
+  s_614f17f4aee381::t_f2c7f7e220e733 30-31,40-50
+  s_614f17f4aee381::t_663a44803541a9 51
+uv.lock
+  s_614f17f4aee381::t_2721c4552e4c7b 213-215,225,235,238,248,440-448,580-596,945-961
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df709738cd8b344e2674747a8d5ebf1bf96e82ea",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
