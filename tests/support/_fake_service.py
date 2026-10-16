@@ -16,7 +16,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape, quoteattr
 
 from lxml import etree
 
@@ -25,6 +25,7 @@ from dod.domain.v1 import (
     Announcement,
     ContentList,
     ContentMetadata,
+    ContentResource,
     ServicePort,
 )
 from dod.infrastructure import HttpServicePort, validate_document
@@ -119,6 +120,11 @@ class FakeService:
         self.read_announcements: set[str] = set()
         self.lists: dict[str, ContentList] = {}
         self.metadata: dict[str, ContentMetadata] = {}
+        # Books by content id: their resources and whether they are issued.
+        self.books: dict[str, tuple[tuple[ContentResource, ...], bool]] = {}
+        # Files served on plain GET by path (no leading slash), and exact answers.
+        self.files: dict[str, bytes] = {}
+        self.file_answers: dict[str, _Raw] = {}
         # The attributes of the Session cookie the Service sets on logOn.
         self.cookie_attributes = "Path=/; HttpOnly"
         self._injected: dict[str, tuple[FaultKind, str] | str | _Raw] = {}
@@ -183,6 +189,34 @@ class FakeService:
         self.lists = {item.id: item for item in lists}
         self.metadata = {item.identifier or "": item for item in metadata}
 
+    def offer_resources(
+        self,
+        content_id: str,
+        resources: Sequence[ContentResource],
+        *,
+        issued: bool = True,
+    ) -> None:
+        """Publish the files of a book; unless `issued` they are not available."""
+        self.books[content_id] = (tuple(resources), issued)
+
+    def offer_file(self, path: str, body: bytes) -> None:
+        """Serve `body` on GET of `/<path>`, with Range support."""
+        self.files[path] = body
+
+    def answer_file(
+        self,
+        path: str,
+        status: int,
+        body: bytes = b"",
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        """Answer GET of `/<path>` with exactly this."""
+        self.file_answers[path] = _Raw(status, body, headers or {})
+
+    def file_url(self, path: str) -> str:
+        host, port = self._server.server_address[:2]
+        return f"http://{host!s}:{port}/{path}"
+
     def inject_fault(self, operation: str, kind: FaultKind | str, reason: str) -> None:
         """Answer the next `operation` with the DODP fault `kind` (HTTP 500)."""
         self._injected[operation] = (FaultKind(kind), reason)
@@ -240,6 +274,9 @@ class FakeService:
     def handle_get(self, path: str, headers: dict[str, str]) -> _Raw:
         with self._lock:
             self.fetches.append(RecordedRequest(path, headers, b"", None))
+            served = self._file(path, headers)
+            if served is not None:
+                return served
             if path != self.wsdl_path:
                 return _Raw(404, b"<html><body>not found</body></html>")
             raw = _Raw(
@@ -249,6 +286,29 @@ class FakeService:
                 raw = _Raw(302, b"", {"Location": self.wsdl_redirect})
             raw.delay = self.wsdl_delay
             return raw
+
+    def _file(self, path: str, headers: dict[str, str]) -> _Raw | None:
+        name = path.removeprefix("/")
+        if name in self.file_answers:
+            return self.file_answers[name]
+        body = self.files.get(name)
+        if body is None:
+            return None
+        wanted = headers.get("Range", "")
+        if not wanted.startswith("bytes="):
+            return _Raw(200, body, {"Content-Type": "application/octet-stream"})
+        first, _, last = wanted.removeprefix("bytes=").partition("-")
+        start = int(first)
+        end = int(last) if last else len(body) - 1
+        end = min(end, len(body) - 1)
+        return _Raw(
+            206,
+            body[start : end + 1],
+            {
+                "Content-Type": "application/octet-stream",
+                "Content-Range": f"bytes {start}-{end}/{len(body)}",
+            },
+        )
 
     # -- the Service itself -----------------------------------------------
 
@@ -503,6 +563,30 @@ class FakeService:
         self._checked(xml)
         return _Raw(200, _envelope(xml))
 
+    def _op_getContentResources(self, payload: Any, headers: dict[str, str]) -> _Raw:
+        if self._session(headers) is None:
+            return self._no_session()
+        known = self.books.get(payload.findtext(f"{{{NS}}}contentID") or "")
+        if known is None or not known[1]:
+            return self._fault(FaultKind.INVALID_PARAMETER, "content is not issued")
+        items = "".join(
+            f"<resource uri={quoteattr(r.uri)} mimeType={quoteattr(r.mime_type)} "
+            f"size={quoteattr(str(r.size))} localURI={quoteattr(r.local_uri)}"
+            + (
+                f" lastModifiedDate={quoteattr(r.last_modified)}"
+                if r.last_modified
+                else ""
+            )
+            + "/>"
+            for r in known[0]
+        )
+        xml = (
+            f'<getContentResourcesResponse xmlns="{NS}">'
+            f"<resources>{items}</resources></getContentResourcesResponse>"
+        )
+        self._checked(xml)
+        return _Raw(200, _envelope(xml))
+
     def _op_markAnnouncementsAsRead(
         self, payload: Any, headers: dict[str, str]
     ) -> _Raw:
@@ -573,6 +657,21 @@ class HttpHarness:
         self, lists: Sequence[ContentList], metadata: Sequence[ContentMetadata]
     ) -> None:
         self.service.offer_catalog(lists, metadata)
+
+    def offer_resources(
+        self,
+        content_id: str,
+        resources: Sequence[ContentResource],
+        *,
+        issued: bool = True,
+    ) -> None:
+        self.service.offer_resources(content_id, resources, issued=issued)
+
+    def offer_file(self, path: str, body: bytes) -> None:
+        self.service.offer_file(path, body)
+
+    def file_url(self, path: str) -> str:
+        return self.service.file_url(path)
 
     def open_port(self) -> ServicePort:
         port = HttpServicePort(self.service.url)

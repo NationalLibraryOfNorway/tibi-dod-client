@@ -41,6 +41,16 @@ Ordinary commands reach the Service through the session manager: they reuse the 
 - `--format json` is a stable document (`result` plus `list` or `metadata`) that can go to `jq`; `--format xml` is the raw, masked response. Elements `dod` does not model are left out of text and JSON but stay in the raw response.
 - Reading is tolerant: an identifier that is not an `xs:NMTOKEN` (some menus have spaces in theirs) or any other schema violation is reported on stderr as a schema violation, not as a failure.
 
+### Resources and download
+
+- `dod resources <id>` shows `getContentResources` for an issued book as the Service gave it: address, `localURI`, size and MIME type. Nothing is downloaded. Userinfo in an address is masked.
+- `dod download <id>` calls `getContentResources` and then fetches each file with one HTTP GET, one after the other (no resume, no parallelism, no zip). It never issues the book itself: run `dod issue` first. For a book that is not issued the Service's `invalidParameter` fault is shown as it came (exit 1).
+- `--file <localURI>` (repeatable) fetches only the chosen files. The files go to `<data>/<environment>/books/<id>/`, where `<data>` is `DOD_DATA_DIR`, else the platform's user data directory (on Linux `~/.local/share/dod`) and the book id is encoded as one safe path segment. `--output <dir>` puts them in `<dir>` instead and is required without an Environment.
+- Everything the Service names is untrusted. Every `localURI` of the list is checked before the first byte is fetched: relative, no `..`, backslashes, drive letters or characters Windows forbids, no duplicates, and inside the target directory. One bad entry aborts with nothing written and is reported as a Spec deviation (exit 1). A file is written to a `.part` file and renamed only when its size is the announced one; otherwise it is discarded. Existing files are not overwritten without `--force`.
+- A relative address is resolved against the Service URL (Observation `interoperability`). An address on another host, port or scheme (a Service Delegate) is refused without `--trust-host` (Observation `host-boundary`); the Session cookie and your password are never sent there, only userinfo in the address itself and only to that host. `https` is required unless `--insecure`. Redirects are not followed.
+- Any status but 2xx is a Spec deviation and never causes a new login. An Exchange keeps the headers and the first 4 KiB of a resource body, marked as cut.
+- `--format json` is a stable document; `download` has no xml output.
+
 ### Conformance tests
 
 `dod test run` runs Conformance tests against a Service and reports one Outcome per test; `dod test list` shows the stable, hierarchical test ids (`session.logon.wrong-password`). The first families are `session`, `attributes` and `catalog`, and `negative` (explicit, see below).

@@ -8,6 +8,7 @@ from dod.infrastructure import (
     FileSessionStore,
     HttpFetcher,
     HttpServicePort,
+    data_directory,
     parse_reading_system,
     parse_wsdl,
 )
@@ -37,4 +38,5 @@ def main() -> None:
         parse_reading_system=parse_reading_system,
         open_raw=_open_http_raw,
         open_quirky=_open_http_quirky,
+        data_dir=data_directory(os.environ),
     )()

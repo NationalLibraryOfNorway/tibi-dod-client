@@ -8,11 +8,19 @@ from dod.domain.v1._models import (
     ContentItem,
     ContentList,
     ContentMetadata,
+    ContentResource,
+    ContentResources,
     ReadingSystemAttributes,
     ReadingSystemConfig,
     ServiceAttributes,
 )
-from dod.domain.v1._port import RawChannel, ServicePort
+from dod.domain.v1._port import (
+    ByteRange,
+    RawChannel,
+    ResourceSink,
+    ServicePort,
+    SinkRefused,
+)
 from dod.domain.v1._quirks import (
     BARE_500_AS_INVALID_OPERATION,
     OBSERVATION_ID,
@@ -27,15 +35,20 @@ __all__ = [
     "QUIRKS",
     "SPEC_REFS",
     "Announcement",
+    "ByteRange",
     "ContentItem",
     "ContentList",
     "ContentMetadata",
+    "ContentResource",
+    "ContentResources",
     "Quirk",
     "RawChannel",
     "ReadingSystemAttributes",
     "ReadingSystemConfig",
+    "ResourceSink",
     "ServiceAttributes",
     "ServicePort",
+    "SinkRefused",
     "fault_ref",
     "operation_ref",
 ]

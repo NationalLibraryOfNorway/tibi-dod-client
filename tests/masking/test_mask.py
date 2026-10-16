@@ -138,3 +138,17 @@ def test_unmasked_secrets_are_wrapped_in_removable_highlight_markers() -> None:
 
 HIGHLIGHT_START = ""
 HIGHLIGHT_END = ""
+
+
+def test_userinfo_of_an_address_inside_a_body_is_masked() -> None:
+    body = (
+        '<resources><resource uri="https://dg-user:dg-secret@cdn.example.net/a.mp3" '
+        'size="1"/><resource uri="files/b.mp3" size="2"/></resources>'
+    )
+
+    masked = mask(exchange(response_body=body))
+
+    assert "dg-secret" not in masked.response_body
+    assert "dg-user" not in masked.response_body
+    assert "@cdn.example.net/a.mp3" in masked.response_body
+    assert 'uri="files/b.mp3"' in masked.response_body

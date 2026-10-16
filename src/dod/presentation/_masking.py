@@ -36,6 +36,9 @@ _PASSWORD_ELEMENT = re.compile(
     r"(<(?:[\w.-]+:)?password(?:\s[^>]*)?>)([^<]*)(</(?:[\w.-]+:)?password\s*>)",
     re.IGNORECASE,
 )
+_URL_USERINFO = re.compile(
+    r"(\b[A-Za-z][A-Za-z0-9+.-]*://)([^/\s@\"'<>]+)@",
+)
 _CREDENTIAL_PARAMETER = re.compile(
     r"pass|token|secret|auth|cred|session|signature|api[-_]?key", re.IGNORECASE
 )
@@ -60,9 +63,13 @@ def mask(exchange: Exchange, policy: MaskPolicy | None = None) -> Exchange:
         exchange,
         url=mask_url(exchange.url, reveal=reveal),
         request_headers=_headers(exchange.request_headers, reveal),
-        request_body=_mask_password(exchange.request_body, policy.unmask_password),
+        request_body=_mask_userinfo(
+            _mask_password(exchange.request_body, policy.unmask_password), reveal
+        ),
         response_headers=_headers(exchange.response_headers, reveal),
-        response_body=_mask_password(exchange.response_body, policy.unmask_password),
+        response_body=_mask_userinfo(
+            _mask_password(exchange.response_body, policy.unmask_password), reveal
+        ),
     )
 
 
@@ -113,6 +120,13 @@ def _revealer(unmask: bool) -> Callable[[str, str], str]:
         return _fingerprint(value, kind)
 
     return show
+
+
+def _mask_userinfo(body: str, reveal: Callable[[str, str], str]) -> str:
+    """Userinfo of an address inside a body, such as a resource `uri` attribute."""
+    return _URL_USERINFO.sub(
+        lambda match: f"{match.group(1)}{reveal(match.group(2), 'salted')}@", body
+    )
 
 
 def _mask_password(body: str, unmask: bool) -> str:

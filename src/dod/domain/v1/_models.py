@@ -129,3 +129,29 @@ class ContentMetadata:
     contributors: tuple[str, ...] = ()
     narrators: tuple[str, ...] = ()
     meta: tuple[tuple[str, str], ...] = ()
+
+
+@dataclass(frozen=True)
+class ContentResource:
+    """One file of a book (specification 6.10), read leniently.
+
+    Everything here is whatever the Service sent and is untrusted (ADR 0008):
+    `uri` may be relative or name another host, `local_uri` may try to leave
+    the target directory and `size` may be wrong. A value the Service left out
+    or that is not a number is `None` (`size`) or empty.
+    """
+
+    uri: str
+    mime_type: str
+    size: int | None
+    local_uri: str
+    last_modified: str | None = None
+
+
+@dataclass(frozen=True)
+class ContentResources:
+    """The resources of one issued book (specification 6.10), read leniently."""
+
+    resources: tuple[ContentResource, ...] = ()
+    return_by: str | None = None
+    last_modified: str | None = None

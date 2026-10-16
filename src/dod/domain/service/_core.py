@@ -42,6 +42,8 @@ class Exchange:
     response_headers: tuple[tuple[str, str], ...]
     response_body: str
     duration_seconds: float = 0.0
+    response_truncated: bool = False
+    """The body is only its first bytes; the rest went to a sink (a resource GET)."""
 
 
 @dataclass(frozen=True)

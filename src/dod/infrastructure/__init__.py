@@ -4,6 +4,7 @@ May import the application and domain packages.
 """
 
 from dod.infrastructure._config_file import FileConfigStore
+from dod.infrastructure._data_dir import data_directory
 from dod.infrastructure._fetch import HttpFetcher
 from dod.infrastructure._http import HttpServicePort
 from dod.infrastructure._memory import InMemoryPort, InMemoryService
@@ -25,6 +26,7 @@ __all__ = [
     "InMemoryService",
     "SchemaFinding",
     "SchemaUnavailableError",
+    "data_directory",
     "parse_reading_system",
     "parse_wsdl",
     "validate_document",

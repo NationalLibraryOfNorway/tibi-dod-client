@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Protocol
 
 from dod.domain.service import Password, Reply, SessionState
@@ -10,9 +10,23 @@ from dod.domain.v1._models import (
     Announcement,
     ContentList,
     ContentMetadata,
+    ContentResources,
     ReadingSystemAttributes,
     ServiceAttributes,
 )
+
+type ResourceSink = Callable[[bytes], None]
+"""Receives the body of a resource chunk by chunk, in order."""
+
+type ByteRange = tuple[int, int | None]
+"""First and last byte, both inclusive; `None` as last byte means to the end."""
+
+
+class SinkRefused(Exception):
+    """Raised by a `ResourceSink` to stop a transfer; the message says why.
+
+    The port closes the connection and answers with a `Deviation`.
+    """
 
 
 class ServicePort(Protocol):
@@ -65,6 +79,25 @@ class ServicePort(Protocol):
 
     def get_content_metadata(self, content_id: str) -> Reply[ContentMetadata]:
         """The metadata of any content item, issued or not."""
+        ...
+
+    def get_content_resources(self, content_id: str) -> Reply[ContentResources]:
+        """The files of issued content; anything else is an `invalidParameter`."""
+        ...
+
+    def fetch_resource(
+        self, uri: str, sink: ResourceSink, byte_range: ByteRange | None = None
+    ) -> Reply[int]:
+        """GET `uri` (absolute) and stream the body to `sink`.
+
+        `Ok.value` is the number of bytes given to the sink. Any 2xx status is
+        `Ok` (206 only when a range was asked for) and every other status is a
+        `Deviation`, with nothing given to the sink. The Exchange keeps the
+        headers and the first 4 KiB of the body, marked truncated. The Session
+        cookie is sent only to the Service's own origin; only userinfo in `uri`
+        is used as credentials, and only towards that host. Redirects are not
+        followed, and a failed GET never leads to a new login (ADR 0005).
+        """
         ...
 
     def close(self) -> None:

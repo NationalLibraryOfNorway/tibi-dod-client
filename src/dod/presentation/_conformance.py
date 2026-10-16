@@ -112,7 +112,7 @@ def ref_json(ref: SpecReference | None) -> dict[str, Any] | None:
 
 def _exchange_json(exchange: Exchange) -> dict[str, Any]:
     masked = mask(exchange)
-    return {
+    document: dict[str, Any] = {
         "method": masked.method,
         "url": masked.url,
         "status": masked.status,
@@ -122,6 +122,9 @@ def _exchange_json(exchange: Exchange) -> dict[str, Any]:
         "response_headers": [list(pair) for pair in masked.response_headers],
         "response_body": masked.response_body,
     }
+    if masked.response_truncated:
+        document["response_body_truncated"] = True
+    return document
 
 
 def json_report(
