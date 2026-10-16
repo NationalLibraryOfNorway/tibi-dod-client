@@ -148,6 +148,12 @@ class HttpServicePort:
         cookies = tuple((c.name, c.value or "") for c in self._client.cookies.jar)
         return SessionState(cookies=cookies) if cookies else None
 
+    def resume(self, session: SessionState) -> None:
+        host = urlsplit(self._url).hostname or ""
+        self._client.cookies.clear()
+        for name, value in session.cookies:
+            self._client.cookies.set(name, value, domain=host)
+
     def log_on(self, username: str, password: Password) -> Reply[bool]:
         def fill(parent: etree._Element) -> None:
             _text_element(parent, "username", username)

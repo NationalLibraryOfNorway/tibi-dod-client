@@ -138,3 +138,38 @@ def test_every_reply_carries_an_exchange(port: ServicePort, operation: str) -> N
     reply = port.log_on(USER, PASSWORD) if operation == "logOn" else port.log_off()
 
     assert reply.exchange.status == 200
+
+
+def test_a_second_port_can_resume_a_session_from_its_state(
+    adapter: Harness,
+) -> None:
+    adapter.add_user(USER, PASSWORD.reveal())
+    first = adapter.open_port()
+    first.log_on(USER, PASSWORD)
+    state = first.session
+    assert state is not None
+
+    second = adapter.open_port()
+    second.resume(state)
+
+    reply = second.get_service_attributes()
+    assert isinstance(reply, Ok)
+    assert second.session == state
+
+
+def test_a_resumed_session_that_was_ended_is_a_no_active_session_fault(
+    adapter: Harness,
+) -> None:
+    adapter.add_user(USER, PASSWORD.reveal())
+    first = adapter.open_port()
+    first.log_on(USER, PASSWORD)
+    state = first.session
+    assert state is not None
+    first.log_off()
+
+    second = adapter.open_port()
+    second.resume(state)
+
+    reply = second.get_service_attributes()
+    assert isinstance(reply, Fault)
+    assert reply.kind is FaultKind.NO_ACTIVE_SESSION

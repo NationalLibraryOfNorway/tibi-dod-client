@@ -12,10 +12,12 @@ from dod.infrastructure._schema import (
     SchemaUnavailableError,
     validate_document,
 )
+from dod.infrastructure._session_file import FileSessionStore
 from dod.infrastructure._wsdl import parse_wsdl
 
 __all__ = [
     "FileConfigStore",
+    "FileSessionStore",
     "HttpFetcher",
     "HttpServicePort",
     "InMemoryPort",
