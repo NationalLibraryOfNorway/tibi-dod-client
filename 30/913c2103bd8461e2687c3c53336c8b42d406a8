@@ -1,0 +1,19 @@
+.habit-hooks/config.toml
+  s_777e689bf50fdf::t_dfdb44fa562ba3 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "30913c2103bd8461e2687c3c53336c8b42d406a8",
+  "prompts": {},
+  "sessions": {
+    "s_777e689bf50fdf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ac23d365-69c1-4e1c-b306-806864861d8a",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
