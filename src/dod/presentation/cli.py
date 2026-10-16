@@ -13,6 +13,7 @@ from typing import Annotated, Any, NoReturn
 import typer
 
 from dod.application import (
+    CONFORMANCE_TESTS,
     ConfigError,
     ConfigStore,
     Connection,
@@ -44,6 +45,8 @@ from dod.application import (
     origin,
     resolve_connection,
     resolve_endpoint,
+    run_conformance,
+    select,
 )
 from dod.domain.service import (
     Deviation,
@@ -60,6 +63,12 @@ from dod.domain.v1 import (
     ContentMetadata,
     ReadingSystemAttributes,
     ServicePort,
+)
+from dod.presentation._conformance import (
+    ReportExchanges,
+    json_report,
+    list_json,
+    text_report,
 )
 from dod.presentation._diagnostics import Diagnostics
 from dod.presentation._globals import (
@@ -738,7 +747,136 @@ def create_app(
             header=False,
         )
 
+    @groups["test"].command(
+        "list",
+        epilog=_EPILOG,
+        help=(
+            "List the ids of the Conformance tests, one per line. Nothing is "
+            "sent to a Service. --only and --skip narrow the list."
+        ),
+    )
+    def test_list(
+        ctx: typer.Context,
+        only: _ONLY = None,
+        skip: _SKIP = None,
+    ) -> None:
+        g = _globals(ctx)
+        _no_xml(g, "test list")
+        tests = _selected(only, skip)
+        if g.format is OutputFormat.JSON:
+            typer.echo(json.dumps(list_json(tests), indent=2))
+        else:
+            for chosen in tests:
+                typer.echo(chosen.id)
+
+    @groups["test"].command(
+        "run",
+        epilog=_EPILOG,
+        help=(
+            "Run Conformance tests against a Service and report one Outcome "
+            "(PASS, FAIL, SKIP or ERROR) per test. The run logs on with a "
+            "Session of its own and never uses a stored one. Exit code 0 "
+            "without FAIL or ERROR, 1 with FAIL only, 2 with any ERROR. "
+            "--format json gives a versioned report with masked Exchanges."
+        ),
+    )
+    def test_run(
+        ctx: typer.Context,
+        only: _ONLY = None,
+        skip: _SKIP = None,
+        state_changing: Annotated[
+            bool,
+            typer.Option(
+                "--state-changing",
+                help="Also run the State-changing tests, which alter data on the "
+                "Service. A protected Environment needs --confirm-env as well.",
+            ),
+        ] = False,
+        confirm_env: Annotated[
+            str | None,
+            typer.Option(
+                "--confirm-env",
+                help="The name of a protected Environment, to confirm that "
+                "State-changing tests may run against it.",
+            ),
+        ] = None,
+        report_exchanges: Annotated[
+            ReportExchanges,
+            typer.Option(
+                "--report-exchanges",
+                help="Which Exchanges the JSON report includes, masked: all, "
+                "failures (FAIL and ERROR tests) or none.",
+            ),
+        ] = ReportExchanges.FAILURES,
+    ) -> None:
+        g = _globals(ctx)
+        _no_xml(g, "test run")
+        _selected(only, skip)
+        target = network_target(ctx, g)
+        name = target.connection.environment
+        if (
+            state_changing
+            and target.connection.protected.value
+            and (name is None or confirm_env != name.value)
+        ):
+            _fail(
+                f"the Environment {name.value if name else '-'} is protected; "
+                "State-changing tests need "
+                f"--confirm-env {name.value if name else '<name>'}"
+            )
+        password = _password(g.password_stdin, target.connection)
+        try:
+            report = run_conformance(
+                target.diag.wrap(open_port),
+                target.url,
+                target.username,
+                password,
+                only=only or (),
+                skip=skip or (),
+                state_changing=state_changing,
+                insecure=target.connection.insecure.value,
+                reading_system=declaration(target.connection),
+            )
+        except EndpointError as error:
+            _fail(str(error))
+        if g.format is OutputFormat.JSON:
+            document = json_report(
+                report,
+                url=target.url,
+                environment=name.value if name else None,
+                exchanges=report_exchanges,
+            )
+            typer.echo(json.dumps(document, indent=2))
+        else:
+            for line in text_report(report, hyperlinks=sys.stdout.isatty()):
+                typer.echo(line)
+        raise typer.Exit(report.exit_code)
+
     return app
+
+
+_ONLY = Annotated[
+    list[str] | None,
+    typer.Option(
+        "--only",
+        help="Only tests whose id starts with this prefix (whole dotted "
+        "segments, e.g. session.logon). Can be repeated.",
+    ),
+]
+_SKIP = Annotated[
+    list[str] | None,
+    typer.Option(
+        "--skip",
+        help="Leave out tests whose id starts with this prefix. Can be repeated.",
+    ),
+]
+
+
+def _selected(only: list[str] | None, skip: list[str] | None) -> tuple[Any, ...]:
+    try:
+        return select(CONFORMANCE_TESTS, only or (), skip or ())
+    except ValueError as error:
+        _fail(str(error))
 
 
 def _globals(ctx: typer.Context) -> GlobalOptions:
