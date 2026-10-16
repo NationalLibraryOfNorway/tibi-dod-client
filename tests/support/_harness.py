@@ -25,6 +25,10 @@ class Harness(Protocol):
         """Make the next call of `operation` answer contrary to the specification."""
         ...
 
+    def inject_false(self, operation: str) -> None:
+        """Make the next call of `operation` answer a result of `false`."""
+        ...
+
     def offer_announcements(self, *announcements: Announcement) -> None:
         """Publish announcements, and let the Service declare the operations."""
         ...

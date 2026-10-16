@@ -382,6 +382,27 @@ class HttpServicePort:
             "markAnnouncementsAsRead", fill, self._result("markAnnouncementsAsRead")
         )
 
+    def issue_content(self, content_id: str) -> Reply[bool]:
+        def fill(parent: etree._Element) -> None:
+            _text_element(parent, "contentID", content_id)
+
+        return self._call("issueContent", fill, self._result("issueContent"))
+
+    def return_content(self, content_id: str) -> Reply[bool]:
+        def fill(parent: etree._Element) -> None:
+            _text_element(parent, "contentID", content_id)
+
+        reply = self._call("returnContent", fill, self._result("returnContent"))
+        if isinstance(reply, Ok) and reply.value is False:
+            return Deviation(
+                description="returnContentResult is false; the specification "
+                "allows only true or a fault",
+                spec_reference=operation_ref("returnContent"),
+                exchange=reply.exchange,
+                observations=reply.observations,
+            )
+        return reply
+
     def get_content_list(
         self, id: str, first_item: int, last_item: int
     ) -> Reply[ContentList]:

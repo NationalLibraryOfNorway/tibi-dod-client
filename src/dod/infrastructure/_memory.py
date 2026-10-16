@@ -44,6 +44,7 @@ class InMemoryService:
         self._users: dict[str, str] = {}
         self._sessions: set[str] = set()
         self._injected: dict[str, Fault | str] = {}
+        self._false: set[str] = set()
         self._announcements: tuple[Announcement, ...] = ()
         self._read: set[str] = set()
         self._lists: dict[str, ContentList] = {}
@@ -114,6 +115,10 @@ class InMemoryService:
     def inject_deviation(self, operation: str) -> None:
         """Make the next call of `operation` answer contrary to the specification."""
         self._injected[operation] = "deviation"
+
+    def inject_false(self, operation: str) -> None:
+        """Make the next call of `operation` answer `false`."""
+        self._false.add(operation)
 
     def open_port(self) -> InMemoryPort:
         return InMemoryPort(self)
@@ -291,6 +296,41 @@ class InMemoryPort:
                 exchange=exchange,
             )
         return Ok(value=known, exchange=exchange)
+
+    def issue_content(self, content_id: str) -> Reply[bool]:
+        return self._lend("issueContent", content_id, issued=True)
+
+    def return_content(self, content_id: str) -> Reply[bool]:
+        reply = self._lend("returnContent", content_id, issued=False)
+        if isinstance(reply, Ok) and reply.value is False:
+            return Deviation(
+                description="returnContentResult is false; the specification "
+                "allows only true or a fault",
+                spec_reference=operation_ref("returnContent"),
+                exchange=reply.exchange,
+            )
+        return reply
+
+    def _lend(self, operation: str, content_id: str, *, issued: bool) -> Reply[bool]:
+        injected = self._service._take_injected(operation)
+        if injected is not None:
+            return injected
+        if not self._active():
+            return _no_active_session(operation)
+        exchange = _exchange(operation)
+        known = self._service._resources.get(content_id)
+        if known is None and content_id not in self._service._metadata:
+            return Fault(
+                kind=FaultKind.INVALID_PARAMETER,
+                reason="unknown content",
+                exchange=exchange,
+            )
+        files = known[0] if known is not None else ContentResources(())
+        self._service._resources[content_id] = (files, issued)
+        if operation in self._service._false:
+            self._service._false.discard(operation)
+            return Ok(value=False, exchange=exchange)
+        return Ok(value=True, exchange=exchange)
 
     def get_content_resources(self, content_id: str) -> Reply[ContentResources]:
         injected = self._service._take_injected("getContentResources")

@@ -22,6 +22,9 @@ class _MemoryHarness:
     def inject_deviation(self, operation: str) -> None:
         self._service.inject_deviation(operation)
 
+    def inject_false(self, operation: str) -> None:
+        self._service.inject_false(operation)
+
     def offer_announcements(self, *announcements: Announcement) -> None:
         self._service.offer_announcements(*announcements)
 

@@ -224,6 +224,12 @@ class _RecordingPort:
     def mark_announcements_as_read(self, ids: Sequence[str]) -> Reply[bool]:
         return self._call(lambda: self._port.mark_announcements_as_read(ids))
 
+    def issue_content(self, content_id: str) -> Reply[bool]:
+        return self._call(lambda: self._port.issue_content(content_id))
+
+    def return_content(self, content_id: str) -> Reply[bool]:
+        return self._call(lambda: self._port.return_content(content_id))
+
     def get_content_list(
         self, id: str, first_item: int, last_item: int
     ) -> Reply[ContentList]:

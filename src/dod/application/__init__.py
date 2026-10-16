@@ -77,6 +77,12 @@ from dod.application._download import (
     safe_segment,
     validate_resources,
 )
+from dod.application._lending import (
+    LocalCopy,
+    ReturnReport,
+    ReturnRequest,
+    return_content,
+)
 from dod.application._logon import (
     LogonReport,
     OpenPort,
@@ -125,6 +131,7 @@ __all__ = [
     "FileResult",
     "InitialisationFailed",
     "LoadedConfig",
+    "LocalCopy",
     "LogoffResult",
     "LogonReport",
     "MarkOutcome",
@@ -144,6 +151,8 @@ __all__ = [
     "ResolvedResource",
     "ResourceRefused",
     "Result",
+    "ReturnReport",
+    "ReturnRequest",
     "RunReport",
     "SessionError",
     "SessionKey",
@@ -171,6 +180,7 @@ __all__ = [
     "resolve_connection",
     "resolve_endpoint",
     "resolve_resource_uri",
+    "return_content",
     "run_conformance",
     "safe_segment",
     "select",
