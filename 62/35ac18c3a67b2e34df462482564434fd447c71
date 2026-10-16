@@ -1,0 +1,23 @@
+src/dod/application/_config.py
+  s_614f17f4aee381::t_1e4cdc99bdccf8 302-306,309-311,315-316
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_1e4cdc99bdccf8 2264
+tests/cli/test_quirks.py
+  s_614f17f4aee381::t_0d90616bf75d1d 123-172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6235ac18c3a67b2e34df462482564434fd447c71",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
