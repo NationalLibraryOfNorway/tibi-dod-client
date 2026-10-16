@@ -1,0 +1,32 @@
+tests/cli/test_conformance.py
+  s_614f17f4aee381::t_442c5c8aa33fe6 1-46,48-233,238-252,254-256,258-270,286-338,340-342,344-365,367-397,399-412,414-438
+  s_614f17f4aee381::t_a914e285e64140 47,366
+  s_614f17f4aee381::t_8834360ed77f0d 234-237,253,257,271-285,339,343
+  s_614f17f4aee381::t_58bdc515b22dca 398,413
+src/dod/presentation/_conformance.py
+  s_614f17f4aee381::t_a914e285e64140 1-164
+src/dod/presentation/cli.py
+  s_614f17f4aee381::t_a914e285e64140 16,48-49,67-72,750-854,858-879
+  s_614f17f4aee381::t_6aa3c944a3cd30 880-881
+GLOSSARY.md
+  s_614f17f4aee381::t_bc26dd985093f4 73
+README.md
+  s_614f17f4aee381::t_f6c846885a727d 44-53
+  s_614f17f4aee381::t_bc26dd985093f4 145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a239bab70bf4c77b0c6ccce6654619f4dc696bdd",
+  "prompts": {},
+  "sessions": {
+    "s_614f17f4aee381": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88746bd2-2c34-45bf-8568-783a39685145",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Jostein Austvik Jacobsen <jostein.jacobsen@nb.no>"
+    }
+  }
+}
