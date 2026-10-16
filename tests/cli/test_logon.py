@@ -210,18 +210,12 @@ def test_the_password_prompt_does_not_echo_the_password() -> None:
     assert PASSWORD not in result.output
 
 
-def test_logon_help_describes_the_options() -> None:
+def test_logon_help_points_to_the_global_options() -> None:
     result = run_dod("logon", "--help")
 
     assert result.returncode == 0
-    for option in (
-        "--no-session",
-        "--url",
-        "--username",
-        "--password-stdin",
-        "--insecure",
-    ):
-        assert option in result.stdout
+    assert "dod --help" in result.stdout
+    assert "--no-session" in run_dod("--help").stdout
 
 
 def test_logon_is_listed_under_session_and_setup() -> None:

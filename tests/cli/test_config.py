@@ -456,10 +456,12 @@ def test_logon_with_a_broken_config_is_exit_2_before_anything_is_sent(
 
 @pytest.mark.parametrize("command", [("config", "show"), ("logon",)])
 def test_help_describes_the_configuration_options(command: tuple[str, ...]) -> None:
+    top_level = run_dod("--help")
     result = run_dod(*command, "--help")
 
     for option in ("--config", "--env"):
-        assert option in result.stdout
+        assert option in top_level.stdout
+    assert "dod --help" in result.stdout
 
 
 @pytest.mark.parametrize("name", ["path", "check", "show"])

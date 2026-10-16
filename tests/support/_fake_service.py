@@ -97,6 +97,8 @@ class FakeService:
         self.invalid_documents: list[str] = []
         self.invalid_responses: list[str] = []
         self.service_attributes_xml = _SERVICE_ATTRIBUTES
+        # The attributes of the Session cookie the Service sets on logOn.
+        self.cookie_attributes = "Path=/; HttpOnly"
         self._injected: dict[str, tuple[FaultKind, str] | str | _Raw] = {}
         self._raw: _Raw | None = None
         self._delays: dict[str, float] = {}
@@ -287,7 +289,7 @@ class FakeService:
         token = secrets.token_hex(8)
         self.sessions.add(token)
         return self._result(
-            "logOn", True, {"Set-Cookie": f"session={token}; Path=/; HttpOnly"}
+            "logOn", True, {"Set-Cookie": f"session={token}; {self.cookie_attributes}"}
         )
 
     def _op_logOff(self, payload: Any, headers: dict[str, str]) -> _Raw:

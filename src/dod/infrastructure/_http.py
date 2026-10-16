@@ -242,6 +242,7 @@ class HttpServicePort:
             response_body=response.content.decode("utf-8", errors="replace"),
             duration_seconds=time.perf_counter() - started,
         )
+        observations = self._observations + self._cookie_observations(response)
         if 300 <= response.status_code < 400:
             raise TransportError(
                 f"{operation}: the Service redirected (HTTP {response.status_code}); "
@@ -255,12 +256,10 @@ class HttpServicePort:
                 description="the SOAP body is empty",
                 spec_reference=operation_reference(operation),
                 exchange=exchange,
-                observations=self._observations,
+                observations=observations,
             )
         if payload.tag == f"{{{_SOAP}}}Fault":
-            return self._fault(
-                payload, exchange=exchange, observations=self._observations
-            )
+            return self._fault(payload, exchange=exchange, observations=observations)
         if payload.tag != _dodp(f"{operation}Response"):
             return Deviation(
                 description=(
@@ -269,7 +268,7 @@ class HttpServicePort:
                 ),
                 spec_reference=operation_reference(operation),
                 exchange=exchange,
-                observations=self._observations,
+                observations=observations,
             )
         parsed = read(payload)
         if parsed is None:
@@ -277,7 +276,7 @@ class HttpServicePort:
                 description=f"{operation}Response lacks a usable result",
                 spec_reference=operation_reference(operation),
                 exchange=exchange,
-                observations=self._observations,
+                observations=observations,
             )
         if isinstance(parsed, Deviation):
             return parsed
@@ -286,7 +285,28 @@ class HttpServicePort:
             value=value,
             schema_violations=violations,
             exchange=exchange,
-            observations=self._observations,
+            observations=observations,
+        )
+
+    def _cookie_observations(self, response: httpx.Response) -> tuple[Observation, ...]:
+        """`cookie-hardening`: a Session cookie set without protective attributes."""
+        weaknesses: list[str] = []
+        for header in response.headers.get_list("set-cookie"):
+            attributes = {
+                part.strip().split("=", 1)[0].lower() for part in header.split(";")[1:]
+            }
+            if "httponly" not in attributes:
+                weaknesses.append("HttpOnly")
+            if "secure" not in attributes and self._url.lower().startswith("https:"):
+                weaknesses.append("Secure")
+        if not weaknesses:
+            return ()
+        missing = " and ".join(dict.fromkeys(weaknesses))
+        return (
+            Observation(
+                id="cookie-hardening",
+                message=f"the Service sets a cookie without {missing}",
+            ),
         )
 
     @staticmethod

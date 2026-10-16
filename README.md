@@ -56,6 +56,21 @@ Names match `[a-z0-9][a-z0-9_-]*`. Unknown keys, wrong types, and `token` or `co
 
 `dod config check` validates every Environment without network access, and `dod config show` prints the effective configuration with the source of each value and `password = ***`. `dod logon --env test --no-session` logs on with an Environment.
 
+## Global options
+
+These flags are global: `--env --url --wsdl --username --config --format --debug --save-exchanges --quiet --no-session --insecure --trust-host --unmask --unmask-password --password-stdin`. They are listed in `dod --help` and are accepted before or after the command (`dod --quiet logon` and `dod logon --quiet` are the same), so every command inherits them. `--format text|json|xml` is `text` by default; a command without JSON or XML output refuses them with exit code 2 instead of ignoring them.
+
+## Diagnostics and masking
+
+Diagnostics only go to stderr or to files; stdout carries the result, so `dod logon --format json > out.json` is always valid JSON.
+
+- `--debug` writes every Exchange as a readable block on stderr: method and URL, masked headers, pretty-printed SOAP, status and duration.
+- `--save-exchanges <dir>` writes `NNN-<operation>.request.xml`, `.response.xml` and a small `.json` (method, URL, status, duration, headers) per Exchange; the directory is created if needed.
+- `--format xml` writes the raw, masked responses to stdout, one per call. `--format json` writes a small result document.
+- Masking is always on for stderr, files and reports (ADR 0007): the `logOn` password, the values of `Cookie`, `Set-Cookie`, `Authorization` and `Proxy-Authorization`, URL userinfo and credential-like query parameters become `***[ab12cd]`, a short fingerprint that is the same for the same value, so you can see that two Exchanges shared a Session. Fingerprints of passwords and userinfo are salted per run.
+- `--unmask` (cookies and headers) and `--unmask-password` (the password, after a confirmation on stdin) work only with `--debug`, only from the command line (no environment variable or setting), and only when stderr is a terminal. They are refused with exit code 2 together with `--save-exchanges`, when stderr is not a terminal, and `--unmask-password` also with `--password-stdin` or when stdin is not a terminal. A warning is written before and after, and the secrets are highlighted with colour (not markers, so a copied message stays valid XML); with `NO_COLOR` only the warnings remain.
+- Observations (`transport-security`, `cookie-hardening`, `host-boundary`, `interoperability`) are written on stderr, once per run, and never change the exit code.
+
 ## Development
 
 `dod` needs Python 3.12 or later and uses [uv](https://docs.astral.sh/uv/) for its development environment. The distribution is called `dod-client`, the command `dod` and the import package `dod`; the version comes from the git tag.
